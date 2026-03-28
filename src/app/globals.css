@@ -1,49 +1,320 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-html {
-  height: 100%;
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --bg-deep: #0c1222;
+  --bg-mid: #111a2e;
+  --bg-surface: rgba(12, 18, 34, 0.5);
+  --text-primary: #e8e6e3;
+  --text-secondary: #7a8ba8;
+  --text-muted: #4a5a73;
+  --gold: #c9a84c;
+  --gold-light: #dfc07a;
+  --gold-dark: #9a7b2e;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-hover: rgba(201, 168, 76, 0.3);
 }
 
 * {
   box-sizing: border-box;
-  padding: 0;
   margin: 0;
+  padding: 0;
+}
+
+html, body {
+  background-color: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: 'Space Grotesk', var(--font-inter), sans-serif;
+  overflow-x: hidden;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-outfit), 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 a {
   color: inherit;
   text-decoration: none;
+  transition: all 0.3s ease;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+a:hover {
+  color: var(--gold-light);
+}
+
+/* Glass panel — extremely subtle, almost invisible */
+.glass-panel {
+  background: var(--bg-surface);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+}
+
+/* Glow on headers — soft and diffused */
+.glow-text {
+  text-shadow: 0 0 60px rgba(201, 168, 76, 0.15);
+}
+
+/* Gold gradient text — richer and smoother */
+.gradient-text {
+  background: linear-gradient(135deg, #f0d78c, #c9a84c, #a07828);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Multi-color gradient text — inspired by Antariksh */
+.multi-gradient-text {
+  background: linear-gradient(90deg, #f97316, #ec4899, #06b6d4, #22c55e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Hero title — Cinzel serif with generous letter spacing */
+.hero-title {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* Subtitle — wide-tracked, ultra-clean */
+.hero-subtitle {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 300;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+/* Section titles */
+.section-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.8rem;
+  color: var(--gold);
+  margin-bottom: 1rem;
+}
+
+/* Feature cards — borderless by default, border on hover */
+.feature-card {
+  display: block;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  transition: all 0.4s ease;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: rgba(15, 22, 40, 0.3);
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-hover);
+  background: rgba(20, 28, 50, 0.5);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Buttons — clean outline style inspired by reference */
+.btn-primary {
+  display: inline-block;
+  padding: 0.85rem 2.5rem;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+  color: #0c1222;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--gold-light), var(--gold));
+  box-shadow: 0 4px 30px rgba(201, 168, 76, 0.3);
+  transform: translateY(-2px);
+  color: #0c1222;
+}
+
+.btn-secondary {
+  display: inline-block;
+  padding: 0.85rem 2.5rem;
+  background: transparent;
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  color: var(--gold-light);
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  border-color: var(--gold);
+  background: rgba(201, 168, 76, 0.08);
+  box-shadow: 0 4px 30px rgba(201, 168, 76, 0.15);
+  transform: translateY(-2px);
+}
+
+.feature-card:hover .gallery-img {
+  transform: scale(1.05);
+}
+
+/* Nav links with underline animation */
+.nav-link {
+  position: relative;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--gold);
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+/* Divider */
+.gold-divider {
+  width: 50px;
+  height: 1px;
+  background: var(--gold);
+  margin: 0 auto;
+  opacity: 0.6;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-deep);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(201, 168, 76, 0.3);
+  border-radius: 3px;
+}
+
+::selection {
+  background: rgba(201, 168, 76, 0.25);
+  color: var(--text-primary);
+}
+
+/* Dropdown menus */
+.nav-dropdown {
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 0.8rem;
+  background: rgba(12, 18, 34, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 0.5rem 0;
+  min-width: 180px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 200;
+}
+
+.nav-dropdown:hover .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  margin-top: 0.4rem;
+}
+
+.dropdown-item {
+  display: block;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+  transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+  color: var(--gold-light);
+  background: rgba(201, 168, 76, 0.06);
+}
+
+/* Page container utility */
+.page-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4rem 2rem 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.page-title {
+  font-family: 'Cinzel', serif;
+  font-size: 2.8rem;
+  text-align: center;
+  margin-bottom: 1rem;
+  letter-spacing: 0.06em;
+}
+
+.page-subtitle {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 300;
+  max-width: 550px;
+  line-height: 1.7;
+  margin-bottom: 3rem;
+}
+
+/* Members-only gate */
+.login-gate {
+  text-align: center;
+  padding: 6rem 2rem;
+}
+
+.login-gate h2 {
+  font-family: 'Cinzel', serif;
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.login-gate p {
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  font-weight: 300;
 }
