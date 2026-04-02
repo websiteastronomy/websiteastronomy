@@ -6,6 +6,9 @@ import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { revalidatePath } from "next/cache";
 import { logActivityAction } from "./activity";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { assertProjectPermission } from "@/lib/project_permissions";
 
 export interface ProjectFile {
   id: string;
@@ -41,6 +44,9 @@ export async function createProjectFolderAction(
   parentId: string | null,
   uploadedBy: string = "Unknown"
 ): Promise<ProjectFile> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  await assertProjectPermission(projectId, session?.user?.id, "canUpload");
+
   const id = uuidv4();
   const now = new Date();
   
@@ -77,6 +83,9 @@ export async function uploadProjectFileAction(
     url?: string;
   }
 ): Promise<ProjectFile> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  await assertProjectPermission(projectId, session?.user?.id, "canUpload");
+
   const id = uuidv4();
   const now = new Date();
   
@@ -103,9 +112,14 @@ export async function uploadProjectFileAction(
 }
 
 export async function deleteProjectFileAction(fileId: string): Promise<void> {
+  const session = await auth.api.getSession({ headers: await headers() });
+
   // Get file info before deletion for activity log
   const [file] = await db.select({ projectId: project_files.projectId, name: project_files.name })
     .from(project_files).where(eq(project_files.id, fileId));
+
+  if (!file) return;
+  await assertProjectPermission(file.projectId, session?.user?.id, "canEdit");
 
   await db.delete(project_files).where(eq(project_files.id, fileId));
 
@@ -137,6 +151,9 @@ export async function renameProjectFileAction(
   if (!file) {
     throw new Error("File not found.");
   }
+
+  const session = await auth.api.getSession({ headers: await headers() });
+  await assertProjectPermission(file.projectId, session?.user?.id, "canEdit");
 
   await db
     .update(project_files)

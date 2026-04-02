@@ -6,6 +6,9 @@ import { eq, desc, asc } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { revalidatePath } from "next/cache";
 import { logActivityAction } from "./activity";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { assertProjectPermission } from "@/lib/project_permissions";
 
 export interface ProjectDiscussionMessage {
   id: string;
@@ -38,6 +41,9 @@ export async function addDiscussionMessageAction(
     replyToId?: string | null;
   }
 ): Promise<ProjectDiscussionMessage> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  await assertProjectPermission(projectId, session?.user?.id, "canComment");
+
   const id = uuidv4();
   const now = new Date();
 
@@ -62,6 +68,11 @@ export async function addDiscussionMessageAction(
 }
 
 export async function togglePinDiscussionMessageAction(messageId: string, isPinned: boolean): Promise<void> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  const [msg] = await db.select({ projectId: project_discussion.projectId }).from(project_discussion).where(eq(project_discussion.id, messageId));
+  if (!msg) return;
+  await assertProjectPermission(msg.projectId, session?.user?.id, "canEdit");
+
   await db
     .update(project_discussion)
     .set({ isPinned, updatedAt: new Date() })
@@ -71,8 +82,12 @@ export async function togglePinDiscussionMessageAction(messageId: string, isPinn
 }
 
 export async function deleteDiscussionMessageAction(messageId: string): Promise<void> {
+  const session = await auth.api.getSession({ headers: await headers() });
   const [msg] = await db.select({ projectId: project_discussion.projectId, text: project_discussion.text })
     .from(project_discussion).where(eq(project_discussion.id, messageId));
+
+  if (!msg) return;
+  await assertProjectPermission(msg.projectId, session?.user?.id, "canEdit");
 
   await db.delete(project_discussion).where(eq(project_discussion.id, messageId));
 

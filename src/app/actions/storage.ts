@@ -7,6 +7,7 @@ import { eq, desc, and, like } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
+import { hasPermission } from "@/lib/permissions";
 
 // Configure R2 Client
 const r2 = new S3Client({
@@ -38,7 +39,9 @@ export async function setSystemMaxFileSize(mb: number) {
   if (!session?.user) throw new Error("Unauthorized");
   
   const userRes = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
-  if (!userRes.length || userRes[0].role !== "admin") throw new Error("Unauthorized");
+  if (!userRes.length) throw new Error("Unauthorized");
+  // Only users with assign_roles permission (Admins in RBAC) may change storage limits.
+  if (!await hasPermission(session.user.id, "assign_roles")) throw new Error("Unauthorized: Admin access required");
 
   if (mb < 1 || mb > 100) throw new Error("Size must be between 1MB and 100MB");
 

@@ -1,4 +1,3 @@
-// @ts-ignore
 import * as nodemailer from 'nodemailer';
 
 export async function POST(req: Request) {

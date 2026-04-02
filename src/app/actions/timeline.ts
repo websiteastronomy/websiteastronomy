@@ -6,6 +6,9 @@ import { eq, desc } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { revalidatePath } from "next/cache";
 import { logActivityAction } from "./activity";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { assertProjectPermission } from "@/lib/project_permissions";
 
 export interface ProjectTimelineEntry {
   id: string;
@@ -39,6 +42,9 @@ export async function addTimelineEntryAction(
     attachedFiles?: any[];
   }
 ): Promise<ProjectTimelineEntry> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  await assertProjectPermission(projectId, session?.user?.id, "canEdit");
+
   const id = uuidv4();
   const now = new Date();
 
@@ -66,8 +72,13 @@ export async function addTimelineEntryAction(
 }
 
 export async function deleteTimelineEntryAction(entryId: string): Promise<void> {
+  const session = await auth.api.getSession({ headers: await headers() });
+
   const [entry] = await db.select({ projectId: project_timeline.projectId, title: project_timeline.title })
     .from(project_timeline).where(eq(project_timeline.id, entryId));
+
+  if (!entry) return;
+  await assertProjectPermission(entry.projectId, session?.user?.id, "canEdit");
 
   await db.delete(project_timeline).where(eq(project_timeline.id, entryId));
 

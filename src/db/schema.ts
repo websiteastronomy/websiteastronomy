@@ -14,6 +14,12 @@ export const users = pgTable("user", {
   status: text("status").default("pending").notNull(),
   role: text("role").default("none").notNull(), // LEGACY FIELD - DO NOT REMOVE
   roleId: text("role_id"), // NEW FK FIELD
+  // --- PROFILE UNIFICATION FIELDS ---
+  profileImageKey: text("profile_image_key"),    // R2 object key
+  department: text("department"),
+  quote: text("quote"),
+  responsibility: text("responsibility"),
+  isPublic: boolean("is_public").default(false).notNull(),
 });
 
 export const sessions = pgTable("session", {
@@ -120,9 +126,19 @@ export const projects = pgTable("projects", {
   isPublished: boolean("isPublished").default(true).notNull(),
   progress: integer("progress").default(0).notNull(),
   tags: jsonb("tags").default('[]').notNull(),        // string[]
-  team: jsonb("team").default('[]').notNull(),        // ProjectMember[]
+  team: jsonb("team").default('[]').notNull(),        // LEGACY - JSON ProjectMember[]
   updates: jsonb("updates").default('[]'),            // ProjectUpdate[]
   ...timestamps
+});
+
+export const projectMemberRoleEnum = pgEnum("project_member_role", ["member", "lead"]);
+
+export const project_members = pgTable("project_members", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  role: projectMemberRoleEnum("role").notNull().default("member"),
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
 });
 
 export const taskStatusEnum = pgEnum("task_status", ["todo", "inProgress", "review", "done"]);
@@ -282,6 +298,9 @@ export const members = pgTable("members", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   role: text("role").notNull(),
+  dept: text("dept"),
+  imageUrl: text("image_url"),
+  bio: text("bio"),
   ...timestamps
 });
 
@@ -357,3 +376,58 @@ export const role_permissions = pgTable("role_permissions", {
   permissionId: text("permission_id").notNull().references(() => permissions.id, { onDelete: 'cascade' }),
 });
 
+// ==============================================================================
+// BLOCK B: APPROVALS & GOVERNANCE (PHASE 6)
+// ==============================================================================
+
+export const approvalStatusEnum = pgEnum("approval_status", ["pending", "approved", "rejected"]);
+export const approvalVoteActionEnum = pgEnum("approval_vote_action", ["approve", "reject"]);
+
+export const approvals = pgTable("approvals", {
+  id: text("id").primaryKey(),
+  targetAction: text("target_action").notNull(), // e.g. 'DELETE_PROJECT', 'ESCALATE_ROLE'
+  targetEntityId: text("target_entity_id").notNull(), 
+  requestedBy: text("requested_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  status: approvalStatusEnum("status").notNull().default("pending"),
+  payload: jsonb("payload"), // Flexible data needed to execute the action if approved
+  ...timestamps
+});
+
+export const approval_votes = pgTable("approval_votes", {
+  id: text("id").primaryKey(),
+  approvalId: text("approval_id").notNull().references(() => approvals.id, { onDelete: "cascade" }),
+  voterId: text("voter_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  vote: approvalVoteActionEnum("vote").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ==============================================================================
+// BLOCK B: AUDIT LOGS (PHASE 8)
+// ==============================================================================
+
+export const audit_logs = pgTable("audit_logs", {
+  id: text("id").primaryKey(),
+  actorId: text("actor_id").references(() => users.id, { onDelete: "set null" }), // The user performing the action
+  action: text("action").notNull(), // e.g., 'UPLOAD_SECURITY_DOC', 'APPROVE_MEMBER'
+  targetEntity: text("target_entity").notNull(), // e.g., 'file', 'user'
+  entityId: text("entity_id").notNull(),
+  ipAddress: text("ip_address"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ==============================================================================
+// BLOCK B: NOTIFICATIONS (PHASE 9)
+// ==============================================================================
+
+export const notificationTypeEnum = pgEnum("notification_type", ["mention", "task_assigned", "approval_request", "system"]);
+
+export const notifications = pgTable("notifications", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: notificationTypeEnum("type").notNull().default("system"),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  isRead: boolean("is_read").default(false).notNull(),
+  link: text("link"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

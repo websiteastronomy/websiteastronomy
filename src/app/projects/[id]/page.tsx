@@ -46,6 +46,9 @@ import {
   type ProjectActivity,
 } from "@/app/actions/activity";
 import { authClient } from "@/lib/auth-client";
+import { getMyRBACProfile } from "@/app/actions/auth";
+import { getProjectPermissionsAction } from "@/app/actions/projectAccess";
+import { type ProjectPermissions } from "@/lib/project_permissions";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatTimeAgo(dateInput: string | Date) {
@@ -204,41 +207,62 @@ export default function ProjectDetail() {
 
   const { data: session, isPending } = authClient.useSession();
   const userName = session?.user?.name || "Unknown";
-  const globalRole = (session?.user as any)?.role || "user";
+
+  // ── RBAC: Fetch the user's real role name from the DB ────────────────────────
+  // Replaces the legacy (session?.user as any)?.role string read.
+  const [globalRoleName, setGlobalRoleName] = useState<string>("none");
+  useEffect(() => {
+    if (!session?.user?.id) {
+      setGlobalRoleName("none");
+      return;
+    }
+    getMyRBACProfile().then((profile) => {
+      setGlobalRoleName(profile?.roleName || "none");
+    });
+  }, [session?.user?.id]);
 
   const [proj, setProj] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // ── Role Derivation (5-level hierarchy) ─────────────────────────────────────
-  // External → Admin → Core Committee → Lead → Member
-  const teamMember = proj?.team?.find((m: any) => m.name === userName);
+  // ── Permission flags ──────────────────────────────────────────────────────────
+  const [projectPerms, setProjectPerms] = useState<ProjectPermissions>({
+    canView: true,
+    canUpload: false,
+    canEdit: false,
+    canComment: false,
+    isProjectLead: false,
+  });
+
+  useEffect(() => {
+    if (!id || !session?.user?.id) return;
+    getProjectPermissionsAction(id).then(setProjectPerms);
+  }, [id, session?.user?.id]);
+
+  const canCreateTask     = projectPerms.canEdit;
+  const canDeleteTask     = projectPerms.canEdit;
+  const canEditTaskFull   = projectPerms.canEdit;
+  const canAddTimeline    = projectPerms.canEdit;
+  // Let Global admins (who are designated implicit local leads) or Explicit leads delete heavy things
+  const canDeleteTimeline = projectPerms.isProjectLead;
+  const canUploadFiles    = projectPerms.canUpload;
+  const canDeleteAnyFile  = projectPerms.canEdit;
+  const canPinMessage     = projectPerms.canEdit;
+  const canDeleteAnyMsg   = projectPerms.isProjectLead;
+  const isReadOnly        = !projectPerms.canEdit && !projectPerms.canUpload && !projectPerms.canComment;
+  const canDeleteOwnFile  = (uploadedBy: string) => uploadedBy === userName || canDeleteAnyFile;
+  const isViewer = isReadOnly;
+
   const isAuthenticated = !!session?.user;
   type UserRole = "Admin" | "Lead" | "Core Committee" | "Member" | "External";
   const userRole: UserRole = !isAuthenticated
     ? "External"
-    : globalRole === "admin"
+    : globalRoleName === "Admin"
       ? "Admin"
-      : globalRole === "core"
+      : globalRoleName === "Core Committee"
         ? "Core Committee"
-        : teamMember?.role?.toLowerCase().includes("lead")
+        : projectPerms.isProjectLead
           ? "Lead"
-          : teamMember?.role?.toLowerCase().includes("core")
-            ? "Core Committee"
-            : "Member";
-  const isViewer = userRole === "External";
-
-  // ── Permission flags ──────────────────────────────────────────────────────────
-  const canCreateTask     = userRole === "Admin" || userRole === "Lead";
-  const canDeleteTask     = userRole === "Admin" || userRole === "Lead";
-  const canEditTaskFull   = userRole === "Admin" || userRole === "Lead"; // title/desc/priority/deadline/assign
-  const canAddTimeline    = userRole === "Admin" || userRole === "Lead";
-  const canDeleteTimeline = userRole === "Admin";
-  const canUploadFiles    = userRole !== "External";
-  const canDeleteAnyFile  = userRole === "Admin" || userRole === "Lead";
-  const canPinMessage     = userRole === "Admin" || userRole === "Lead";
-  const canDeleteAnyMsg   = userRole === "Admin";
-  const isReadOnly        = userRole === "Core Committee" || userRole === "External";
-  const canDeleteOwnFile  = (uploadedBy: string) => uploadedBy === userName || canDeleteAnyFile;
+          : "Member";
 
   // Files State
   const [files, setFiles] = useState<ProjectFile[]>([]);
@@ -298,10 +322,10 @@ export default function ProjectDetail() {
     }
   }, [session, isPending, id, router]);
 
-  // Default "My Tasks" filter for Members
+  // Default "My Tasks" filter for Members (not Leads/Admins)
   useEffect(() => {
-    if (userRole === "Member") setMyTasksFilter(true);
-  }, [userRole]);
+    if (projectPerms.canView && !projectPerms.canEdit) setMyTasksFilter(true);
+  }, [projectPerms.canEdit, projectPerms.canView]);
 
   const loadTasks = useCallback(async () => {
     if (!id) return;
@@ -419,7 +443,7 @@ export default function ProjectDetail() {
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    if (userRole !== "Admin" && userRole !== "Lead") return;
+    if (!canDeleteTask) return;
     await deleteProjectTaskAction(taskId, userName);
     setTasks(prev => prev.filter(t => t.id !== taskId));
     setSelectedTask(null);

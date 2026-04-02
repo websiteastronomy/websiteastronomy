@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { getSystemMaxFileSize, setSystemMaxFileSize } from "@/app/actions/storage";
+import AuditLogsPanel from "./AuditLogsPanel";
 
 export default function SystemSettingsManager() {
   const [maxSize, setMaxSize] = useState<number>(10);
@@ -84,6 +85,8 @@ export default function SystemSettingsManager() {
           </button>
         </div>
       </div>
+
+      <AuditLogsPanel />
     </>
   );
 }

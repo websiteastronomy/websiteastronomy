@@ -1,0 +1,144 @@
+"use client";
+
+import { useState, useEffect } from 'react';
+import { inputStyle, rowStyle } from './shared';
+import { getPublicMembersAction, createPublicMemberAction, updatePublicMemberAction, deletePublicMemberAction } from '@/app/actions/publicMembers';
+
+export default function PublicMembersManager() {
+  const [members, setMembers] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingMember, setEditingMember] = useState<any>(null);
+  const [formData, setFormData] = useState<any>({});
+  const [isSaving, setIsSaving] = useState(false);
+
+  const fetchMembers = async () => {
+    try {
+      const data = await getPublicMembersAction();
+      setMembers(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchMembers();
+  }, []);
+
+  const handleSave = async () => {
+    if (!formData.name) {
+      alert("Name is required.");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const data = {
+        name: formData.name, 
+        role: formData.role || "Member", 
+        dept: formData.dept || "",
+        imageUrl: formData.imageUrl || "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=200&q=80",
+        bio: formData.bio || "Stargazer and dreamer."
+      };
+
+      if (editingMember?.id) {
+        await updatePublicMemberAction(editingMember.id, data);
+        alert("Updated successfully!");
+      } else {
+        await createPublicMemberAction(data);
+        alert("Added member successfully!");
+      }
+
+      setFormData({});
+      setShowForm(false);
+      setEditingMember(null);
+      fetchMembers();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save member.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Delete this member?")) {
+      try {
+        await deletePublicMemberAction(id);
+        fetchMembers();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.4rem' }}>{editingMember ? 'Edit Public Member' : 'Public Directory'}</h2>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: "0.2rem" }}>Manage the public-facing 'About Us' list of executives.</p>
+        </div>
+        <button 
+          className="btn-primary" 
+          style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem' }} 
+          onClick={() => { setShowForm(!showForm); setFormData({}); setEditingMember(null); }}
+        >
+          {showForm ? 'Cancel' : '+ Add Public Member'}
+        </button>
+      </div>
+
+      {showForm && (
+        <div style={{ padding: '1.5rem', background: 'rgba(15, 22, 40, 0.4)', borderRadius: '8px', border: '1px solid var(--border-subtle)', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
+            <input placeholder="Name" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} style={inputStyle} />
+            <input placeholder="Role" value={formData.role || ''} onChange={e => setFormData({...formData, role: e.target.value})} style={inputStyle} />
+            <input placeholder="Department" value={formData.dept || ''} onChange={e => setFormData({...formData, dept: e.target.value})} style={inputStyle} />
+            <input placeholder="Image URL (Unsplash or similar)" value={formData.imageUrl || ''} onChange={e => setFormData({...formData, imageUrl: e.target.value})} style={{ ...inputStyle, gridColumn: '1 / -1' }} />
+            <textarea placeholder="Short Bio" value={formData.bio || ''} onChange={e => setFormData({...formData, bio: e.target.value})} style={{ ...inputStyle, gridColumn: '1 / -1', resize: 'vertical' }} />
+          </div>
+          <button 
+            className="btn-primary" 
+            disabled={isSaving}
+            style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem', opacity: isSaving ? 0.7 : 1 }} 
+            onClick={handleSave}
+          >
+            {isSaving ? 'Saving...' : (editingMember ? 'Save Changes' : 'Add Member')}
+          </button>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+        {members.map((m: any) => (
+          <div key={m.id} style={rowStyle}>
+            <div>
+              <h4 style={{ fontSize: '0.95rem' }}>{m.name}</h4>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{m.role} {m.dept ? `• ${m.dept}` : ""}</span>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button 
+                onClick={() => {
+                  setEditingMember(m);
+                  setFormData({ name: m.name, role: m.role, dept: m.dept, imageUrl: m.imageUrl, bio: m.bio });
+                  setShowForm(true);
+                  window.scrollTo(0,0);
+                }} 
+                style={{ background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)', padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit' }}
+              >
+                Edit
+              </button>
+              <button 
+                onClick={() => handleDelete(m.id)} 
+                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit' }}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        ))}
+        {members.length === 0 && (
+          <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No members found.</p>
+        )}
+      </div>
+    </>
+  );
+}

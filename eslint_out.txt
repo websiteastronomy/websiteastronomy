@@ -1,0 +1,74 @@
+[0m[0m
+[0m[4mC:\Users\shash\.gemini\antigravity\scratch\astronomy-club\scripts\refactor1.js[24m[0m
+[0m  [2m1:12[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m  [2m2:14[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m[0m
+[0m[4mC:\Users\shash\.gemini\antigravity\scratch\astronomy-club\scripts\refactor10.js[24m[0m
+[0m  [2m1:12[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m  [2m2:14[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m[0m
+[0m[4mC:\Users\shash\.gemini\antigravity\scratch\astronomy-club\scripts\refactor11.js[24m[0m
+[0m  [2m1:12[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m  [2m2:14[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m[0m
+[0m[4mC:\Users\shash\.gemini\antigravity\scratch\astronomy-club\scripts\refactor12.js[24m[0m
+[0m  [2m1:12[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m  [2m2:14[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m[0m
+[0m[4mC:\Users\shash\.gemini\antigravity\scratch\astronomy-club\scripts\refactor13.js[24m[0m
+[0m  [2m1:12[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m  [2m2:14[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m[0m
+[0m[4mC:\Users\shash\.gemini\antigravity\scratch\astronomy-club\scripts\refactor2.js[24m[0m
+[0m  [2m1:12[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m  [2m2:14[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m[0m
+[0m[4mC:\Users\shash\.gemini\antigravity\scratch\astronomy-club\scripts\refactor3.js[24m[0m
+[0m  [2m1:12[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m  [2m2:14[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m[0m
+[0m[4mC:\Users\shash\.gemini\antigravity\scratch\astronomy-club\scripts\refactor4.js[24m[0m
+[0m  [2m1:12[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m  [2m2:14[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m[0m
+[0m[4mC:\Users\shash\.gemini\antigravity\scratch\astronomy-club\scripts\refactor5.js[24m[0m
+[0m  [2m1:12[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m  [2m2:14[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m[0m
+[0m[4mC:\Users\shash\.gemini\antigravity\scratch\astronomy-club\scripts\refactor6.js[24m[0m
+[0m  [2m1:12[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m  [2m2:14[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m[0m
+[0m[4mC:\Users\shash\.gemini\antigravity\scratch\astronomy-club\scripts\refactor7.js[24m[0m
+[0m  [2m1:12[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m  [2m2:14[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m[0m
+[0m[4mC:\Users\shash\.gemini\antigravity\scratch\astronomy-club\scripts\refactor8.js[24m[0m
+[0m  [2m1:12[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m  [2m2:14[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m[0m
+[0m[4mC:\Users\shash\.gemini\antigravity\scratch\astronomy-club\scripts\refactor9.js[24m[0m
+[0m  [2m1:12[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m  [2m2:14[22m  [31merror[39m  A `require()` style import is forbidden  [2m@typescript-eslint/no-require-imports[22m[0m
+[0m[0m
+[0m[4mC:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\admin\components\GalleryManager.tsx[24m[0m
+[0m  [2m160:18[22m  [33mwarning[39m  Unused eslint-disable directive (no problems were reported from '@next/next/no-img-element')[0m
+[0m[0m
+[0m[4mC:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\api\send-email\route.ts[24m[0m
+[0m  [2m1:1[22m  [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m[0m
+[0m[4mC:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\education\page.tsx[24m[0m
+[0m  [2m237:12[22m  [33mwarning[39m  Unused eslint-disable directive (no problems were reported from '@next/next/no-img-element')[0m
+[0m[0m
+[0m[4mC:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\portal\page.tsx[24m[0m
+[0m  [2m208:17[22m  [33mwarning[39m  Unused eslint-disable directive (no problems were reported from '@next/next/no-img-element')[0m
+[0m[0m
+[0m[4mC:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\projects\[id]\public\page.tsx[24m[0m
+[0m   [2m78:95[22m   [31merror[39m  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  [2mreact/no-unescaped-entities[22m[0m
+[0m   [2m78:110[22m  [31merror[39m  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  [2mreact/no-unescaped-entities[22m[0m
+[0m  [2m248:21[22m   [31merror[39m  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  [2mreact/no-unescaped-entities[22m[0m
+[0m  [2m248:38[22m   [31merror[39m  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  [2mreact/no-unescaped-entities[22m[0m
+[0m[0m
+[0m[31m[1m✖ 34 problems (31 errors, 3 warnings)[22m[39m[0m
+[0m[31m[1m[22m[39m[31m[1m  0 errors and 3 warnings potentially fixable with the `--fix` option.[22m[39m[0m
+[0m[31m[1m[22m[39m[0m

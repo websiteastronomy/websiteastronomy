@@ -7,6 +7,9 @@ import { v4 as uuidv4 } from "uuid";
 import { revalidatePath } from "next/cache";
 import { logActivityAction } from "./activity";
 import { addTimelineEntryAction } from "./timeline";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { assertProjectPermission } from "@/lib/project_permissions";
 
 export type TaskStatus = "todo" | "inProgress" | "review" | "done";
 export type TaskPriority = "low" | "medium" | "high";
@@ -122,6 +125,9 @@ export async function addProjectTaskAction(
     actorName?: string;
   }
 ): Promise<ProjectTask> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  await assertProjectPermission(projectId, session?.user?.id, "canEdit");
+
   const taskId = uuidv4();
   const now = new Date();
   const payload = {
@@ -191,6 +197,14 @@ export async function updateProjectTaskAction(
     actorName: string;
   }>
 ): Promise<void> {
+  const session = await auth.api.getSession({ headers: await headers() });
+
+  const [task] = await db.select({ projectId: project_tasks.projectId, title: project_tasks.title })
+    .from(project_tasks).where(eq(project_tasks.id, taskId));
+    
+  if (!task) return;
+  await assertProjectPermission(task.projectId, session?.user?.id, "canEdit");
+
   const { title, description, status, priority, deadline, isBlocked, assignees, actorName } = data;
 
   const updateFields: Record<string, unknown> = { updatedAt: new Date() };
@@ -223,14 +237,8 @@ export async function updateProjectTaskAction(
     }
   }
 
-  // Get projectId for progress sync and activity
-  const [task] = await db.select({ projectId: project_tasks.projectId, title: project_tasks.title })
-    .from(project_tasks).where(eq(project_tasks.id, taskId));
-
-  if (task) {
-    await syncProjectProgress(task.projectId);
-    await logActivityAction(task.projectId, actorName || "Unknown", "updated_task", "task", taskId, title || task.title);
-  }
+  await syncProjectProgress(task.projectId);
+  await logActivityAction(task.projectId, actorName || "Unknown", "updated_task", "task", taskId, title || task.title);
 
   revalidatePath(`/projects`);
 }
@@ -240,9 +248,14 @@ export async function moveProjectTaskAction(
   newStatus: TaskStatus,
   actorName?: string,
 ): Promise<void> {
+  const session = await auth.api.getSession({ headers: await headers() });
+
   // Get current task info before move
   const [task] = await db.select({ projectId: project_tasks.projectId, title: project_tasks.title, status: project_tasks.status })
     .from(project_tasks).where(eq(project_tasks.id, taskId));
+
+  if (!task) return;
+  await assertProjectPermission(task.projectId, session?.user?.id, "canEdit");
 
   await db
     .update(project_tasks)
@@ -270,9 +283,14 @@ export async function moveProjectTaskAction(
 }
 
 export async function deleteProjectTaskAction(taskId: string, actorName?: string): Promise<void> {
+  const session = await auth.api.getSession({ headers: await headers() });
+
   // Get info before deletion
   const [task] = await db.select({ projectId: project_tasks.projectId, title: project_tasks.title })
     .from(project_tasks).where(eq(project_tasks.id, taskId));
+
+  if (!task) return;
+  await assertProjectPermission(task.projectId, session?.user?.id, "canEdit");
 
   await db.delete(project_tasks).where(eq(project_tasks.id, taskId));
 
@@ -288,6 +306,14 @@ export async function addTaskCommentAction(
   taskId: string,
   comment: Omit<TaskComment, "id">
 ): Promise<void> {
+  const session = await auth.api.getSession({ headers: await headers() });
+
+  const [task] = await db.select({ projectId: project_tasks.projectId, title: project_tasks.title })
+    .from(project_tasks).where(eq(project_tasks.id, taskId));
+  if (!task) return;
+
+  await assertProjectPermission(task.projectId, session?.user?.id, "canComment");
+
   let validUserId = comment.authorId;
   const allUsers = await db.select().from(users);
 
@@ -308,16 +334,18 @@ export async function addTaskCommentAction(
   }
 
   // Log activity
-  const [task] = await db.select({ projectId: project_tasks.projectId, title: project_tasks.title })
-    .from(project_tasks).where(eq(project_tasks.id, taskId));
-  if (task) {
-    await logActivityAction(task.projectId, comment.author, "added_comment", "comment", taskId, task.title);
-  }
+  await logActivityAction(task.projectId, comment.author, "added_comment", "comment", taskId, task.title);
 
   revalidatePath(`/projects`);
 }
 
 export async function attachFileToTaskAction(taskId: string, fileId: string): Promise<void> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  const [task] = await db.select({ projectId: project_tasks.projectId }).from(project_tasks).where(eq(project_tasks.id, taskId));
+  if (!task) return;
+  
+  await assertProjectPermission(task.projectId, session?.user?.id, "canEdit");
+
   await db.insert(project_task_attachments).values({
     id: uuidv4(),
     taskId,

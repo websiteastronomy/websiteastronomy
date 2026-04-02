@@ -19,7 +19,7 @@ export default function EventDetail() {
   const [loading, setLoading] = useState(true);
   
   // Dynamic State
-  const [profile, setProfile] = useState<{ status: string, role: string } | null>(null);
+  const [profile, setProfile] = useState<{ status: string, roleName: string, canManageEvents: boolean } | null>(null);
   const [stats, setStats] = useState({ totalRegistrations: 0, volunteers: 0, backupVolunteers: 0, userRegistered: false, userVolunteered: false });
   const [participants, setParticipants] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -104,7 +104,7 @@ export default function EventDetail() {
       alert("Registration Successful!");
       const st = await getEventStats(id);
       setStats({ ...st, userVolunteered: st.userVolunteered || false });
-      if (profile?.role === 'core' || profile?.role === 'admin') {
+      if (profile?.canManageEvents) {
         getEventParticipants(id).then(setParticipants);
       }
     } else {
@@ -121,7 +121,7 @@ export default function EventDetail() {
       alert(res.message);
       const st = await getEventStats(id);
       setStats({ ...st, userVolunteered: st.userVolunteered || false });
-      if (profile?.role === 'core' || profile?.role === 'admin') {
+      if (profile?.canManageEvents) {
         getEventParticipants(id).then(setParticipants);
       }
     } else {
@@ -317,7 +317,7 @@ export default function EventDetail() {
           </AnimatedSection>
           
           {/* ADMIN / CORE PANEL */}
-          {(profile?.role === 'core' || profile?.role === 'admin') && (
+          {profile?.canManageEvents && (
             <AnimatedSection delay={0.2}>
               <div style={{ background: "rgba(0, 0, 0, 0.4)", border: "1px solid var(--gold)", borderRadius: "16px", padding: "1.5rem" }}>
                 <h3 style={{ fontSize: "1rem", color: "var(--gold)", marginBottom: "1rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>

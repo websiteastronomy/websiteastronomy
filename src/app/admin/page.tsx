@@ -15,8 +15,10 @@ import AchievementsManager from "./components/AchievementsManager";
 import SettingsManager from "./components/SettingsManager";
 import MembersManager from "./components/MembersManager";
 import NightSkyManager from "./components/NightSkyManager";
-import MemberRequests from "./components/MemberRequests";
 import SystemSettingsManager from "./components/SystemSettingsManager";
+import GlobalSearch from "./components/GlobalSearch";
+import ApprovalsPanel from "./components/ApprovalsPanel";
+import PublicMembersManager from "./components/PublicMembersManager";
 
 export default function Admin() {
   const { user, isAdmin, loading, authError, signInWithGoogle, signInWithEmail, signUpWithEmail, logout } = useAuth();
@@ -30,13 +32,12 @@ export default function Admin() {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: '📊' },
     { id: 'events', label: 'Events', icon: '📅' },
-    { id: 'member-requests', label: 'Member Requests', icon: '✅' },
+    { id: 'members', label: 'Directory & Approvals', icon: '👥' },
     { id: 'articles', label: 'Articles & Facts', icon: '📝' },
     { id: 'projects', label: 'Projects', icon: '🚀' },
     { id: 'observations', label: 'Observations', icon: '🔭' },
     { id: 'outreach', label: 'Outreach', icon: '🤝' },
     { id: 'achievements', label: 'Achievements', icon: '🏆' },
-    { id: 'members', label: 'Members', icon: '👥' },
     { id: 'night-sky', label: 'Night Sky', icon: '🌙' },
     { id: 'gallery', label: 'Media Gallery', icon: '🖼️' },
     { id: 'settings', label: 'Site Settings', icon: '⚙️' },
@@ -147,8 +148,13 @@ export default function Admin() {
       {/* Main Content */}
       <div style={{ flex: 1, padding: '2rem 3rem', maxWidth: '900px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <h2 style={{ fontSize: '1.6rem', color: "var(--text-primary)" }}>Admin Dashboard</h2>
-          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+          <h2 style={{ fontSize: '1.6rem', color: "var(--text-primary)", flexShrink: 0 }}>Admin Dashboard</h2>
+          
+          <div style={{ flex: 1, display: "flex", justifyContent: "center", padding: "0 2rem" }}>
+            <GlobalSearch />
+          </div>
+
+          <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexShrink: 0 }}>
             <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: "bold" }}>{user.email}</span>
             <button onClick={logout} className="btn-secondary" style={{ padding: "0.4rem 1rem", fontSize: "0.8rem", background: "transparent", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.4)", cursor: "pointer", fontFamily: "inherit" }}>Sign Out</button>
           </div>
@@ -165,10 +171,16 @@ export default function Admin() {
             <EventsManager />
           </div>
         )}
-        {/* ===== MEMBER REQUESTS ===== */}
-        {activeTab === 'member-requests' && (
-          <div style={{ animation: "fadeIn 0.3s ease" }}>
-            <MemberRequests />
+        {/* ===== MEMBERS MANAGER (Unified Directory & Requests) ===== */}
+        {activeTab === 'members' && (
+          <div style={{ animation: "fadeIn 0.3s ease", display: "flex", flexDirection: "column", gap: "3rem" }}>
+            <ApprovalsPanel userRole={user.role} userId={user.id} />
+            <MembersManager />
+
+            {/* Separator before public directory */}
+            <div style={{ height: "1px", background: "var(--border-subtle)", margin: "1rem 0" }} />
+            
+            <PublicMembersManager />
           </div>
         )}
         {/* ===== OBSERVATIONS MANAGER ===== */}
@@ -223,12 +235,6 @@ export default function Admin() {
         {activeTab === 'system' && (
           <div style={{ animation: "fadeIn 0.3s ease" }}>
             <SystemSettingsManager />
-          </div>
-        )}
-        {/* ===== MEMBERS MANAGER ===== */}
-        {activeTab === 'members' && (
-          <div style={{ animation: "fadeIn 0.3s ease" }}>
-            <MembersManager />
           </div>
         )}
         {/* ===== NIGHT SKY MANAGER ===== */}

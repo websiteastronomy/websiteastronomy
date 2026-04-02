@@ -2,8 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { subscribeToCollection } from '@/lib/db';
+import ApprovalsPanel from './ApprovalsPanel';
+import { useAuth } from '@/context/AuthContext';
 
 export default function OverviewManager({ onNavigate }: { onNavigate: (tab: string) => void }) {
+  const { user, roleName } = useAuth();
+  
   const [membersCount, setMembersCount] = useState(0);
   const [eventsCount, setEventsCount] = useState(0);
   const [obsCount, setObsCount] = useState(0);
@@ -58,6 +62,10 @@ export default function OverviewManager({ onNavigate }: { onNavigate: (tab: stri
             <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>{stat.change}</span>
           </div>
         ))}
+      </div>
+
+      <div style={{ marginBottom: "2.5rem" }}>
+        <ApprovalsPanel userRole={roleName || "Admin"} userId={user?.id || "Unknown"} />
       </div>
 
       <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Quick Actions</h3>

@@ -1,0 +1,1 @@
+{"success":false,"error":"Failed query: insert into \"project_members\" (\"id\", \"project_id\", \"user_id\", \"role\", \"joined_at\") values ($1, $2, $3, $4, $5)\nparams: 59971e80-9f91-45a6-870c-1debf3b28721,proj-001,user-123,lead,2026-04-02T17:00:50.080Z"}

@@ -1,0 +1,7 @@
+src/app/actions/approvals.ts(4,10): error TS2305: Module '"@/db/schema"' has no exported member 'approvals'.
+src/app/actions/search.ts(49,23): error TS2339: Property 'name' does not exist on type 'PgTableWithColumns<{ name: "projects"; schema: undefined; columns: { createdAt: PgColumn<{ name: "createdAt"; tableName: "projects"; dataType: "date"; columnType: "PgTimestamp"; data: Date; driverParam: string; ... 8 more ...; generated: undefined; }, {}, {}>; ... 18 more ...; updates: PgColumn<...>; }; dialect: "pg...'.
+src/app/actions/search.ts(56,16): error TS2339: Property 'name' does not exist on type '{ createdAt: Date; updatedAt: Date; id: string; title: string; description: string; fullDescription: string | null; objective: string | null; status: string; startDate: string | null; ... 10 more ...; updates: unknown; }'.
+src/lib/approval_engine.ts(2,10): error TS2305: Module '"@/db/schema"' has no exported member 'approvals'.
+src/lib/approval_engine.ts(2,21): error TS2305: Module '"@/db/schema"' has no exported member 'approval_votes'.
+src/lib/approval_engine.ts(2,37): error TS2305: Module '"@/db/schema"' has no exported member 'audit_logs'.
+src/lib/approval_engine.ts(2,49): error TS2305: Module '"@/db/schema"' has no exported member 'notifications'.

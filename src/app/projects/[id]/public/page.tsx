@@ -75,7 +75,7 @@ export default function ProjectPublicPage() {
     return (
       <div style={{ textAlign: "center", padding: "8rem 2rem", minHeight: "80vh" }}>
         <h1 style={{ fontSize: "2rem", marginBottom: "1rem" }}>Project Not Found</h1>
-        <p style={{ color: "var(--text-secondary)", marginBottom: "2rem" }}>This project doesn't exist or isn't public yet.</p>
+        <p style={{ color: "var(--text-secondary)", marginBottom: "2rem" }}>This project doesn&apos;t exist or isn&apos;t public yet.</p>
         <Link href="/projects" className="btn-secondary">← Back to Projects</Link>
       </div>
     );
@@ -245,7 +245,7 @@ export default function ProjectPublicPage() {
                 <div style={{ display: "flex", gap: "1rem" }}>
                   <div style={{ fontSize: "2rem", flexShrink: 0, animation: "float 3s ease-in-out infinite" }}>🌌</div>
                   <p style={{ fontSize: "1rem", lineHeight: 1.8, color: "var(--text-secondary)", fontStyle: "italic" }}>
-                    "{proj.objective}"
+                    &quot;{proj.objective}&quot;
                   </p>
                 </div>
               </SectionCard>

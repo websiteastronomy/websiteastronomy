@@ -1,11 +1,12 @@
 "use server";
 
 import { db } from "@/db";
-import { users, events, event_registrations, event_volunteers } from "@/db/schema";
+import { users, events, event_registrations, event_volunteers, roles } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { hasPermission } from "@/lib/permissions";
 
 export async function registerForEvent(eventId: string, name?: string, email?: string) {
   try {
@@ -33,7 +34,8 @@ export async function registerForEvent(eventId: string, name?: string, email?: s
       if (userRes.length) {
         dbUser = userRes[0];
         if (dbUser.status !== 'approved') return { success: false, error: "Wait for admin approval" };
-        if (!event.isPublic && dbUser.role === 'none') {
+        // Private events require the user to have an established RBAC role (any role beats 'none')
+        if (!event.isPublic && !dbUser.roleId) {
            return { success: false, error: "This is a members-only event" };
         }
       }
@@ -162,23 +164,19 @@ export async function getEventStats(eventId: string) {
   }
 }
 
-// Admin-only fetcher for robust participant mapping
+// Core/Admin-only fetcher for robust participant mapping
+// Now uses RBAC hasPermission() instead of legacy role strings.
 export async function getEventParticipants(eventId: string) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user) return null;
-    
-    const userRes = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
-    if (!userRes.length) return null;
-    if (userRes[0].role !== "core" && userRes[0].role !== "admin") {
-      return null; // Reject non-core
-    }
+
+    const canManage = await hasPermission(session.user.id, "manage_events");
+    if (!canManage) return null;
 
     const regs = await db.select().from(event_registrations).where(eq(event_registrations.eventId, eventId));
     const vols = await db.select().from(event_volunteers).where(eq(event_volunteers.eventId, eventId));
 
-    // Simple manual join since not all have user records locally in Neon
-    // In a fully relational setup we might do a join, but regs already has name/email
     return { registrations: regs, volunteers: vols };
   } catch(e) {
     console.error(e);
@@ -190,9 +188,27 @@ export async function getUserProfile() {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user) return null;
-    const userRes = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
+    const userId = session.user.id;
+
+    const userRes = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     if (!userRes.length) return null;
-    return { status: userRes[0].status as string, role: userRes[0].role as string };
+    const user = userRes[0];
+
+    // Resolve normalized role name from RBAC table
+    let roleName = "none";
+    if (user.roleId) {
+      const roleRes = await db.select().from(roles).where(eq(roles.id, user.roleId)).limit(1);
+      roleName = roleRes[0]?.name || "none";
+    }
+
+    // Resolve manage_events permission (Core Committee + Admin)
+    const canManageEvents = await hasPermission(userId, "manage_events");
+
+    return {
+      status: user.status as string,
+      roleName,
+      canManageEvents,
+    };
   } catch {
     return null;
   }

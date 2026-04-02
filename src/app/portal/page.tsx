@@ -204,14 +204,106 @@ export default function Portal() {
           {/* Profile Card */}
           <AnimatedSection direction="right" delay={0.1}>
             <div className="feature-card" style={{ padding: '2rem', textAlign: 'center', marginBottom: '1.5rem' }}>
-              {user.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={user.image} alt="Avatar" style={{ width: '70px', height: '70px', borderRadius: '50%', margin: '0 auto 1rem', border: "2px solid var(--gold)" }} />
-              ) : (
-                <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', margin: '0 auto 1rem' }} />
-              )}
+              {(() => {
+                const profileSrc = (user as any).profileImageKey
+                  ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL || ""}/${(user as any).profileImageKey}`
+                  : user.image;
+                return profileSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={profileSrc} alt="Avatar" style={{ width: '70px', height: '70px', borderRadius: '50%', margin: '0 auto 1rem', border: "2px solid var(--gold)", objectFit: "cover" }} />
+                ) : (
+                  <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', margin: '0 auto 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', color: '#000', fontWeight: 700 }}>
+                    {(user.name || "?").charAt(0).toUpperCase()}
+                  </div>
+                );
+              })()}
               <h3 style={{ fontSize: '1.1rem', marginBottom: '0.3rem' }}>{user.name || "Club Member"}</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', wordWrap: "break-word" }}>{user.email}</p>
+
+              {/* Profile Image Upload */}
+              <div style={{ marginTop: '1rem' }}>
+                <label
+                  htmlFor="profile-upload"
+                  style={{ display: 'inline-block', fontSize: '0.78rem', color: 'var(--gold)', cursor: 'pointer', padding: '0.4rem 0.8rem', border: '1px solid rgba(201,168,76,0.4)', borderRadius: '6px', transition: 'all 0.2s' }}
+                >
+                  📷 Upload Photo
+                </label>
+                <input
+                  id="profile-upload"
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp"
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    // Validation
+                    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+                    if (!allowed.includes(file.type)) {
+                      alert('Only JPG, PNG, and WebP files are allowed.');
+                      return;
+                    }
+                    if (file.size > 2 * 1024 * 1024) {
+                      alert('File size must be under 2MB.');
+                      return;
+                    }
+                    try {
+                      // 1. Get presigned URL
+                      const res = await fetch('/api/upload/profile-image-url', { method: 'POST' });
+                      if (!res.ok) throw new Error('Failed to get upload URL');
+                      const { uploadUrl, key } = await res.json();
+                      // 2. Upload directly to R2
+                      const putRes = await fetch(uploadUrl, {
+                        method: 'PUT',
+                        body: file,
+                        headers: { 'Content-Type': file.type },
+                      });
+                      if (!putRes.ok) throw new Error('Upload failed');
+                      // 3. Save key to database
+                      const { updateUserProfileAction } = await import('@/app/actions/members');
+                      await updateUserProfileAction({ profileImageKey: key });
+                      alert('Profile image updated! Refresh to see changes.');
+                      window.location.reload();
+                    } catch (err: any) {
+                      console.error(err);
+                      alert('Failed to upload image: ' + err.message);
+                    }
+                    // Reset input
+                    e.target.value = '';
+                  }}
+                />
+                <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>JPG, PNG, WebP • Max 2MB</p>
+              </div>
+
+              {/* Quote Edit */}
+              <div style={{ marginTop: '1rem', textAlign: 'left' }}>
+                <label style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Your Quote</label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    id="user-quote"
+                    type="text"
+                    placeholder="e.g. Per aspera ad astra"
+                    defaultValue={(user as any).quote || ''}
+                    style={{ flex: 1, padding: '0.5rem 0.7rem', background: 'rgba(15, 22, 40, 0.6)', border: '1px solid var(--border-subtle)', borderRadius: '6px', color: 'var(--text-primary)', fontSize: '0.8rem', fontFamily: 'inherit' }}
+                  />
+                  <button
+                    onClick={async () => {
+                      const input = document.getElementById('user-quote') as HTMLInputElement;
+                      if (!input) return;
+                      try {
+                        const { updateUserProfileAction } = await import('@/app/actions/members');
+                        await updateUserProfileAction({ quote: input.value });
+                        alert('Quote saved!');
+                      } catch (err: any) {
+                        alert('Failed: ' + err.message);
+                      }
+                    }}
+                    style={{ padding: '0.5rem 0.7rem', background: 'var(--gold-dark)', color: '#000', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, fontFamily: 'inherit' }}
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+
               <button onClick={logout} className="btn-secondary" style={{ marginTop: '1.5rem', fontFamily: 'inherit', cursor: 'pointer', width: '100%', background: "transparent", border: "1px solid rgba(239, 68, 68, 0.4)", color: "#ef4444" }}>
                 Sign Out
               </button>

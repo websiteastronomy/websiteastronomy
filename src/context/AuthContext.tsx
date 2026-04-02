@@ -2,39 +2,69 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { authClient } from "@/lib/auth-client";
+import { getMyRBACProfile } from "@/app/actions/auth";
 
 interface AuthContextType {
-  user: any | null; // better-auth user object
+  user: any | null;
   isAdmin: boolean;
+  roleName: string;
+  permissions: string[];
   loading: boolean;
   authError: string | null;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
+  hasPermission: (key: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   isAdmin: false,
+  roleName: "none",
+  permissions: [],
   loading: true,
   authError: null,
   signInWithGoogle: async () => {},
   signInWithEmail: async () => {},
   signUpWithEmail: async () => {},
   logout: async () => {},
+  hasPermission: () => false,
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { data: session, isPending, error } = authClient.useSession();
   const [authError, setAuthError] = useState<string | null>(null);
-
-  // List of admin emails
-  const ADMIN_EMAILS = ["shashanknm9535@gmail.com"];
+  const [roleName, setRoleName] = useState<string>("none");
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [rbacLoading, setRbacLoading] = useState(false);
 
   const user = session?.user || null;
-  const isAdmin = user ? ADMIN_EMAILS.includes(user.email || "") : false;
-  const loading = isPending;
+  // loading = true until both the session AND the RBAC profile have resolved
+  const loading = isPending || rbacLoading;
+
+  // Fetch the user's RBAC profile from the database each time their identity changes.
+  // This replaces the old hardcoded ADMIN_EMAILS whitelist with a real DB-driven check.
+  useEffect(() => {
+    if (!user?.id) {
+      // Logged-out state — clear role data immediately
+      setRoleName("none");
+      setPermissions([]);
+      return;
+    }
+
+    setRbacLoading(true);
+    getMyRBACProfile()
+      .then((profile) => {
+        setRoleName(profile?.roleName || "none");
+        setPermissions(profile?.permissions || []);
+      })
+      .catch(() => {
+        setRoleName("none");
+        setPermissions([]);
+      })
+      .finally(() => setRbacLoading(false));
+  }, [user?.id]);
 
   useEffect(() => {
     if (error) {
@@ -44,11 +74,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [error]);
 
+  // isAdmin is now derived from the real RBAC role name, not a hardcoded email list.
+  const isAdmin = roleName === "Admin";
+
+  /** Checks whether the current user holds a specific permission key. */
+  const hasPermission = (key: string) => permissions.includes(key);
+
   const signInWithGoogle = async () => {
     setAuthError(null);
     const { error } = await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/admin", 
+      callbackURL: "/admin",
     });
     if (error) {
       console.error("Google Sign-in Error:", error);
@@ -58,10 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signInWithEmail = async (email: string, password: string) => {
     setAuthError(null);
-    const { data, error } = await authClient.signIn.email({
-      email,
-      password,
-    });
+    const { data, error } = await authClient.signIn.email({ email, password });
     if (error) {
       console.error("Sign-in Error:", error);
       setAuthError(error.message || "Invalid email or password.");
@@ -70,11 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUpWithEmail = async (email: string, password: string, name: string) => {
     setAuthError(null);
-    const { data, error } = await authClient.signUp.email({
-      email,
-      password,
-      name,
-    });
+    const { data, error } = await authClient.signUp.email({ email, password, name });
     if (error) {
       console.error("Sign-up Error:", error);
       setAuthError(error.message || "Failed to create account.");
@@ -90,7 +119,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, loading, authError, signInWithGoogle, signInWithEmail, signUpWithEmail, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAdmin,
+        roleName,
+        permissions,
+        loading,
+        authError,
+        signInWithGoogle,
+        signInWithEmail,
+        signUpWithEmail,
+        logout,
+        hasPermission,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
