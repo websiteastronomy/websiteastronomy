@@ -1,0 +1,244 @@
+﻿
+> astronomy-club@0.1.0 lint
+> eslint
+
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\about\page.tsx
+   12:52  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   13:36  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   14:52  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   15:44  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  116:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  136:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  159:33  warning  'i' is defined but never used                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+  173:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  216:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\actions.ts
+  10:28  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  16:12  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  24:28  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  30:71  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  31:28  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  47:86  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  48:28  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  63:28  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  78:55  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  83:46  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\api\send-email\route.ts
+   1:1   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  33:19  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\blog\page.tsx
+  37:19  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\education\[id]\page.tsx
+   15:36  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   16:52  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   23:43  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   26:51  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   28:25  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   60:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  129:23  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  149:7   error    'html' is never reassigned. Use 'const' instead                                                                                                                                                                                                                                          prefer-const
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\education\page.tsx
+   12:44  error    Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+   13:24  warning  'setSiteSettings' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   36:17  error    Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+   36:25  error    Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+   79:57  error    Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+  198:37  error    Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+  199:44  error    Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+  205:34  warning  'e' is defined but never used                         @typescript-eslint/no-unused-vars
+  232:44  error    Unexpected any. Specify a different type              @typescript-eslint/no-explicit-any
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\education\quizzes\[id]\page.tsx
+    9:10  warning  'MOCK_QUIZZES' is defined but never used      @typescript-eslint/no-unused-vars
+    9:24  warning  'MOCK_ATTEMPTS' is defined but never used     @typescript-eslint/no-unused-vars
+    9:39  warning  'MOCK_LEADERBOARD' is defined but never used  @typescript-eslint/no-unused-vars
+   13:9   warning  'router' is assigned a value but never used   @typescript-eslint/no-unused-vars
+   16:36  error    Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+   29:50  error    Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+   35:71  error    Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+   38:16  warning  'err' is defined but never used               @typescript-eslint/no-unused-vars
+  254:37  error    Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\education\quizzes\page.tsx
+  10:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\events\[id]\page.tsx
+   15:38  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   60:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  130:25  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\events\page.tsx
+   12:40  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   81:22  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  130:39  warning  'i' is defined but never used                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+  139:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\join\page.tsx
+  33:24  warning  'setIsRecruiting' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\media\page.tsx
+   9:46  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  70:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\night-sky\page.tsx
+   12:10  warning  'loading' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+   16:21  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\night-sky\page.tsx:16:21
+  14 |   useEffect(() => {
+  15 |     const s = loadSiteSettingsClient();
+> 16 |     if (s.nightSky) setNightSkyData(s.nightSky);
+     |                     ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  17 |     setLoading(false);
+  18 |   }, []);
+  19 |  react-hooks/set-state-in-effect
+   53:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @next/next/no-img-element
+   80:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @next/next/no-img-element
+  111:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @next/next/no-img-element
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\observations\[id]\page.tsx
+  15:34  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  20:17  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  58:9   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  66:12  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\observations\page.tsx
+   10:52  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  107:18  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  153:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  264:33  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  265:40  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  272:30  warning  'e' is defined but never used                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\outreach\[id]\page.tsx
+    6:10  warning  'motion' is defined but never used                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+   15:36  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   20:17  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  147:20  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\outreach\page.tsx
+   10:52  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   41:14  warning  'e' is defined but never used                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+  120:22  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  245:33  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  246:40  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  259:30  warning  'e' is defined but never used                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\page.tsx
+   20:58  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   21:54  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   22:44  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   23:10  warning  'loading' is assigned a value but never used                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+   79:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  136:24  warning  'i' is defined but never used                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+  163:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  252:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\projects\[id]\page.tsx
+   15:36  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   71:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  168:52  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  181:31  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  214:49  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\projects\page.tsx
+   10:44  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+   31:36  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `projects`, but the source dependencies were [searchQuery, statusFilter, tagFilter]. Inferred different dependency than source.
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\app\projects\page.tsx:31:36
+  29 |
+  30 |   // Filter logic
+> 31 |   const filteredProjects = useMemo(() => {
+     |                                    ^^^^^^^
+> 32 |     return projects.filter((proj) => {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 33 |       if (!proj.isPublished) return false;
+     ΓÇª
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 42 |     });
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 43 |   }, [searchQuery, statusFilter, tagFilter]);
+     | ^^^^ Could not preserve existing manual memoization
+  44 |
+  45 |   const getStatusColor = (status: string) => {
+  46 |     switch(status) {  react-hooks/preserve-manual-memoization
+   43:6   warning  React Hook useMemo has a missing dependency: 'projects'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+  156:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @next/next/no-img-element
+  205:59  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\components\AnimatedCard.tsx
+  53:9   warning  'Tag' is assigned a value but never used                                                                                         @typescript-eslint/no-unused-vars
+  99:27  error    React Hook "useTransform" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\components\AnimatedCounter.tsx
+  29:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\components\AnimatedCounter.tsx:29:7
+  27 |   useEffect(() => {
+  28 |     if (!isInView) {
+> 29 |       setCount(0);
+     |       ^^^^^^^^ Avoid calling setState() directly within an effect
+  30 |       return;
+  31 |     }
+  32 |  react-hooks/set-state-in-effect
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\components\GalleryLightbox.tsx
+  77:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\components\Navbar.tsx
+   4:20  warning  'useEffect' is defined but never used                 @typescript-eslint/no-unused-vars
+   9:10  warning  'mobileOpen' is assigned a value but never used       @typescript-eslint/no-unused-vars
+   9:22  warning  'setMobileOpen' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  29:9   warning  'activeUnderline' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\context\AuthContext.tsx
+   7:9   error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  41:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\context\AuthContext.tsx:41:7
+  39 |   useEffect(() => {
+  40 |     if (error) {
+> 41 |       setAuthError(error.message || "An authentication error occurred.");
+     |       ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  42 |     } else {
+  43 |       setAuthError(null);
+  44 |     }  react-hooks/set-state-in-effect
+  54:17  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  68:17  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  83:17  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+
+C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\lib\db.ts
+   34:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   77:65  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   81:80  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  132:80  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Γ£û 119 problems (67 errors, 52 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+

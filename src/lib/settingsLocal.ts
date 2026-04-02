@@ -1,4 +1,3 @@
-import { Timestamp } from "firebase/firestore";
 
 const KEY_SITE = "astronomy_club_site_settings_v1";
 const KEY_ABOUT = "astronomy_club_about_settings_v1";
@@ -77,7 +76,6 @@ export function writeAboutSettingsLocal(data: Record<string, unknown>): void {
 export function stripUndefinedDeep(value: unknown): unknown {
   if (value === undefined) return undefined;
   if (value === null || typeof value !== "object") return value;
-  if (value instanceof Timestamp) return value;
   if (Array.isArray(value)) {
     return value.map(stripUndefinedDeep).filter((v) => v !== undefined);
   }

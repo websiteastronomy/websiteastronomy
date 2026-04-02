@@ -1,0 +1,177 @@
+"use client";
+
+import { useState, useEffect } from 'react';
+import { subscribeToCollection, addDocument, updateDocument, deleteDocument } from '@/lib/db';
+import { inputStyle, rowStyle } from './shared';
+
+export default function GalleryManager() {
+  const [media, setMedia] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingMedia, setEditingMedia] = useState<any>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const unsub = subscribeToCollection('media', (data) => setMedia(data));
+    return () => unsub();
+  }, []);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const container = document.getElementById('media-form');
+      if (!container) return;
+      
+      const inputs = container.querySelectorAll('input, select, textarea');
+      const data: any = { createdAt: new Date().toISOString() };
+      
+      inputs.forEach((i: any) => {
+        if (i.type === 'checkbox') data[i.name] = i.checked;
+        else if (i.name) data[i.name] = i.value;
+      });
+
+      if (!data.imageUrl) {
+        alert("Image URL is required.");
+        setIsSaving(false);
+        return;
+      }
+
+      if (editingMedia?.id) {
+        // Keep original createdAt
+        if (editingMedia.createdAt) data.createdAt = editingMedia.createdAt;
+        await updateDocument('media', editingMedia.id, data);
+        alert("Updated successfully!");
+      } else {
+        await addDocument('media', data);
+        alert("Uploaded successfully!");
+      }
+      setShowForm(false);
+      setEditingMedia(null);
+    } catch (err) {
+      console.error(err);
+      alert("Operation failed. Check console.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleTogglePin = async (id: string, current: boolean) => {
+    await updateDocument('media', id, { isFeatured: !current });
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Delete this media entry?")) {
+      await deleteDocument('media', id);
+    }
+  };
+
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.4rem' }}>Media Gallery Manager</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Strictly curated visual proof. Only 8 high-quality images map to the frontend.</p>
+        </div>
+        <button 
+          className="btn-primary" 
+          style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem' }} 
+          onClick={() => { setShowForm(!showForm); setEditingMedia(null); }}
+        >
+          {showForm ? 'Cancel' : '+ Upload Media'}
+        </button>
+      </div>
+
+      {showForm && (
+        <div style={{ padding: '1.5rem', background: 'rgba(15, 22, 40, 0.4)', borderRadius: '8px', border: '1px solid var(--border-subtle)', marginBottom: '1.5rem' }}>
+          <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--gold)' }}>
+            {editingMedia ? 'Edit Media Entry' : 'New Media Entry'}
+          </h3>
+          <div id="media-form" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.8rem', marginBottom: '1rem' }}>
+            <input name="imageUrl" placeholder="High-Resolution Image URL" defaultValue={editingMedia?.imageUrl || ''} style={inputStyle} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+              <select name="category" defaultValue={editingMedia?.category || 'event'} style={{ ...inputStyle, cursor: 'pointer', appearance: 'none' }}>
+                <option value="project">Project / Milestone</option>
+                <option value="event">Public Event</option>
+                <option value="observation">Observation Capture</option>
+              </select>
+              <input name="author" type="text" placeholder="Photographer / Contributor Name" defaultValue={editingMedia?.author || ''} style={inputStyle} />
+            </div>
+            <textarea name="caption" placeholder="Optional context caption..." defaultValue={editingMedia?.caption || ''} rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
+          </div>
+          
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', color: editingMedia?.isFeatured ? '#22c55e' : '#a3a3a3' }}>
+              <input name="isFeatured" type="checkbox" defaultChecked={editingMedia ? editingMedia.isFeatured : false} /> 
+              {editingMedia?.isFeatured ? '✓ Active on Light-Grid' : 'Send to Light-Grid (Featured Limit: 8)'}
+            </label>
+          </div>
+
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button 
+              className="btn-primary" 
+              disabled={isSaving}
+              style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem', opacity: isSaving ? 0.7 : 1 }} 
+              onClick={handleSave}
+            >
+              {isSaving ? 'Saving...' : (editingMedia ? 'Update Media' : 'Upload Media')}
+            </button>
+            {editingMedia && (
+              <button className="btn-secondary" style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem', background: 'transparent' }} onClick={() => { setEditingMedia(null); setShowForm(false); }}>
+                Cancel
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+      
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+        {media.map((med) => (
+          <div key={med.id} style={{ ...rowStyle, padding: '1.2rem', alignItems: 'flex-start', borderLeft: med.isFeatured ? "3px solid #34d399" : "3px solid transparent" }}>
+            <div style={{ width: "100px", height: "70px", borderRadius: "6px", overflow: "hidden", border: "1px solid var(--border-subtle)", marginRight: "1rem" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={med.imageUrl} alt="thumbnail" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.4rem' }}>
+                <h4 style={{ fontSize: '0.95rem', color: "var(--text-secondary)", fontStyle: med.caption ? "normal" : "italic" }}>
+                  {med.caption ? `"${med.caption.slice(0, 60)}${med.caption.length > 60 ? '...' : ''}"` : "No caption provided"}
+                </h4>
+                {med.isFeatured && <span style={{ fontSize: '0.65rem', background: 'rgba(52,211,153,0.1)', color: '#34d399', padding: '0.2rem 0.5rem', borderRadius: '4px', border: "1px solid rgba(52,211,153,0.4)", fontWeight: "bold" }}>ON GRID</span>}
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: "0.5rem" }}>
+                <span style={{ fontSize: '0.65rem', padding: '0.2rem 0.6rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', textTransform: "uppercase", fontWeight: "bold" }}>
+                  {med.category}
+                </span>
+                <span style={{ fontSize: '0.65rem', padding: '0.2rem 0.6rem', color: 'var(--text-muted)' }}>
+                  by {med.author} · {new Date(med.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end', marginLeft: "1rem" }}>
+              <button 
+                onClick={() => handleTogglePin(med.id, med.isFeatured)}
+                style={{ background: 'none', border: `1px solid ${med.isFeatured ? "#a3a3a3" : "#34d399"}`, color: med.isFeatured ? "#a3a3a3" : "#34d399", padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit', minWidth: '80px' }}
+              >
+                {med.isFeatured ? 'Remove' : 'Pin to Grid'}
+              </button>
+              <button 
+                onClick={() => { setEditingMedia(med); setShowForm(true); window.scrollTo(0,0); }}
+                style={{ background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)', padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit', minWidth: '80px' }}
+              >
+                Edit
+              </button>
+              <button 
+                onClick={() => handleDelete(med.id)}
+                style={{ background: 'none', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit', minWidth: '80px' }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+        {media.length === 0 && (
+          <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No media files uploaded yet.</p>
+        )}
+      </div>
+    </>
+  );
+}

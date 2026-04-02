@@ -144,9 +144,9 @@ export default function Portal() {
               <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)" }}>No entries yet. Hit the quizzes to get on the board!</div>
             ) : (
               leaderboard.map((entry, idx: number) => (
-                <div key={entry.userId} style={{ display: 'grid', gridTemplateColumns: '50px 1fr 100px', padding: '1rem', background: idx === 0 ? 'rgba(201,168,76,0.1)' : entry.userId === user.uid ? 'rgba(255,255,255,0.03)' : 'transparent', border: idx === 0 ? '1px solid var(--gold-dark)' : '1px solid transparent', borderRadius: '8px', alignItems: 'center' }}>
+                <div key={entry.userId} style={{ display: 'grid', gridTemplateColumns: '50px 1fr 100px', padding: '1rem', background: idx === 0 ? 'rgba(201,168,76,0.1)' : entry.userId === user.id ? 'rgba(255,255,255,0.03)' : 'transparent', border: idx === 0 ? '1px solid var(--gold-dark)' : '1px solid transparent', borderRadius: '8px', alignItems: 'center' }}>
                   <span style={{ fontWeight: 700, color: idx === 0 ? 'var(--gold)' : 'var(--text-secondary)' }}>#{idx + 1}</span>
-                  <span style={{ fontWeight: 500, color: entry.userId === user.uid ? '#fff' : 'inherit' }}>{entry.name} {entry.userId === user.uid && '(You)'}</span>
+                  <span style={{ fontWeight: 500, color: entry.userId === user.id ? '#fff' : 'inherit' }}>{entry.name} {entry.userId === user.id && '(You)'}</span>
                   <span style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: '1.1rem', color: 'var(--gold-light)' }}>{entry.score}</span>
                 </div>
               ))
@@ -159,13 +159,13 @@ export default function Portal() {
           {/* Profile Card */}
           <AnimatedSection direction="right" delay={0.1}>
             <div className="feature-card" style={{ padding: '2rem', textAlign: 'center', marginBottom: '1.5rem' }}>
-              {user.photoURL ? (
+              {user.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={user.photoURL} alt="Avatar" style={{ width: '70px', height: '70px', borderRadius: '50%', margin: '0 auto 1rem', border: "2px solid var(--gold)" }} />
+                <img src={user.image} alt="Avatar" style={{ width: '70px', height: '70px', borderRadius: '50%', margin: '0 auto 1rem', border: "2px solid var(--gold)" }} />
               ) : (
                 <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', margin: '0 auto 1rem' }} />
               )}
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '0.3rem' }}>{user.displayName || "Club Member"}</h3>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '0.3rem' }}>{user.name || "Club Member"}</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', wordWrap: "break-word" }}>{user.email}</p>
               <button onClick={logout} className="btn-secondary" style={{ marginTop: '1.5rem', fontFamily: 'inherit', cursor: 'pointer', width: '100%', background: "transparent", border: "1px solid rgba(239, 68, 68, 0.4)", color: "#ef4444" }}>
                 Sign Out
@@ -192,12 +192,12 @@ export default function Portal() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                       to: "admin",
-                      subject: `Message from Member: ${user.displayName || user.email}`,
+                      subject: `Message from Member: ${user.name || user.email}`,
                       replyTo: user.email,
                       html: `
                         <div style="font-family: sans-serif; padding: 20px; background: #0f1628; color: #fff; border: 1px solid #c9a84c; border-radius: 12px;">
                           <h2 style="color: #c9a84c;">New Member Message</h2>
-                          <p><strong>From:</strong> ${user.displayName} (${user.email})</p>
+                          <p><strong>From:</strong> ${user.name} (${user.email})</p>
                           <p><strong>Message:</strong></p>
                           <p style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; line-height: 1.6;">${message}</p>
                         </div>

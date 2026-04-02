@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { getSiteSettings, getCollection } from '@/lib/db';
+import { getCollection } from '@/lib/db';
+import { loadSiteSettingsClient } from '@/data/siteSettingsStatic';
 import { ABOUT_VISION_MISSION } from '@/data/aboutPageStatic';
 import AnimatedSection from '@/components/AnimatedSection';
 import AnimatedCounter from '@/components/AnimatedCounter';
@@ -22,6 +23,7 @@ export default function About() {
   useEffect(() => {
     let cancelled = false;
     const fetchData = async () => {
+      if (!cancelled) setSiteSettings(loadSiteSettingsClient());
       const safeCollection = async (name: string) => {
         try {
           return await getCollection(name);
@@ -32,14 +34,12 @@ export default function About() {
       };
 
       try {
-        const [site, membersData, achievementsData, outreachData] = await Promise.all([
-          getSiteSettings(),
+        const [membersData, achievementsData, outreachData] = await Promise.all([
           safeCollection("members"),
           safeCollection("achievements"),
           safeCollection("outreach"),
         ]);
         if (!cancelled) {
-          setSiteSettings(site);
           setTeam(membersData);
           setAchievements(achievementsData);
           setOutreach(outreachData);
