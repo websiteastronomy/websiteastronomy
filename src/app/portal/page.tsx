@@ -9,7 +9,17 @@ import { useAuth } from '@/context/AuthContext';
 type LeaderboardRow = { name: string; score: number; userId: string };
 
 export default function Portal() {
-  const { user, loading, signInWithGoogle, logout } = useAuth();
+  const { user, loading, authError, signInWithGoogle, signInWithEmail, signUpWithEmail, logout } = useAuth();
+
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+
+  const inputStyle = {
+    padding: '0.7rem 1rem', background: 'rgba(15, 22, 40, 0.5)', border: '1px solid var(--border-subtle)',
+    borderRadius: '6px', color: 'var(--text-primary)', fontSize: '0.9rem', fontFamily: 'inherit', width: '100%'
+  };
 
   const announcements = [
     { date: "Mar 20, 2026", title: "Next observation night: March 25th at 9 PM", type: "Event" },
@@ -67,9 +77,44 @@ export default function Portal() {
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0c1222" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
               </motion.div>
               <h3 style={{ fontSize: '1.4rem', marginBottom: '0.5rem' }}>Astronomy Database</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '2rem' }}>Sign in with your Google account to access announcements, project tracking, and internal logs.</p>
-              <button onClick={signInWithGoogle} className="btn-primary magnetic-btn" style={{ fontFamily: 'inherit', cursor: 'pointer', width: '100%', fontSize: '1rem', padding: '1rem' }}>
-                Sign In with Google
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '2rem' }}>Sign in to access announcements, project tracking, and internal logs.</p>
+              
+              {authError && (
+                <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", padding: "0.8rem", borderRadius: "8px", color: "#ef4444", fontSize: "0.85rem", marginBottom: "1.5rem" }}>
+                  ⚠️ {authError}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginBottom: '1.5rem' }}>
+                {authMode === 'signup' && (
+                  <input type="text" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
+                )}
+                <input type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
+                <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} />
+              </div>
+
+              <button 
+                onClick={() => authMode === 'login' ? signInWithEmail(email, password) : signUpWithEmail(email, password, name)} 
+                className="btn-primary" 
+                style={{ width: "100%", padding: "0.8rem", fontSize: "1rem", cursor: "pointer", fontFamily: 'inherit', marginBottom: '1rem' }}
+              >
+                {authMode === 'login' ? 'Login with Email' : 'Create Member Account'}
+              </button>
+
+              <button 
+                onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
+                style={{ background: 'none', border: 'none', color: 'var(--gold)', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline', marginBottom: '1.5rem', display: 'block', margin: '0 auto' }}
+              >
+                {authMode === 'login' ? "Don't have an account? Sign Up" : "Already have an account? Login"}
+              </button>
+
+              <div style={{ position: 'relative', margin: '1.5rem 0', textAlign: 'center' }}>
+                <hr style={{ border: '0', borderTop: '1px solid var(--border-subtle)' }} />
+                <span style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--bg-card)', padding: '0 1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>OR</span>
+              </div>
+
+              <button onClick={signInWithGoogle} className="btn-secondary" style={{ fontFamily: 'inherit', cursor: 'pointer', width: '100%', fontSize: '0.9rem', padding: '0.8rem', background: 'transparent' }}>
+                Continue with Google
               </button>
             </div>
           </AnimatedSection>

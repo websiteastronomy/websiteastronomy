@@ -95,7 +95,7 @@ async function seed() {
       teamSize: 2,
       tags: ["Atmospheric", "Telemetry", "Hardware"],
       team: [
-        { name: "Alex Nova", role: "Payload Lead", userId: "user-123" },
+        { name: "Shashank", role: "Payload Lead", userId: "user-123" },
         { name: "Jordan Orion", role: "Telemetry & Tracking" }
       ],
       updates: [
@@ -139,7 +139,7 @@ async function seed() {
       teamSize: 4,
       tags: ["Automation", "Hardware", "IoT"],
       team: [
-        { name: "Alex Nova", role: "Systems Architect" },
+        { name: "Shashank", role: "Systems Architect" },
         { name: "Jordan Orion", role: "Mechanical Lead" },
         { name: "Taylor Vega", role: "Software Engineer" },
         { name: "Sam Eclipse", role: "Electronics" }
@@ -159,7 +159,7 @@ async function seed() {
       title: "How to Choose Your First Telescope",
       excerpt: "A comprehensive guide to understanding aperture, focal length, and the best beginner mounts.",
       content: "When starting out in astronomy, the first question is always: 'What telescope should I buy?'\n\nThe answer depends on what you want to see.\n\n### 1. The Power of Aperture\nThe most important specification of any telescope is its aperture—the diameter of its main mirror or lens.",
-      author: "Alex Nova",
+      author: "Shashank",
       date: "2026-03-10",
       category: "guide",
       tags: ["Beginner", "Telescopes", "Gear"],
@@ -253,7 +253,7 @@ async function seed() {
       settings: { exposure: "30s", iso: "1600", focalLength: "2032mm" },
       images: ["https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1200&q=80"],
       notes: "Clear skies and excellent seeing. The core of the nebula was visible.",
-      observerName: "Alex Nova",
+      observerName: "Shashank",
       isApproved: true,
       isFeatured: true,
     },
@@ -339,7 +339,7 @@ async function seed() {
       category: "event",
       date: "2026-01-15",
       isFeatured: true,
-      photographer: "Alex Nova",
+      photographer: "Shashank",
     },
     {
       id: "med-002",
@@ -376,7 +376,7 @@ async function seed() {
   // --- MEMBERS ---
   console.log("  → Members");
   await db.insert(schema.members).values([
-    { id: "mem-001", name: "Alex Nova", role: "President" },
+    { id: "mem-001", name: "Shashank", role: "President" },
     { id: "mem-002", name: "Jordan Orion", role: "Vice President" },
     { id: "mem-003", name: "Taylor Vega", role: "Telescope Lead" },
     { id: "mem-004", name: "Sam Eclipse", role: "Outreach Coordinator" },

@@ -5,9 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import AnimatedSection from '@/components/AnimatedSection';
 import { useState, useEffect } from 'react';
 import { subscribeToCollection } from '@/lib/db';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Events() {
   const now = new Date();
+  const { user } = useAuth();
 
   const [events, setEvents] = useState<any[]>([]);
 
@@ -19,12 +21,15 @@ export default function Events() {
   }, []);
 
   // 1. Separate & Sort Logic (Enforced by Spec)
-  const upcomingEvents = events
-    .filter(e => e.isPublished && new Date(e.date) >= now)
+  // Filter out private events if user is not logged in
+  const visibleEvents = events.filter(e => e.isPublished && (e.isPublic !== false || !!user));
+
+  const upcomingEvents = visibleEvents
+    .filter(e => e.status !== "completed" && new Date(e.date) >= now)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // Ascending
 
-  const pastEvents = events
-    .filter(e => e.isPublished && new Date(e.date) < now)
+  const pastEvents = visibleEvents
+    .filter(e => e.status === "completed" || new Date(e.date) < now)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Descending
 
   const formatDate = (dateString: string) => {

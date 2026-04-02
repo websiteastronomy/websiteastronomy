@@ -15,6 +15,8 @@ import AchievementsManager from "./components/AchievementsManager";
 import SettingsManager from "./components/SettingsManager";
 import MembersManager from "./components/MembersManager";
 import NightSkyManager from "./components/NightSkyManager";
+import MemberRequests from "./components/MemberRequests";
+import SystemSettingsManager from "./components/SystemSettingsManager";
 
 export default function Admin() {
   const { user, isAdmin, loading, authError, signInWithGoogle, signInWithEmail, signUpWithEmail, logout } = useAuth();
@@ -28,6 +30,7 @@ export default function Admin() {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: '📊' },
     { id: 'events', label: 'Events', icon: '📅' },
+    { id: 'member-requests', label: 'Member Requests', icon: '✅' },
     { id: 'articles', label: 'Articles & Facts', icon: '📝' },
     { id: 'projects', label: 'Projects', icon: '🚀' },
     { id: 'observations', label: 'Observations', icon: '🔭' },
@@ -37,6 +40,7 @@ export default function Admin() {
     { id: 'night-sky', label: 'Night Sky', icon: '🌙' },
     { id: 'gallery', label: 'Media Gallery', icon: '🖼️' },
     { id: 'settings', label: 'Site Settings', icon: '⚙️' },
+    { id: 'system', label: 'System Storage', icon: '💾' },
   ];
 
   const inputStyle = {
@@ -161,6 +165,12 @@ export default function Admin() {
             <EventsManager />
           </div>
         )}
+        {/* ===== MEMBER REQUESTS ===== */}
+        {activeTab === 'member-requests' && (
+          <div style={{ animation: "fadeIn 0.3s ease" }}>
+            <MemberRequests />
+          </div>
+        )}
         {/* ===== OBSERVATIONS MANAGER ===== */}
         {activeTab === 'observations' && (
           <div style={{ animation: "fadeIn 0.3s ease" }}>
@@ -207,6 +217,12 @@ export default function Admin() {
         {activeTab === 'settings' && (
           <div style={{ animation: "fadeIn 0.3s ease" }}>
             <SettingsManager />
+          </div>
+        )}
+        {/* ===== SYSTEM SETTINGS ===== */}
+        {activeTab === 'system' && (
+          <div style={{ animation: "fadeIn 0.3s ease" }}>
+            <SystemSettingsManager />
           </div>
         )}
         {/* ===== MEMBERS MANAGER ===== */}

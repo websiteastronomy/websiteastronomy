@@ -32,7 +32,7 @@ export const MOCK_ABOUT = {
   team: [
     {
       id: "t1",
-      name: "Alex Nova",
+      name: "Shashank",
       role: "President",
       dept: "Computer Science",
       bio: "Astrophotography enthusiast with a passion for deep sky objects.",

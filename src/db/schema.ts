@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, jsonb, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, jsonb, integer, pgEnum } from "drizzle-orm/pg-core";
 
 // --- BETTER AUTH TABLES ---
 
@@ -6,10 +6,14 @@ export const users = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  emailVerified: boolean("email_verified").notNull(),
+  emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
+  phone: text("phone"),
+  status: text("status").default("pending").notNull(),
+  role: text("role").default("none").notNull(), // LEGACY FIELD - DO NOT REMOVE
+  roleId: text("role_id"), // NEW FK FIELD
 });
 
 export const sessions = pgTable("session", {
@@ -67,8 +71,35 @@ export const events = pgTable("events", {
   registrationLink: text("registrationLink"),
   bannerImage: text("bannerImage"),
   isPublished: boolean("isPublished").default(false).notNull(),
+  isPublic: boolean("is_public").default(true).notNull(),
+  status: text("status").default("upcoming").notNull(), // upcoming | ongoing | completed
   media: jsonb("media").default('[]'),              // URLs to photos/videos
   internalNotes: text("internalNotes"),              // Member coordination notes
+  registrationType: text("registration_type").default('internal').notNull(), // internal | external
+  maxParticipants: integer("max_participants").default(50).notNull(),
+  enableVolunteer: boolean("enable_volunteer").default(false).notNull(),
+  volunteerLimit: integer("volunteer_limit").default(0).notNull(),
+  backupVolunteerLimit: integer("backup_volunteer_limit").default(0).notNull(),
+  speakerDetails: jsonb("speaker_details"), // { name, designation, organization }
+  ...timestamps
+});
+
+export const event_registrations = pgTable("event_registrations", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").references(() => users.id), // Nullable for public registrations
+  eventId: text("event_id").notNull().references(() => events.id, { onDelete: 'cascade' }),
+  name: text("name"),   // For public registrations
+  email: text("email"), // For public registrations
+  isVolunteer: boolean("is_volunteer").default(false).notNull(),
+  isBackupVolunteer: boolean("is_backup_volunteer").default(false).notNull(),
+  ...timestamps
+});
+
+export const event_volunteers = pgTable("event_volunteers", {
+  id: text("id").primaryKey(),
+  eventId: text("event_id").notNull().references(() => events.id, { onDelete: 'cascade' }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  isBackup: boolean("is_backup").default(false).notNull(),
   ...timestamps
 });
 
@@ -92,6 +123,79 @@ export const projects = pgTable("projects", {
   team: jsonb("team").default('[]').notNull(),        // ProjectMember[]
   updates: jsonb("updates").default('[]'),            // ProjectUpdate[]
   ...timestamps
+});
+
+export const taskStatusEnum = pgEnum("task_status", ["todo", "inProgress", "review", "done"]);
+export const taskPriorityEnum = pgEnum("task_priority", ["low", "medium", "high"]);
+
+export const project_tasks = pgTable("project_tasks", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  status: taskStatusEnum("status").notNull().default("todo"),
+  priority: taskPriorityEnum("priority").notNull().default("medium"),
+  deadline: text("deadline"),
+  isBlocked: boolean("is_blocked").default(false).notNull(),
+  ...timestamps,
+});
+
+export const project_task_assignments = pgTable("project_task_assignments", {
+  id: text("id").primaryKey(),
+  taskId: text("task_id").notNull().references(() => project_tasks.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  assignedAt: timestamp("assigned_at").defaultNow().notNull(),
+});
+
+export const project_task_comments = pgTable("project_task_comments", {
+  id: text("id").primaryKey(),
+  taskId: text("task_id").notNull().references(() => project_tasks.id, { onDelete: "cascade" }),
+  authorId: text("author_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  authorName: text("author_name").notNull(),
+  text: text("text").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const project_task_attachments = pgTable("project_task_attachments", {
+  id: text("id").primaryKey(),
+  taskId: text("task_id").notNull().references(() => project_tasks.id, { onDelete: "cascade" }),
+  fileId: text("file_id").notNull().references(() => project_files.id, { onDelete: "cascade" }), // Relates to project_files table below if exists or just standard file ID. Currently linking text ID.
+  attachedAt: timestamp("attached_at").defaultNow().notNull(),
+});
+
+export const project_files = pgTable("project_files", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  type: text("type").notNull().default("file"),           // "file" | "folder"
+  parentId: text("parent_id"),                            // null = root, else folder id
+  fileSize: text("file_size"),                            // e.g. "2.4 MB"
+  mimeType: text("mime_type"),
+  url: text("url"),                                       // R2 URL when available
+  uploadedBy: text("uploaded_by").notNull().default("Unknown"),
+  ...timestamps,
+});
+
+export const project_timeline = pgTable("project_timeline", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description").notNull(), // using text so it can store long markdown
+  date: text("date").notNull(),               // string purely for simple YYYY-MM-DD visual sort for now, or ISO
+  typeTag: text("type_tag").notNull().default("Update"), // 'Milestone' | 'Update' | 'Issue' | 'Success'
+  attachedFiles: jsonb("attached_files").default('[]').notNull(),
+  ...timestamps,
+});
+
+export const project_discussion = pgTable("project_discussion", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  authorName: text("author_name").notNull(),
+  authorAvatar: text("author_avatar").notNull(),
+  text: text("text").notNull(),
+  isPinned: boolean("is_pinned").default(false).notNull(),
+  replyToId: text("reply_to_id"), // Optional self-reference. Drizzle recursive relations usually require extra relation config, but basic text ID is fine.
+  ...timestamps,
 });
 
 export const articles = pgTable("articles", {
@@ -190,9 +294,66 @@ export const achievements = pgTable("achievements", {
   ...timestamps
 });
 
+// Activity log — tracks all major actions across a project
+export const project_activity = pgTable("project_activity", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  actorName: text("actor_name").notNull().default("System"),
+  action: text("action").notNull(),          // "created_task" | "completed_task" | "moved_task" | "deleted_task" | "uploaded_file" | "added_comment" | "added_timeline" | "sent_message"
+  entityType: text("entity_type").notNull(), // "task" | "file" | "comment" | "timeline" | "discussion"
+  entityId: text("entity_id"),
+  entityTitle: text("entity_title"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // A generic settings table matching Firestore's dynamic documents
 export const settingsTable = pgTable("settings", {
   id: text("id").primaryKey(),
   data: jsonb("data").notNull().default('{}'),
   ...timestamps
 });
+
+export const system_settings = pgTable("system_settings", {
+  id: text("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const files = pgTable("files", {
+  id: text("id").primaryKey(),
+  fileName: text("file_name").notNull(),
+  fileUrl: text("file_url").notNull(),
+  filePath: text("file_path").notNull(),
+  fileSize: integer("file_size").notNull(),
+  fileType: text("file_type").notNull(),
+  projectId: text("project_id").references(() => projects.id, { onDelete: "cascade" }),
+  eventId: text("event_id").references(() => events.id, { onDelete: "cascade" }),
+  uploadedBy: text("uploaded_by").notNull().references(() => users.id),
+  version: integer("version").default(1).notNull(),
+  isPublic: boolean("is_public").default(false).notNull(),
+  status: text("status").default("active").notNull(), // "active" or "deleted"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// --- RBAC TABLES ---
+
+export const roles = pgTable("roles", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  ...timestamps
+});
+
+export const permissions = pgTable("permissions", {
+  id: text("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  description: text("description"),
+});
+
+export const role_permissions = pgTable("role_permissions", {
+  id: text("id").primaryKey(),
+  roleId: text("role_id").notNull().references(() => roles.id, { onDelete: 'cascade' }),
+  permissionId: text("permission_id").notNull().references(() => permissions.id, { onDelete: 'cascade' }),
+});
+

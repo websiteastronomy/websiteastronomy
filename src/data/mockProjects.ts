@@ -40,7 +40,7 @@ export const MOCK_PROJECTS: Project[] = [
     fullDescription: "The high-altitude weather balloon project is one of our flagship initiatives. We construct payloads comprising cameras, GPS trackers, and environmental sensors (temperature, pressure, humidity). These payloads are carried to the stratosphere, reaching altitudes of over 100,000 feet, allowing us to study atmospheric conditions and capture stunning curvature-of-the-Earth photography.",
     objective: "To gather atmospheric data profiles over Bangalore and test student-built telemetry systems in near-space conditions.",
     team: [
-      { name: "Alex Nova", role: "Payload Lead", userId: "user-123" },
+      { name: "Shashank", role: "Payload Lead", userId: "user-123" },
       { name: "Jordan Orion", role: "Telemetry & Tracking" }
     ],
     tags: ["Atmospheric", "Telemetry", "Hardware"],
@@ -100,7 +100,7 @@ export const MOCK_PROJECTS: Project[] = [
     objective: "Provide the club with a high-aperture, easy-to-use visual telescope for outreach.",
     team: [
       { name: "Morgan Star", role: "Optics Cleaning" },
-      { name: "Alex Nova", role: "Woodworking" }
+      { name: "Shashank", role: "Woodworking" }
     ],
     tags: ["Optics", "Maintenance", "Observational"],
     coverImage: "https://images.unsplash.com/photo-1532968961962-8a0cb3a2d4f5?w=800&q=80",

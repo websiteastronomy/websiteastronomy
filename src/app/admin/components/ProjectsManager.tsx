@@ -3,41 +3,99 @@
 import { useState, useEffect } from 'react';
 import { subscribeToCollection, addDocument, updateDocument, deleteDocument } from '@/lib/db';
 import { inputStyle, rowStyle } from './shared';
+import { uploadFile } from '@/app/actions/storage';
 
 export default function ProjectsManager() {
   const [projects, setProjects] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Form State
+  const [formData, setFormData] = useState<any>({
+    title: '', status: 'Planned', description: '', fullDescription: '', tags: '', coverImage: '',
+    isPublished: true, isFeatured: false, githubUrl: '', startDate: '', endDate: '', objective: ''
+  });
+  const [editTeam, setEditTeam] = useState<{name: string, role: string}[]>([]);
+
   useEffect(() => {
-    const unsub = subscribeToCollection('projects', (data) => setProjects(data));
-    return () => unsub();
+    const unsubProjects = subscribeToCollection('projects', (data) => setProjects(data));
+    const unsubMembers = subscribeToCollection('members', (data) => setMembers(data));
+    return () => { unsubProjects(); unsubMembers(); };
   }, []);
+
+  const handleEditClick = (p: any) => {
+    setEditingProject(p);
+    setFormData({
+      title: p.title || '',
+      status: p.status || 'Planned',
+      description: p.description || '',
+      fullDescription: p.fullDescription || '',
+      tags: p.tags?.join(', ') || '',
+      coverImage: p.coverImage || '',
+      isPublished: p.isPublished !== false,
+      isFeatured: p.isFeatured || false,
+      githubUrl: p.githubUrl || '',
+      startDate: p.startDate || '',
+      endDate: p.endDate || '',
+      objective: p.objective || ''
+    });
+    setEditTeam(p.team || []);
+    setShowForm(true);
+    window.scrollTo(0,0);
+  };
+
+  const handleAddNewClick = () => {
+    setEditingProject(null);
+    setFormData({
+      title: '', status: 'Planned', description: '', fullDescription: '', tags: '', coverImage: '',
+      isPublished: true, isFeatured: false, githubUrl: '', startDate: '', endDate: '', objective: ''
+    });
+    setEditTeam([]);
+    setShowForm(!showForm);
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const container = document.getElementById('project-form');
-      if (!container) return;
-      const inputs = container.querySelectorAll('input, select, textarea');
-      const data: any = { team: [], updates: [] };
-      inputs.forEach((i: any) => {
-        if (i.type === 'checkbox') data[i.name] = i.checked;
-        else if (i.name === 'tags') data.tags = i.value.split(',').map((s: string) => s.trim()).filter(Boolean);
-        else if (i.name) data[i.name] = i.value;
-      });
+      const fileInput = document.getElementById('coverImageFile') as HTMLInputElement;
+      const file = fileInput?.files?.[0];
 
-      if (!data.title || !data.description || !data.coverImage) {
+      let finalImageUrl = formData.coverImage;
+
+      if (file) {
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", file);
+        try {
+           const uploadResult = await uploadFile(uploadFormData, "projects", editingProject?.id || "new-project", true);
+           finalImageUrl = uploadResult.fileUrl;
+        } catch(e: any) {
+           alert("Upload Failed: " + e.message);
+           setIsSaving(false);
+           return;
+        }
+      }
+
+      if (!formData.title || !formData.description || !finalImageUrl) {
         alert("Please fill out Title, Description, and Cover Image.");
         setIsSaving(false);
         return;
       }
 
+      const data = {
+        ...formData,
+        coverImage: finalImageUrl,
+        tags: formData.tags.split(',').map((s: string) => s.trim()).filter(Boolean),
+        team: editTeam
+      };
+
       if (editingProject?.id) {
+        data.updates = editingProject.updates || []; // preserve updates
         await updateDocument('projects', editingProject.id, data);
         alert("Updated successfully!");
       } else {
+        data.updates = [];
         await addDocument('projects', data);
         alert("Created successfully!");
       }
@@ -61,6 +119,20 @@ export default function ProjectsManager() {
     }
   };
 
+  const handleAddTeamMember = () => {
+    setEditTeam([...editTeam, { name: '', role: 'Member' }]);
+  };
+
+  const handleRemoveTeamMember = (index: number) => {
+    setEditTeam(editTeam.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateTeamMember = (index: number, field: string, value: string) => {
+    const updated = [...editTeam];
+    updated[index] = { ...updated[index], [field]: value };
+    setEditTeam(updated);
+  };
+
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -68,7 +140,7 @@ export default function ProjectsManager() {
         <button 
           className="btn-primary" 
           style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem' }} 
-          onClick={() => { setShowForm(!showForm); setEditingProject(null); }}
+          onClick={handleAddNewClick}
         >
           {showForm ? 'Cancel' : '+ Create Project'}
         </button>
@@ -79,22 +151,75 @@ export default function ProjectsManager() {
           <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--gold)' }}>
             {editingProject ? 'Edit Project' : 'New Project'}
           </h3>
-          <div id="project-form" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
-            <input name="title" placeholder="Project Title" defaultValue={editingProject?.title || ''} style={inputStyle} />
-            <select name="status" defaultValue={editingProject?.status || 'Planned'} style={{ ...inputStyle, cursor: 'pointer', appearance: 'none' }}>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
+            <input placeholder="Project Title" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} style={inputStyle} />
+            <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} style={{ ...inputStyle, cursor: 'pointer', appearance: 'none' }}>
               <option value="Planned">Planned</option>
               <option value="Ongoing">Ongoing</option>
               <option value="Completed">Completed</option>
             </select>
-            <input name="description" placeholder="Short Description" defaultValue={editingProject?.description || ''} style={{ ...inputStyle, gridColumn: '1 / -1' }} />
-            <textarea name="fullDescription" placeholder="Full Description / Objective" defaultValue={editingProject?.fullDescription || ''} rows={3} style={{ ...inputStyle, gridColumn: '1 / -1', resize: 'vertical' }} />
-            <input name="tags" placeholder="Comma-separated Tags (e.g. Rocketry, Optics)" defaultValue={editingProject?.tags?.join(', ') || ''} style={inputStyle} />
-            <input name="coverImage" placeholder="Cover Image URL" defaultValue={editingProject?.coverImage || ''} style={inputStyle} />
+            
+            <input placeholder="Short Description (Listing)" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} style={{ ...inputStyle, gridColumn: '1 / -1' }} />
+            <input placeholder="Objective / Mission (1-2 sentences)" value={formData.objective} onChange={e => setFormData({...formData, objective: e.target.value})} style={{ ...inputStyle, gridColumn: '1 / -1' }} />
+            <textarea placeholder="Full Description" value={formData.fullDescription} onChange={e => setFormData({...formData, fullDescription: e.target.value})} rows={3} style={{ ...inputStyle, gridColumn: '1 / -1', resize: 'vertical' }} />
+            
+            <div style={{ display: 'flex', gap: '0.8rem', gridColumn: '1 / -1' }}>
+              <input type="date" placeholder="Start Date" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} style={{ ...inputStyle, flex: 1, colorScheme: 'dark' }} title="Start Date" />
+              <input type="date" placeholder="End Date" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})} style={{ ...inputStyle, flex: 1, colorScheme: 'dark' }} title="End Date" />
+            </div>
+
+            <input placeholder="Comma-separated Tags (e.g. Rocketry, Optics)" value={formData.tags} onChange={e => setFormData({...formData, tags: e.target.value})} style={inputStyle} />
+            <input placeholder="GitHub URL (optional)" value={formData.githubUrl} onChange={e => setFormData({...formData, githubUrl: e.target.value})} style={inputStyle} />
+            
+            <div style={{ padding: '1rem', border: '1px dashed var(--border-subtle)', borderRadius: '6px', background: 'rgba(255,255,255,0.02)', gridColumn: '1 / -1' }}>
+               {formData.coverImage && (
+                 <div style={{ marginBottom: "1rem", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                    Current image: <a href={formData.coverImage} target="_blank" rel="noreferrer" style={{color: "var(--gold)"}}>(View)</a>
+                 </div>
+               )}
+               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Upload Cover Image (Max configured in System Settings)</label>
+               <input id="coverImageFile" type="file" accept="image/png, image/jpeg, image/webp" style={{ color: 'var(--text-primary)', fontSize: '0.9rem', width: '100%' }} />
+            </div>
+          </div>
+          
+          <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
+              <h4 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Team Members</h4>
+              <button onClick={handleAddTeamMember} className="btn-secondary" style={{ fontSize: '0.7rem', padding: '0.3rem 0.6rem', borderStyle: 'dashed' }}>
+                + Add Member
+              </button>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {editTeam.map((member, idx) => (
+                <div key={idx} style={{ display: 'flex', gap: '0.5rem' }}>
+                  <select 
+                    value={member.name} 
+                    onChange={e => handleUpdateTeamMember(idx, 'name', e.target.value)} 
+                    style={{ ...inputStyle, flex: 2, padding: '0.4rem 0.8rem' }}
+                  >
+                    <option value="" disabled>Select User...</option>
+                    {members.map(m => (
+                      <option key={m.id} value={m.name}>{m.name}</option>
+                    ))}
+                  </select>
+                  <input 
+                    placeholder="Role (e.g. Lead, Core, Member)" 
+                    value={member.role} 
+                    onChange={e => handleUpdateTeamMember(idx, 'role', e.target.value)} 
+                    style={{ ...inputStyle, flex: 1, padding: '0.4rem 0.8rem' }} 
+                  />
+                  <button onClick={() => handleRemoveTeamMember(idx)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0 0.5rem' }}>✕</button>
+                </div>
+              ))}
+              {editTeam.length === 0 && <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No team members added yet.</p>}
+            </div>
           </div>
           
           <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>
-              <input name="isPublished" type="checkbox" defaultChecked={editingProject ? editingProject.isPublished : true} /> 
+              <input type="checkbox" checked={formData.isPublished} onChange={e => setFormData({...formData, isPublished: e.target.checked})} /> 
               Publish publicly
             </label>
           </div>
@@ -142,7 +267,7 @@ export default function ProjectsManager() {
                 {p.isFeatured ? '★ Unfeature' : '☆ Make Featured'}
               </button>
               <button 
-                onClick={() => { setEditingProject(p); setShowForm(true); window.scrollTo(0,0); }}
+                onClick={() => handleEditClick(p)}
                 style={{ background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)', padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit', minWidth: '100px' }}
               >
                 Edit Content

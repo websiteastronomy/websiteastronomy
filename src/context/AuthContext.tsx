@@ -45,54 +45,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [error]);
 
   const signInWithGoogle = async () => {
-    try {
-      setAuthError(null);
-      await authClient.signIn.social({
-        provider: "google",
-        callbackURL: "/admin", 
-      });
-    } catch (e: any) {
-      console.error("Authentication Error:", e);
-      setAuthError("Failed to initiate Google sign-in.");
+    setAuthError(null);
+    const { error } = await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "/admin", 
+    });
+    if (error) {
+      console.error("Google Sign-in Error:", error);
+      setAuthError(error.message || "Failed to initiate Google sign-in.");
     }
   };
 
   const signInWithEmail = async (email: string, password: string) => {
-    try {
-      setAuthError(null);
-      await authClient.signIn.email({
-        email,
-        password,
-        callbackURL: "/admin",
-      });
-    } catch (e: any) {
-      console.error("Sign-in Error:", e);
-      setAuthError("Invalid credentials.");
+    setAuthError(null);
+    const { data, error } = await authClient.signIn.email({
+      email,
+      password,
+    });
+    if (error) {
+      console.error("Sign-in Error:", error);
+      setAuthError(error.message || "Invalid email or password.");
     }
   };
 
   const signUpWithEmail = async (email: string, password: string, name: string) => {
-    try {
-      setAuthError(null);
-      await authClient.signUp.email({
-        email,
-        password,
-        name,
-        callbackURL: "/admin",
-      });
-    } catch (e: any) {
-      console.error("Sign-up Error:", e);
-      setAuthError("Failed to sign up.");
+    setAuthError(null);
+    const { data, error } = await authClient.signUp.email({
+      email,
+      password,
+      name,
+    });
+    if (error) {
+      console.error("Sign-up Error:", error);
+      setAuthError(error.message || "Failed to create account.");
     }
   };
 
   const logout = async () => {
-    try {
-      await authClient.signOut();
-      window.location.href = "/";
-    } catch (e) {
-      console.error("Logout Error:", e);
+    const { error } = await authClient.signOut();
+    if (error) {
+      console.error("Logout Error:", error);
     }
+    window.location.href = "/";
   };
 
   return (

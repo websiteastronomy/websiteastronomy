@@ -92,7 +92,7 @@ export const MOCK_QUIZZES: Quiz[] = [
 ];
 
 export const MOCK_LEADERBOARD: LeaderboardEntry[] = [
-  { userId: "u1", name: "Alex Nova", totalScore: 120, weeklyScore: 30, monthlyScore: 80 },
+  { userId: "u1", name: "Shashank", totalScore: 120, weeklyScore: 30, monthlyScore: 80 },
   { userId: "u2", name: "Jordan Orion", totalScore: 115, weeklyScore: 25, monthlyScore: 75 },
   { userId: "u3", name: "Taylor Vega", totalScore: 90, weeklyScore: 40, monthlyScore: 60 },
   { userId: "u4", name: "Morgan Star", totalScore: 85, weeklyScore: 10, monthlyScore: 40 },

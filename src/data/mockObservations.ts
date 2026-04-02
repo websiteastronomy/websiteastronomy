@@ -34,7 +34,7 @@ export const MOCK_OBSERVATIONS: Observation[] = [
     },
     images: ["https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1200&q=80"],
     notes: "Clear skies and excellent seeing. The core of the nebula was visible, and stacked 20 frames for this final image.",
-    observerName: "Alex Nova",
+    observerName: "Shashank",
     isApproved: true,
     isFeatured: true
   },

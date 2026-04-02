@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { subscribeToCollection, addDocument, updateDocument, deleteDocument } from '@/lib/db';
 import { inputStyle, rowStyle } from './shared';
+import { uploadFile } from '@/app/actions/storage';
 
 export default function GalleryManager() {
   const [media, setMedia] = useState<any[]>([]);
@@ -29,11 +30,31 @@ export default function GalleryManager() {
         else if (i.name) data[i.name] = i.value;
       });
 
-      if (!data.imageUrl) {
-        alert("Image URL is required.");
+      const fileInput = document.getElementById('mediaUpload') as HTMLInputElement;
+      const file = fileInput?.files?.[0];
+
+      if (!file && !editingMedia?.imageUrl) {
+        alert("Image upload is required.");
         setIsSaving(false);
         return;
       }
+      
+      let finalImageUrl = editingMedia?.imageUrl || '';
+      
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        try {
+           const uploadResult = await uploadFile(formData, "media", "", true);
+           finalImageUrl = uploadResult.fileUrl;
+        } catch(e: any) {
+           alert("Upload Failed: " + e.message);
+           setIsSaving(false);
+           return;
+        }
+      }
+      
+      data.imageUrl = finalImageUrl;
 
       if (editingMedia?.id) {
         // Keep original createdAt
@@ -86,7 +107,16 @@ export default function GalleryManager() {
             {editingMedia ? 'Edit Media Entry' : 'New Media Entry'}
           </h3>
           <div id="media-form" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.8rem', marginBottom: '1rem' }}>
-            <input name="imageUrl" placeholder="High-Resolution Image URL" defaultValue={editingMedia?.imageUrl || ''} style={inputStyle} />
+            <div style={{ padding: '1rem', border: '1px dashed var(--border-subtle)', borderRadius: '6px', background: 'rgba(255,255,255,0.02)' }}>
+               {editingMedia?.imageUrl && (
+                 <div style={{ marginBottom: "1rem", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                    Current image: <a href={editingMedia.imageUrl} target="_blank" rel="noreferrer" style={{color: "var(--gold)"}}>(View)</a>
+                 </div>
+               )}
+               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Upload High-Resolution Image (Max configured in System Settings)</label>
+               <input id="mediaUpload" type="file" accept="image/png, image/jpeg, image/webp" style={{ color: 'var(--text-primary)', fontSize: '0.9rem', width: '100%' }} />
+            </div>
+            
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
               <select name="category" defaultValue={editingMedia?.category || 'event'} style={{ ...inputStyle, cursor: 'pointer', appearance: 'none' }}>
                 <option value="project">Project / Milestone</option>

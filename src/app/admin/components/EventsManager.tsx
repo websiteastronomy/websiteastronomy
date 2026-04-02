@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { subscribeToCollection, addDocument, updateDocument, deleteDocument } from '@/lib/db';
 import { inputStyle, rowStyle } from './shared';
+import { uploadFile } from '@/app/actions/storage';
 
 export default function EventsManager() {
   const [events, setEvents] = useState<any[]>([]);
@@ -23,15 +24,49 @@ export default function EventsManager() {
       const inputs = container.querySelectorAll('input, textarea, select');
       const data: any = {};
       inputs.forEach((i: any) => {
-        if (i.type === 'checkbox') data[i.name] = i.checked;
-        else if (i.name) data[i.name] = i.value;
+        if (i.name) {
+          if (i.type === 'checkbox') data[i.name] = i.checked;
+          else if (i.type === 'number') data[i.name] = parseInt(i.value) || 0;
+          else data[i.name] = i.value;
+        }
       });
+
+      // Nest Speaker Details
+      if (data.speakerName || data.speakerDesignation || data.speakerOrg) {
+        data.speakerDetails = {
+          name: data.speakerName || '',
+          designation: data.speakerDesignation || '',
+          organization: data.speakerOrg || ''
+        };
+      }
+      delete data.speakerName;
+      delete data.speakerDesignation;
+      delete data.speakerOrg;
 
       if (!data.title || !data.date || !data.location) {
         alert("Please fill out title, date, and location.");
         setIsSaving(false);
         return;
       }
+
+      const fileInput = document.getElementById('mediaUpload') as HTMLInputElement;
+      const file = fileInput?.files?.[0];
+      
+      let finalImageUrl = editingEvent?.bannerImage || '';
+      
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        try {
+           const uploadResult = await uploadFile(formData, "events", editingEvent?.id || "new-event", true);
+           finalImageUrl = uploadResult.fileUrl;
+        } catch(e: any) {
+           alert("Upload Failed: " + e.message);
+           setIsSaving(false);
+           return;
+        }
+      }
+      data.bannerImage = finalImageUrl;
 
       if (editingEvent?.id) {
         await updateDocument('events', editingEvent.id, data);
@@ -66,25 +101,73 @@ export default function EventsManager() {
       </div>
       
       {showForm && (
-        <div style={{ padding: '1.5rem', background: 'rgba(15, 22, 40, 0.4)', borderRadius: '8px', border: '1px solid var(--border-subtle)', marginBottom: '1.5rem' }}>
+        <div id="event-form" style={{ padding: '1.5rem', background: 'rgba(15, 22, 40, 0.4)', borderRadius: '8px', border: '1px solid var(--border-subtle)', marginBottom: '1.5rem' }}>
           <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--gold)' }}>
             {editingEvent ? 'Edit Event' : 'New Event'}
           </h3>
-          <div id="event-form" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
             <input name="title" placeholder="Event Title" defaultValue={editingEvent?.title || ''} style={inputStyle} />
-            <input name="description" placeholder="Short Description" defaultValue={editingEvent?.description || ''} style={inputStyle} />
             <input type="datetime-local" name="date" placeholder="Date" defaultValue={editingEvent?.date ? new Date(editingEvent.date).toISOString().slice(0, 16) : ''} style={inputStyle} />
             <input name="location" placeholder="Location" defaultValue={editingEvent?.location || ''} style={inputStyle} />
-            <input name="type" placeholder="Type (e.g., Workshop, Stargazing)" defaultValue={editingEvent?.type || ''} style={inputStyle} />
-            <input name="registrationLink" placeholder="Registration Link (optional)" defaultValue={editingEvent?.registrationLink || ''} style={inputStyle} />
-            <input name="bannerImage" placeholder="Banner Image URL" defaultValue={editingEvent?.bannerImage || ''} style={{ ...inputStyle, gridColumn: '1 / -1' }} />
-            <textarea name="fullDescription" placeholder="Full Description" defaultValue={editingEvent?.fullDescription || ''} rows={3} style={{ ...inputStyle, gridColumn: '1 / -1', resize: 'vertical' }} />
+            
+            {/* Event Setup Configurations */}
+            <select name="status" defaultValue={editingEvent?.status || 'upcoming'} style={inputStyle}>
+              <option value="upcoming">Status: Upcoming</option>
+              <option value="ongoing">Status: Ongoing</option>
+              <option value="completed">Status: Completed</option>
+            </select>
+            <select name="registrationType" defaultValue={editingEvent?.registrationType || 'internal'} style={inputStyle}>
+              <option value="internal">Registration: Internal Form</option>
+              <option value="external">Registration: External Link Redirect</option>
+            </select>
+            <input name="type" placeholder="Category (e.g., Workshop, Stargazing)" defaultValue={editingEvent?.type || ''} style={inputStyle} />
+            <input type="number" name="maxParticipants" placeholder="Capacity / Max Participants" defaultValue={editingEvent?.maxParticipants || 50} style={inputStyle} />
+            <input name="registrationLink" placeholder="External Register Link (Optional)" defaultValue={editingEvent?.registrationLink || ''} style={inputStyle} />
+
+            {/* Volunteer & Speaker Sections */}
+            <fieldset style={{ gridColumn: '1 / -1', border: '1px solid rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px', marginBottom: '0.5rem' }}>
+              <legend style={{ padding: '0 0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Volunteer Limits</legend>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', marginTop: '0.5rem' }}>
+                <input type="number" name="volunteerLimit" placeholder="Volunteer Spot Limit" defaultValue={editingEvent?.volunteerLimit || 0} style={inputStyle} />
+                <input type="number" name="backupVolunteerLimit" placeholder="Backup Volunteer Limit" defaultValue={editingEvent?.backupVolunteerLimit || 0} style={inputStyle} />
+              </div>
+            </fieldset>
+
+            <fieldset style={{ gridColumn: '1 / -1', border: '1px solid rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px', marginBottom: '0.5rem' }}>
+              <legend style={{ padding: '0 0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Guest Speaker / Lead (Optional)</legend>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.8rem', marginTop: '0.5rem' }}>
+                <input name="speakerName" placeholder="Speaker Name" defaultValue={editingEvent?.speakerDetails?.name || ''} style={inputStyle} />
+                <input name="speakerDesignation" placeholder="Designation" defaultValue={editingEvent?.speakerDetails?.designation || ''} style={inputStyle} />
+                <input name="speakerOrg" placeholder="Organization" defaultValue={editingEvent?.speakerDetails?.organization || ''} style={inputStyle} />
+              </div>
+            </fieldset>
+            
+            <div style={{ padding: '1rem', border: '1px dashed var(--border-subtle)', borderRadius: '6px', background: 'rgba(255,255,255,0.02)', gridColumn: '1 / -1' }}>
+               {editingEvent?.bannerImage && (
+                 <div style={{ marginBottom: "1rem", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                    Current image: <a href={editingEvent.bannerImage} target="_blank" rel="noreferrer" style={{color: "var(--gold)"}}>(View)</a>
+                 </div>
+               )}
+               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Upload Banner Image (Max configured in System Settings)</label>
+               <input id="mediaUpload" type="file" accept="image/png, image/jpeg, image/webp" style={{ color: 'var(--text-primary)', fontSize: '0.9rem', width: '100%' }} />
+            </div>
+
+            <input name="description" placeholder="Short Summary" defaultValue={editingEvent?.description || ''} style={{ ...inputStyle, gridColumn: '1 / -1' }} />
+            <textarea name="fullDescription" placeholder="Full Detailed Description" defaultValue={editingEvent?.fullDescription || ''} rows={3} style={{ ...inputStyle, gridColumn: '1 / -1', resize: 'vertical' }} />
           </div>
           
           <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', padding: '0.5rem 1rem', borderRadius: '4px' }}>
               <input name="isPublished" type="checkbox" defaultChecked={editingEvent ? editingEvent.isPublished : true} /> 
               Publish publicly
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', padding: '0.5rem 1rem', borderRadius: '4px' }}>
+              <input name="isPublic" type="checkbox" defaultChecked={editingEvent ? editingEvent.isPublic : true} /> 
+              Publicly Visible (Guests + Members)
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', padding: '0.5rem 1rem', borderRadius: '4px' }}>
+              <input name="enableVolunteer" type="checkbox" defaultChecked={editingEvent ? editingEvent.enableVolunteer : false} /> 
+              Enable Volunteer Spots
             </label>
           </div>
 
@@ -108,23 +191,26 @@ export default function EventsManager() {
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
         {events.map((evt) => {
-          const isUpcoming = new Date(evt.date) >= new Date();
+          const isOngoing = evt.status === "ongoing";
+          const isUpcoming = evt.status === "upcoming";
           return (
             <div key={evt.id} style={{ ...rowStyle, padding: '1.2rem', alignItems: 'flex-start' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.4rem' }}>
                   <h4 style={{ fontSize: '1.05rem' }}>{evt.title}</h4>
                   {!evt.isPublished && <span style={{ fontSize: '0.65rem', background: '#333', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>DRAFT</span>}
+                  {evt.isPublic === false && <span style={{ fontSize: '0.65rem', background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.4)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>MEMBERS ONLY</span>}
                 </div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.8rem' }}>{new Date(evt.date).toLocaleString()} · {evt.location}</p>
                 
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <span style={{ 
                     fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '12px', 
-                    background: isUpcoming ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', 
-                    color: isUpcoming ? '#22c55e' : 'var(--text-muted)' 
+                    background: isUpcoming || isOngoing ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)', 
+                    color: isUpcoming || isOngoing ? '#22c55e' : 'var(--text-muted)',
+                    textTransform: 'uppercase' 
                   }}>
-                    {isUpcoming ? "UPCOMING" : "PAST / COMPLETED"}
+                    {evt.status || "upcoming"}
                   </span>
                   <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>
                     {evt.type}

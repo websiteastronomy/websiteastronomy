@@ -24,7 +24,7 @@ export const MOCK_EDUCATION: EducationPost[] = [
     title: "How to Choose Your First Telescope",
     excerpt: "A comprehensive guide to understanding aperture, focal length, and the best beginner mounts.",
     content: "When starting out in astronomy, the first question is always: 'What telescope should I buy?' \n\nThe answer depends on what you want to see. \n\n### 1. The Power of Aperture\nThe most important specification of any telescope is its aperture—the diameter of its main mirror or lens. A larger aperture gathers more light, allowing you to see fainter objects and resolve finer details. For beginners, a 6-inch or 8-inch Dobsonian reflector is universally recommended because it gives you the most aperture for your money.\n\n### 2. Mount Types\nAvoid cheap equatorial (EQ) mounts. They are heavy, difficult to align, and frustrating for visual use. Stick to Alt-Azimuth or Dobsonian mounts, which simply move up, down, left, and right.",
-    author: "Alex Nova",
+    author: "Shashank",
     date: "2026-03-10",
     category: "guide",
     tags: ["Beginner", "Telescopes", "Gear"],

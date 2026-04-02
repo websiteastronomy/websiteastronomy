@@ -1,0 +1,199 @@
+"use server";
+
+import { db } from "@/db";
+import { users, events, event_registrations, event_volunteers } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { v4 as uuidv4 } from "uuid";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+
+export async function registerForEvent(eventId: string, name?: string, email?: string) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    let authUser = session?.user;
+    let dbUser = null;
+
+    // 2. Fetch Event Details
+    const eventRes = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
+    if (!eventRes.length) return { success: false, error: "Event not found." };
+    const event = eventRes[0];
+
+    // Access Check - if event is strictly for members-only
+    if (!event.isPublic || event.registrationType === 'internal') {
+      if (!authUser) {
+        // If event is public and registrationType is internal, we CAN register external users
+        if (!event.isPublic) {
+            return { success: false, error: "Authentication required for private events." };
+        }
+      }
+    }
+
+    if (authUser) {
+      const userRes = await db.select().from(users).where(eq(users.id, authUser.id)).limit(1);
+      if (userRes.length) {
+        dbUser = userRes[0];
+        if (dbUser.status !== 'approved') return { success: false, error: "Wait for admin approval" };
+        if (!event.isPublic && dbUser.role === 'none') {
+           return { success: false, error: "This is a members-only event" };
+        }
+      }
+    } else {
+        // Unauthenticated registration logic
+        if (!name || !email) {
+            return { success: false, error: "Name and email are required for public registration." };
+        }
+    }
+
+    // 4. Slots Validation
+    const allRegs = await db.select().from(event_registrations).where(eq(event_registrations.eventId, eventId));
+    
+    // Check if already registered
+    if (dbUser && allRegs.some(r => r.userId === dbUser.id)) {
+      return { success: false, error: "Already registered" };
+    }
+    if (!dbUser && email && allRegs.some(r => r.email === email)) {
+      return { success: false, error: "Already registered with this email" };
+    }
+
+    if (allRegs.length >= event.maxParticipants) {
+      return { success: false, error: "Registration is full" };
+    }
+
+    // 6. Insert Registration
+    await db.insert(event_registrations).values({
+      id: uuidv4(),
+      eventId,
+      userId: dbUser?.id || null, // Allow null for external
+      name: dbUser?.name || name || "Anonymous",
+      email: dbUser?.email || email || null,
+      isVolunteer: false,
+      isBackupVolunteer: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    return { success: true };
+
+  } catch (err: any) {
+    console.error("Registration engine error:", err);
+    return { success: false, error: "Internal Server Error" };
+  }
+}
+
+export async function applyForVolunteer(eventId: string) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user) return { success: false, error: "Authentication required to volunteer." };
+    const authUser = session.user;
+
+    const userRes = await db.select().from(users).where(eq(users.id, authUser.id)).limit(1);
+    const dbUser = userRes[0];
+    if (dbUser.status !== 'approved') return { success: false, error: "Account pending approval." };
+
+    const eventRes = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
+    if (!eventRes.length) return { success: false, error: "Event not found." };
+    const event = eventRes[0];
+
+    if (!event.enableVolunteer) return { success: false, error: "Volunteering is not enabled for this event." };
+
+    const allVols = await db.select().from(event_volunteers).where(eq(event_volunteers.eventId, eventId));
+    
+    if (allVols.some(v => v.userId === dbUser.id)) {
+      return { success: false, error: "Already applied as a volunteer." };
+    }
+
+    let isBackup = false;
+    let message = "";
+    const activeVols = allVols.filter(v => !v.isBackup).length;
+    const backupVols = allVols.filter(v => v.isBackup).length;
+
+    if (activeVols < event.volunteerLimit) {
+      isBackup = false;
+      message = "Successfully applied as Volunteer!";
+    } else if (backupVols < event.backupVolunteerLimit) {
+      isBackup = true;
+      message = "Volunteer slots full. Added as Backup Volunteer.";
+    } else {
+      return { success: false, error: "All volunteer positions and backups are currently full." };
+    }
+
+    await db.insert(event_volunteers).values({
+      id: uuidv4(),
+      eventId,
+      userId: dbUser.id,
+      isBackup,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    return { success: true, message, isBackup };
+  } catch (err) {
+    console.error("Volunteer application error:", err);
+    return { success: false, error: "Internal Server Error" };
+  }
+}
+
+export async function getEventStats(eventId: string) {
+  try {
+    const allRegs = await db.select().from(event_registrations).where(eq(event_registrations.eventId, eventId));
+    const allVols = await db.select().from(event_volunteers).where(eq(event_volunteers.eventId, eventId));
+    const isVol = allVols.filter(r => !r.isBackup).length;
+    const isBack = allVols.filter(r => r.isBackup).length;
+    
+    // Also see if current user is registered
+    let userRegistered = false;
+    let userVolunteered = false;
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (session?.user) {
+      userRegistered = allRegs.some(r => r.userId === session.user.id);
+      userVolunteered = allVols.some(v => v.userId === session.user.id);
+    }
+    
+    return {
+      totalRegistrations: allRegs.length,
+      volunteers: isVol,
+      backupVolunteers: isBack,
+      userRegistered,
+      userVolunteered
+    };
+  } catch (err) {
+    console.error(err);
+    return { totalRegistrations: 0, volunteers: 0, backupVolunteers: 0, userRegistered: false, userVolunteered: false };
+  }
+}
+
+// Admin-only fetcher for robust participant mapping
+export async function getEventParticipants(eventId: string) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user) return null;
+    
+    const userRes = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
+    if (!userRes.length) return null;
+    if (userRes[0].role !== "core" && userRes[0].role !== "admin") {
+      return null; // Reject non-core
+    }
+
+    const regs = await db.select().from(event_registrations).where(eq(event_registrations.eventId, eventId));
+    const vols = await db.select().from(event_volunteers).where(eq(event_volunteers.eventId, eventId));
+
+    // Simple manual join since not all have user records locally in Neon
+    // In a fully relational setup we might do a join, but regs already has name/email
+    return { registrations: regs, volunteers: vols };
+  } catch(e) {
+    console.error(e);
+    return null;
+  }
+}
+
+export async function getUserProfile() {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user) return null;
+    const userRes = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
+    if (!userRes.length) return null;
+    return { status: userRes[0].status as string, role: userRes[0].role as string };
+  } catch {
+    return null;
+  }
+}

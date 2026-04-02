@@ -15,7 +15,7 @@ export const MOCK_MEDIA: MediaItem[] = [
     id: "med-001",
     imageUrl: "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1200&q=80",
     caption: "Our main telescope setup during the Winter Stargazing event. The clear skies allowed perfect tracking of Jupiter.",
-    author: "Alex Nova",
+    author: "Shashank",
     category: "event",
     isFeatured: true,
     createdAt: "2026-01-15T10:00:00Z"
@@ -60,7 +60,7 @@ export const MOCK_MEDIA: MediaItem[] = [
     id: "med-006",
     imageUrl: "https://images.unsplash.com/photo-1419242902214-272b38666f54?w=1200&q=80",
     caption: "Not featured: This image sits in the backlog, hidden from the public UI until an admin toggles it.",
-    author: "Alex Nova",
+    author: "Shashank",
     category: "observation",
     isFeatured: false, // Testing the Hard Rule limit
     createdAt: "2026-03-20T12:00:00Z"
