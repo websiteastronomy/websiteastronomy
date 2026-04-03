@@ -88,8 +88,7 @@ export default function EventDetail() {
   const isOngoingOrUpcoming = event.status === "upcoming" || event.status === "ongoing";
 
   const formatDate = (dateString: string) => {
-    const opts: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' };
-    return new Date(dateString).toLocaleDateString('en-US', opts);
+    return formatDateStable(dateString);
   };
 
   const formatTime = (dateString: string) => {

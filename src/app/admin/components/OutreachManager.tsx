@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { subscribeToCollection, addDocument, updateDocument, deleteDocument } from '@/lib/db';
 import { inputStyle, rowStyle } from './shared';
+import { formatDateStable } from '@/lib/format-date';
 
 export default function OutreachManager() {
   const [outreach, setOutreach] = useState<any[]>([]);
@@ -168,7 +169,7 @@ export default function OutreachManager() {
                   {!out.isApproved && <span style={{ fontSize: '0.65rem', background: '#fb923c20', color: '#fb923c', padding: '0.2rem 0.5rem', borderRadius: '4px', border: "1px solid #fb923c40", fontWeight: "bold" }}>REQUIRES APPROVAL</span>}
                   {out.isFeatured && <span style={{ fontSize: '0.65rem', background: 'var(--gold)', color: '#000', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>FEATURED</span>}
                 </div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.8rem' }}>{new Date(out.date).toLocaleDateString()} · {out.location}</p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.8rem' }}>{formatDateStable(out.date)} · {out.location}</p>
                 
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', textTransform: "capitalize" }}>

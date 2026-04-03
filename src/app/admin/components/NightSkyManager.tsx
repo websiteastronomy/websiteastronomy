@@ -9,6 +9,7 @@ import { MOCK_NIGHT_SKY } from '@/data/mockNightSky';
 export default function NightSkyManager() {
   const [siteSettings, setSiteSettings] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     const s = loadSiteSettingsClient();
@@ -21,18 +22,19 @@ export default function NightSkyManager() {
     try {
       data = JSON.parse(jsonInput.value);
     } catch {
-      alert("Invalid JSON format");
+      setFeedback({ type: 'error', message: 'Invalid JSON format' });
       return;
     }
 
+    setFeedback(null);
     setIsSaving(true);
     try {
       const next = { ...siteSettings, nightSky: data };
       setSiteSettings(next);
       writeSiteSettingsLocal(next);
-      alert("Night sky configuration saved in this browser.");
+      setFeedback({ type: 'success', message: 'Night sky configuration saved in this browser.' });
     } catch {
-      alert("Failed to save night sky data.");
+      setFeedback({ type: 'error', message: 'Failed to save night sky data.' });
     } finally {
       setIsSaving(false);
     }
@@ -46,6 +48,12 @@ export default function NightSkyManager() {
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Manage the current moon phase, visible planets, and celestial events via JSON configuration.</p>
         </div>
       </div>
+
+      {feedback ? (
+        <div style={{ marginBottom: '1rem', padding: '0.8rem 1rem', borderRadius: '8px', border: feedback.type === 'success' ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(239,68,68,0.35)', background: feedback.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: feedback.type === 'success' ? '#86efac' : '#fca5a5', fontSize: '0.85rem' }}>
+          {feedback.message}
+        </div>
+      ) : null}
       
       <div style={{ padding: '1.5rem', background: 'rgba(15, 22, 40, 0.4)', borderRadius: '8px', border: '1px solid var(--border-subtle)', marginBottom: '1.5rem' }}>
         <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--gold)' }}>Current Configuration</h3>

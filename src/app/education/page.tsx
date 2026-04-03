@@ -32,6 +32,7 @@ export default function EducationHub() {
   const [knowledgeCategory, setKnowledgeCategory] = useState("all");
   const [showMemberUpload, setShowMemberUpload] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [formState, setFormState] = useState({
     title: "",
     contentType: "article",
@@ -78,14 +79,15 @@ export default function EducationHub() {
 
   const submitMemberDraft = async () => {
     if (!user) {
-      window.alert("Please sign in before submitting an article.");
+      setFeedback({ type: "error", message: "Please sign in before submitting an article." });
       return;
     }
     if (!formState.title.trim() || !formState.content.trim()) {
-      window.alert("Title and content are required.");
+      setFeedback({ type: "error", message: "Title and content are required." });
       return;
     }
 
+    setFeedback(null);
     setIsSubmitting(true);
     try {
       await saveArticleAction(
@@ -110,10 +112,10 @@ export default function EducationHub() {
         coverImageUrl: "",
         content: "",
       });
-      window.alert("Article submitted for review.");
+      setFeedback({ type: "success", message: "Article submitted for review." });
     } catch (error) {
       console.error(error);
-      window.alert(error instanceof Error ? error.message : "Failed to submit article.");
+      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to submit article." });
     } finally {
       setIsSubmitting(false);
     }
@@ -187,6 +189,20 @@ export default function EducationHub() {
           </div>
         </div>
       </AnimatedSection>
+
+      {feedback ? (
+        <div style={{
+          marginBottom: "2rem",
+          padding: "0.9rem 1rem",
+          borderRadius: "10px",
+          border: `1px solid ${feedback.type === "error" ? "rgba(239,68,68,0.35)" : "rgba(34,197,94,0.35)"}`,
+          background: feedback.type === "error" ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)",
+          color: feedback.type === "error" ? "#fca5a5" : "#86efac",
+          fontSize: "0.9rem",
+        }}>
+          {feedback.message}
+        </div>
+      ) : null}
 
       {isFiltering ? (
         <AnimatedSection delay={0.3}>

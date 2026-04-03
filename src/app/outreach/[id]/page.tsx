@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import AnimatedSection from "@/components/AnimatedSection";
 import { getDocument } from "@/lib/db";
+import { formatDateStable } from "@/lib/format-date";
 
 export default function OutreachDetail() {
   const params = useParams();
@@ -38,7 +39,7 @@ export default function OutreachDetail() {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    return formatDateStable(dateString);
   };
 
   const typeConfig: Record<string, { label: string, color: string, bg: string, icon: string }> = {

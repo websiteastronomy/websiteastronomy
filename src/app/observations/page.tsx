@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import AnimatedSection from '@/components/AnimatedSection';
 import { getPublishedObservationsAction } from '@/app/actions/observations-engine';
 import { useAuth } from '@/context/AuthContext';
+import { formatDateStable } from '@/lib/format-date';
 
 export default function Observations() {
   const [observations, setObservations] = useState<any[]>([]);
@@ -37,8 +38,7 @@ export default function Observations() {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
-    const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
-    return new Date(dateString).toLocaleDateString('en-US', opts);
+    return formatDateStable(dateString);
   };
 
   const categoryFormats: Record<string, { label: string, color: string, bg: string, icon: string }> = {

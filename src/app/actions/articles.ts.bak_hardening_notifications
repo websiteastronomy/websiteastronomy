@@ -83,14 +83,6 @@ async function getCoreUserIds() {
   return flags.filter((entry) => entry.isCoreOnly).map((entry) => entry.id);
 }
 
-async function runNotificationSafely(label: string, task: () => Promise<void>) {
-  try {
-    await task();
-  } catch (error) {
-    console.error(`[articles] notification failure: ${label}`, error);
-  }
-}
-
 async function getAdminUserIds() {
   const allUsers = await db.select({ id: users.id }).from(users);
   const flags = await Promise.all(
@@ -167,32 +159,28 @@ async function snapshotArticleVersion(article: any, editedBy: string | null) {
 
 async function notifyArticleSubmitted(article: any, authorName: string) {
   const coreUserIds = await getCoreUserIds();
-  await runNotificationSafely("article_submitted", async () => {
-    await createNotificationsForUsers(
-      coreUserIds.map((userId) => ({
-        userId,
-        type: "system",
-        title: "Article Submitted For Review",
-        message: `${authorName} submitted "${article.title}" to the knowledge base review queue.`,
-        link: "/admin",
-      }))
-    );
-  });
+  await createNotificationsForUsers(
+    coreUserIds.map((userId) => ({
+      userId,
+      type: "system",
+      title: "Article Submitted For Review",
+      message: `${authorName} submitted "${article.title}" to the knowledge base review queue.`,
+      link: "/admin",
+    }))
+  );
 }
 
 async function notifyArticleCoreApproved(article: any) {
   const adminUserIds = await getAdminUserIds();
-  await runNotificationSafely("article_core_approved", async () => {
-    await createNotificationsForUsers(
-      adminUserIds.map((userId) => ({
-        userId,
-        type: "system",
-        title: "Article Ready To Publish",
-        message: `"${article.title}" passed core review and is ready for admin publishing.`,
-        link: "/admin",
-      }))
-    );
-  });
+  await createNotificationsForUsers(
+    adminUserIds.map((userId) => ({
+      userId,
+      type: "system",
+      title: "Article Ready To Publish",
+      message: `"${article.title}" passed core review and is ready for admin publishing.`,
+      link: "/admin",
+    }))
+  );
 }
 
 async function notifyArticlePublished(article: any) {
@@ -200,45 +188,39 @@ async function notifyArticlePublished(article: any) {
     return;
   }
 
-  await runNotificationSafely("article_published", async () => {
-    await createNotificationForUser({
-      userId: article.authorId,
-      type: "system",
-      title: "Article Published",
-      message: `Your article "${article.title}" is now live in the Education Hub.`,
-      link: `/education/${article.slug || article.id}`,
-    });
+  await createNotificationForUser({
+    userId: article.authorId,
+    type: "system",
+    title: "Article Published",
+    message: `Your article "${article.title}" is now live in the Education Hub.`,
+    link: `/education/${article.slug || article.id}`,
   });
 }
 
 async function notifyEditRequestSubmitted(article: any) {
   const coreUserIds = await getCoreUserIds();
-  await runNotificationSafely("article_edit_request_submitted", async () => {
-    await createNotificationsForUsers(
-      coreUserIds.map((userId) => ({
-        userId,
-        type: "system",
-        title: "Article Edit Request Submitted",
-        message: `A member proposed changes to "${article.title}".`,
-        link: `/education/${article.slug || article.id}`,
-      }))
-    );
-  });
+  await createNotificationsForUsers(
+    coreUserIds.map((userId) => ({
+      userId,
+      type: "system",
+      title: "Article Edit Request Submitted",
+      message: `A member proposed changes to "${article.title}".`,
+      link: `/education/${article.slug || article.id}`,
+    }))
+  );
 }
 
 async function notifyEditRequestReadyForAdmin(article: any) {
   const adminUserIds = await getAdminUserIds();
-  await runNotificationSafely("article_edit_request_ready_for_admin", async () => {
-    await createNotificationsForUsers(
-      adminUserIds.map((userId) => ({
-        userId,
-        type: "system",
-        title: "Edit Request Needs Admin Approval",
-        message: `Core approved proposed changes for "${article.title}".`,
-        link: "/admin",
-      }))
-    );
-  });
+  await createNotificationsForUsers(
+    adminUserIds.map((userId) => ({
+      userId,
+      type: "system",
+      title: "Edit Request Needs Admin Approval",
+      message: `Core approved proposed changes for "${article.title}".`,
+      link: "/admin",
+    }))
+  );
 }
 
 function revalidateArticlePaths(article: any) {

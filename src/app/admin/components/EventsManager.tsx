@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { subscribeToCollection, addDocument, updateDocument, deleteDocument } from '@/lib/db';
 import { inputStyle, rowStyle } from './shared';
 import { uploadFile } from '@/app/actions/storage';
+import { formatDateTimeStable } from '@/lib/format-date';
 
 export default function EventsManager() {
   const [events, setEvents] = useState<any[]>([]);
@@ -225,7 +226,7 @@ export default function EventsManager() {
                   {!evt.isPublished && <span style={{ fontSize: '0.65rem', background: '#333', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>DRAFT</span>}
                   {evt.isPublic === false && <span style={{ fontSize: '0.65rem', background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.4)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>MEMBERS ONLY</span>}
                 </div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.8rem' }}>{new Date(evt.date).toLocaleString()} · {evt.location}</p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.8rem' }}>{formatDateTimeStable(evt.date)} · {evt.location}</p>
                 
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <span style={{ 

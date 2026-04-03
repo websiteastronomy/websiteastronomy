@@ -28,7 +28,6 @@ import {
   deleteProjectFileAction,
   type ProjectFile,
 } from "@/app/actions/files";
-import { uploadFile } from "@/app/actions/storage";
 import {
   getProjectTimelineAction,
   addTimelineEntryAction,
@@ -474,16 +473,12 @@ export default function ProjectDetail() {
       try {
         for (const file of draggedFiles) {
           const sizeStr = file.size > 1024 * 1024 ? (file.size / 1024 / 1024).toFixed(2) + " MB" : (file.size / 1024).toFixed(2) + " KB";
-          const formData = new FormData();
-          formData.append("file", file);
-          const uploadResult = await uploadFile(formData, "projects", id, false);
           await uploadProjectFileAction(id, {
             name: file.name,
             parentId: currentFolderId,
             fileSize: sizeStr,
             mimeType: file.type || "application/octet-stream",
-            uploadedBy: userName,
-            url: uploadResult.fileUrl,
+            uploadedBy: userName
           });
         }
         await loadFiles();
@@ -501,16 +496,12 @@ export default function ProjectDetail() {
     try {
       for (const file of selectedFiles) {
         const sizeStr = file.size > 1024 * 1024 ? (file.size / 1024 / 1024).toFixed(2) + " MB" : (file.size / 1024).toFixed(2) + " KB";
-        const formData = new FormData();
-        formData.append("file", file);
-        const uploadResult = await uploadFile(formData, "projects", id, false);
         await uploadProjectFileAction(id, {
           name: file.name,
           parentId: currentFolderId,
           fileSize: sizeStr,
           mimeType: file.type || "application/octet-stream",
           uploadedBy: userName,
-          url: uploadResult.fileUrl,
         });
       }
       await loadFiles();

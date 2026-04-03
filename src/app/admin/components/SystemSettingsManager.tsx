@@ -8,6 +8,7 @@ export default function SystemSettingsManager() {
   const [maxSize, setMaxSize] = useState<number>(10);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
     getSystemMaxFileSize().then(size => {
@@ -21,16 +22,17 @@ export default function SystemSettingsManager() {
 
   const handleSave = async () => {
     if (maxSize < 1 || maxSize > 100) {
-      alert("Please enter a value between 1 and 100.");
+      setFeedback({ type: "error", message: "Please enter a value between 1 and 100." });
       return;
     }
+    setFeedback(null);
     setSaving(true);
     try {
       await setSystemMaxFileSize(maxSize);
-      alert("System settings saved successfully.");
+      setFeedback({ type: "success", message: "System settings saved successfully." });
     } catch (err: any) {
       console.error(err);
-      alert("Failed to save: " + err.message);
+      setFeedback({ type: "error", message: "Failed to save: " + err.message });
     } finally {
       setSaving(false);
     }
@@ -45,6 +47,12 @@ export default function SystemSettingsManager() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h2 style={{ fontSize: '1.4rem' }}>System Settings</h2>
       </div>
+
+      {feedback ? (
+        <div style={{ marginBottom: '1rem', padding: '0.8rem 1rem', borderRadius: '8px', border: feedback.type === 'success' ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(239,68,68,0.35)', background: feedback.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: feedback.type === 'success' ? '#86efac' : '#fca5a5', fontSize: '0.85rem' }}>
+          {feedback.message}
+        </div>
+      ) : null}
 
       <div style={{ background: 'rgba(15, 22, 40, 0.4)', borderRadius: '8px', border: '1px solid var(--border-subtle)', padding: '2rem' }}>
         <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', color: 'var(--gold)' }}>File Storage Details</h3>

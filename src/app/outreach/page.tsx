@@ -28,6 +28,8 @@ export default function OutreachPage() {
     return approvedOutreach.reduce((sum, item) => sum + (item.stats?.peopleReached || 0), 0);
   }, [approvedOutreach]);
 
+  const formattedTotalImpacted = useMemo(() => new Intl.NumberFormat("en-US").format(totalImpacted), [totalImpacted]);
+
   // Apply filters and sorting
   const filteredOutreach = useMemo(() => {
     let result = approvedOutreach;
@@ -72,7 +74,7 @@ export default function OutreachPage() {
           <div style={{ background: "rgba(201,168,76,0.1)", border: "1px solid var(--gold-dark)", borderRadius: "16px", padding: "2rem 3rem", textAlign: "center", minWidth: "250px" }}>
              <p style={{ color: "var(--gold-light)", fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.5rem", fontWeight: "bold" }}>Total People Impacted</p>
              <h2 style={{ fontSize: "4rem", margin: 0, color: "var(--gold)", fontFamily: "'Cinzel', serif", lineHeight: 1 }}>
-               {totalImpacted.toLocaleString()}+
+               {formattedTotalImpacted}+
              </h2>
           </div>
         </div>

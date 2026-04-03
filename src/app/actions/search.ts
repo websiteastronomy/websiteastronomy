@@ -6,6 +6,7 @@ import { ilike, or } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getSystemAccess } from "@/lib/system-rbac";
+import { formatDateStable } from "@/lib/format-date";
 
 export interface SearchResult {
   id: string;
@@ -68,7 +69,7 @@ export async function globalSearchAction(query: string): Promise<SearchResult[]>
       id: e.id,
       type: "event",
       title: e.title,
-      subtitle: new Date(e.date).toLocaleDateString(),
+      subtitle: formatDateStable(e.date),
       url: `/events/${e.id}`, // Example route
     });
   }

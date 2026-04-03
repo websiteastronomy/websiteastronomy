@@ -186,7 +186,7 @@ export default function GalleryManager() {
                   {med.category}
                 </span>
                 <span style={{ fontSize: '0.65rem', padding: '0.2rem 0.6rem', color: 'var(--text-muted)' }}>
-                  by {med.author} · {new Date(med.createdAt).toLocaleDateString()}
+                  by {med.author} · {formatDateStable(med.createdAt)}
                 </span>
               </div>
             </div>

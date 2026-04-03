@@ -6,6 +6,7 @@ import AnimatedSection from '@/components/AnimatedSection';
 import { useState, useEffect } from 'react';
 import { subscribeToCollection } from '@/lib/db';
 import { useAuth } from '@/context/AuthContext';
+import { formatDateStable } from '@/lib/format-date';
 
 export default function Events() {
   const now = new Date();
@@ -33,8 +34,7 @@ export default function Events() {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Descending
 
   const formatDate = (dateString: string) => {
-    const opts: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
-    return new Date(dateString).toLocaleDateString('en-US', opts);
+    return formatDateStable(dateString);
   };
 
   const formatTime = (dateString: string) => {

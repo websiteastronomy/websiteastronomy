@@ -8,6 +8,7 @@ import { writeSiteSettingsLocal } from '@/lib/settingsLocal';
 export default function SettingsManager() {
   const [siteSettings, setSiteSettings] = useState<any>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     const s = loadSiteSettingsClient();
@@ -16,14 +17,15 @@ export default function SettingsManager() {
 
   const handleSaveSettings = async () => {
     setIsSavingSettings(true);
+    setFeedback(null);
     try {
       if (siteSettings) {
         writeSiteSettingsLocal(siteSettings);
-        alert("Settings saved successfully!");
+        setFeedback({ type: 'success', message: 'Settings saved successfully!' });
       }
     } catch (error) {
       console.error(error);
-      alert("Failed to save settings.");
+      setFeedback({ type: 'error', message: 'Failed to save settings.' });
     } finally {
       setIsSavingSettings(false);
     }
@@ -47,6 +49,12 @@ export default function SettingsManager() {
           {isSavingSettings ? 'Saving...' : 'Save All Settings'}
         </button>
       </div>
+
+      {feedback ? (
+        <div style={{ marginBottom: '1rem', padding: '0.8rem 1rem', borderRadius: '8px', border: feedback.type === 'success' ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(239,68,68,0.35)', background: feedback.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: feedback.type === 'success' ? '#86efac' : '#fca5a5', fontSize: '0.85rem' }}>
+          {feedback.message}
+        </div>
+      ) : null}
 
       <div style={{ display: 'grid', gap: '2rem' }}>
         {/* Recruitment Toggle */}
