@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { inputStyle, rowStyle } from './shared';
-import { getPublicMembersAction, updatePublicMemberAction, deletePublicMemberAction } from '@/app/actions/publicMembers';
+import { getPublicMembersAction, createPublicMemberAction, updatePublicMemberAction, deletePublicMemberAction } from '@/app/actions/publicMembers';
 import { useAuth } from '@/context/AuthContext';
 import { canManagePublicDirectory } from '@/lib/member-ui-permissions';
 
@@ -44,12 +44,13 @@ export default function PublicMembersManager() {
         bio: formData.bio || "Stargazer and dreamer."
       };
 
-      if (!editingMember?.id) {
-        throw new Error("New public members must come from approved member accounts.");
+      if (editingMember?.id) {
+        await updatePublicMemberAction(editingMember.id, data);
+        alert("Updated successfully!");
+      } else {
+        await createPublicMemberAction(data);
+        alert("Added member successfully!");
       }
-
-      await updatePublicMemberAction(editingMember.id, data);
-      alert("Updated successfully!");
 
       setFormData({});
       setShowForm(false);
@@ -80,24 +81,19 @@ export default function PublicMembersManager() {
         <div>
           <h2 style={{ fontSize: '1.4rem' }}>{editingMember ? 'Edit Public Member' : 'Public Directory'}</h2>
           <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: "0.2rem" }}>Manage the public-facing &apos;About Us&apos; list of executives.</p>
-          {mayManagePublicDirectory && !editingMember && (
-            <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: "0.5rem" }}>
-              New directory entries come from approved member accounts. Use Member Management to approve a user and mark their profile public.
-            </p>
-          )}
         </div>
-        {mayManagePublicDirectory && editingMember && (
+        {mayManagePublicDirectory && (
           <button 
             className="btn-primary" 
             style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem' }} 
-            onClick={() => { setShowForm(false); setFormData({}); setEditingMember(null); }}
+            onClick={() => { setShowForm(!showForm); setFormData({}); setEditingMember(null); }}
           >
-            Cancel
+            {showForm ? 'Cancel' : '+ Add Public Member'}
           </button>
         )}
       </div>
 
-      {showForm && mayManagePublicDirectory && editingMember && (
+      {showForm && mayManagePublicDirectory && (
         <div style={{ padding: '1.5rem', background: 'rgba(15, 22, 40, 0.4)', borderRadius: '8px', border: '1px solid var(--border-subtle)', marginBottom: '1.5rem' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
             <input placeholder="Name" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} style={inputStyle} />
@@ -112,7 +108,7 @@ export default function PublicMembersManager() {
             style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem', opacity: isSaving ? 0.7 : 1 }} 
             onClick={handleSave}
           >
-            {isSaving ? 'Saving...' : 'Save Changes'}
+            {isSaving ? 'Saving...' : (editingMember ? 'Save Changes' : 'Add Member')}
           </button>
         </div>
       )}

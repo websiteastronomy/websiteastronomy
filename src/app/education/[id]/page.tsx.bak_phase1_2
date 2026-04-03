@@ -8,7 +8,6 @@ import Link from "next/link";
 import { getArticleDetailAction, submitArticleEditRequestAction } from "@/app/actions/articles";
 import { useAuth } from "@/context/AuthContext";
 import { formatDateStable, formatDateTimeStable } from "@/lib/format-date";
-import { sanitizeRichHtml } from "@/lib/sanitize-rich-html";
 
 export default function ArticleReader() {
   const params = useParams();
@@ -59,7 +58,6 @@ export default function ArticleReader() {
   }
 
   const article = detail.article;
-  const safeContentHtml = sanitizeRichHtml(formatMockContent(article.content));
 
   return (
     <article style={{ paddingBottom: "6rem" }}>
@@ -107,7 +105,7 @@ export default function ArticleReader() {
               {article.excerpt}
             </p>
 
-            <div className="markdown-body" style={{ fontSize: "1.05rem", lineHeight: 1.8, color: "var(--text-primary)" }} dangerouslySetInnerHTML={{ __html: safeContentHtml }} />
+            <div className="markdown-body" style={{ fontSize: "1.05rem", lineHeight: 1.8, color: "var(--text-primary)" }} dangerouslySetInnerHTML={{ __html: formatMockContent(article.content) }} />
 
             <div style={{ marginTop: "4rem", paddingTop: "2rem", borderTop: "1px solid var(--border-subtle)" }}>
               <h4 style={{ fontSize: "1rem", marginBottom: "1rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)" }}>Tags</h4>

@@ -29,6 +29,25 @@ export function slugifyArticleTitle(title: string) {
     .slice(0, 80);
 }
 
+export function normalizeArticleType(value: string | null | undefined): ArticleType {
+  if (value && LEGACY_CONTENT_TYPES.has(value as ArticleType)) {
+    return value as ArticleType;
+  }
+  return "article";
+}
+
+export function normalizeKnowledgeCategory(
+  value: string | null | undefined
+): ArticleKnowledgeCategory {
+  if (
+    value &&
+    ARTICLE_KNOWLEDGE_CATEGORIES.includes(value as ArticleKnowledgeCategory)
+  ) {
+    return value as ArticleKnowledgeCategory;
+  }
+  return "Theory";
+}
+
 export function parseArticleTags(raw: string | string[] | null | undefined) {
   if (Array.isArray(raw)) {
     return raw
@@ -52,11 +71,12 @@ export function deriveExcerpt(content: string) {
 }
 
 export function normalizeArticleRecord(article: any) {
-  const contentType: ArticleType = LEGACY_CONTENT_TYPES.has(article.contentType)
-    ? article.contentType
-    : LEGACY_CONTENT_TYPES.has(article.category)
-      ? article.category
-      : "article";
+  const legacyKnowledgeCategory = ARTICLE_KNOWLEDGE_CATEGORIES.includes(article.category)
+    ? article.category
+    : "Theory";
+  const contentType: ArticleType = normalizeArticleType(
+    article.contentType || article.category
+  );
   const status: ArticleStatus = ARTICLE_STATUSES.includes(article.status)
     ? article.status
     : article.isPublished
@@ -69,9 +89,9 @@ export function normalizeArticleRecord(article: any) {
     authorName: article.author || "Astronomy Club",
     coverImageUrl: article.coverImageUrl || article.coverImage || "",
     contentType,
-    knowledgeCategory: ARTICLE_KNOWLEDGE_CATEGORIES.includes(article.knowledgeCategory)
-      ? article.knowledgeCategory
-      : "Theory",
+    knowledgeCategory: normalizeKnowledgeCategory(
+      article.knowledgeCategory || legacyKnowledgeCategory
+    ),
     status,
     excerpt: article.excerpt || deriveExcerpt(article.content || ""),
     tags: Array.isArray(article.tags) ? article.tags : [],

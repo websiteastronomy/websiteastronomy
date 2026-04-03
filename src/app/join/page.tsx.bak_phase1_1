@@ -63,11 +63,10 @@ export default function JoinPage() {
     setStatus("submitting");
     try {
       // 1. Send Application to Admin
-      const adminRes = await fetch("/api/send-email", {
+      await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          flow: "join_application_admin",
           to: "admin", // Replaced hardcoded email with alias
           subject: `New Membership Application: ${form.name}`,
           replyTo: form.email,
@@ -90,18 +89,13 @@ export default function JoinPage() {
           `,
         }),
       });
-      if (!adminRes.ok) {
-        throw new Error("Failed to notify admin");
-      }
 
       // 2. Send Confirmation to User
-      const confirmRes = await fetch("/api/send-email", {
+      await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          flow: "join_application_confirmation",
           to: form.email,
-          applicantEmail: form.email,
           subject: "Application Received - MVJCE Astronomy Club",
           html: `
             <div style="font-family: sans-serif; padding: 20px; border: 1px solid #c9a84c; border-radius: 12px; background: #0f1628; color: #fff;">
@@ -116,9 +110,6 @@ export default function JoinPage() {
           `,
         }),
       });
-      if (!confirmRes.ok) {
-        throw new Error("Failed to send confirmation");
-      }
 
       setStatus("success");
     } catch (error) {

@@ -136,7 +136,6 @@ export default function ArticleCoverImageField({
             background: "rgba(8,12,22,0.72)",
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={previewUrl}
             alt="Article cover preview"

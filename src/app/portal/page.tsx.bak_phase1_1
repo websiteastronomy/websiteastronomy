@@ -335,11 +335,10 @@ export default function Portal() {
                 if (btn) btn.disabled = true;
 
                 try {
-                  const response = await fetch("/api/send-email", {
+                  await fetch("/api/send-email", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                      flow: "member_contact",
                       to: "admin",
                       subject: `Message from Member: ${user.name || user.email}`,
                       replyTo: user.email,
@@ -353,9 +352,6 @@ export default function Portal() {
                       `,
                     }),
                   });
-                  if (!response.ok) {
-                    throw new Error("Email request rejected");
-                  }
                   alert("Message sent to admin!");
                   form.reset();
                 } catch (err) {

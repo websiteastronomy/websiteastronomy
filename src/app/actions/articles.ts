@@ -9,7 +9,7 @@ import {
   articles,
   users,
 } from "@/db/schema";
-import { and, desc, eq, gt, isNull, or } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
@@ -17,6 +17,8 @@ import { v4 as uuidv4 } from "uuid";
 import {
   ArticleStatus,
   ArticleType,
+  normalizeArticleType,
+  normalizeKnowledgeCategory,
   normalizeArticleRecord,
   parseArticleTags,
   slugifyArticleTitle,
@@ -28,6 +30,7 @@ import {
 } from "@/app/actions/notifications";
 
 const ARTICLE_LOCK_MINUTES = 15;
+let articleWorkflowSchemaReadyPromise: Promise<boolean> | null = null;
 
 type ArticleInput = {
   id?: string;
@@ -265,32 +268,267 @@ function serializeArticle(article: any) {
   };
 }
 
-export async function getPublishedArticlesAction() {
-  const rows = await db
-    .select()
-    .from(articles)
-    .where(and(eq(articles.isDeleted, false), eq(articles.status, "published")))
-    .orderBy(desc(articles.publishedAt), desc(articles.updatedAt));
+function isMissingArticleWorkflowColumnError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
 
-  return rows.map(serializeArticle);
+  const message = error.message.toLowerCase();
+  return (
+    message.includes(`column "slug"`) ||
+    message.includes(`column "author_id"`) ||
+    message.includes(`column "content_type"`) ||
+    message.includes(`column "knowledge_category"`) ||
+    message.includes(`column "status"`) ||
+    message.includes(`column "core_approved"`) ||
+    message.includes(`column "is_deleted"`) ||
+    message.includes(`column "cover_image_url"`) ||
+    message.includes(`column "meta_title"`) ||
+    message.includes(`column "meta_description"`) ||
+    message.includes(`column "published_at"`) ||
+    message.includes(`column "submitted_at"`) ||
+    message.includes(`column "rejection_reason"`) ||
+    message.includes(`column "version_number"`)
+  );
+}
+
+async function detectArticleWorkflowSchemaReady() {
+  const result = await db.execute(sql`
+    select
+      exists (
+        select 1
+        from information_schema.columns
+        where table_name = 'articles'
+          and column_name = 'slug'
+      ) as "hasSlug",
+      exists (
+        select 1
+        from information_schema.columns
+        where table_name = 'articles'
+          and column_name = 'status'
+      ) as "hasStatus",
+      exists (
+        select 1
+        from information_schema.columns
+        where table_name = 'articles'
+          and column_name = 'is_deleted'
+      ) as "hasIsDeleted",
+      exists (
+        select 1
+        from information_schema.tables
+        where table_name = 'article_edit_requests'
+      ) as "hasEditRequests",
+      exists (
+        select 1
+        from information_schema.tables
+        where table_name = 'article_versions'
+      ) as "hasVersions"
+  `);
+
+  const row = result.rows[0] as
+    | {
+        hasSlug?: boolean;
+        hasStatus?: boolean;
+        hasIsDeleted?: boolean;
+        hasEditRequests?: boolean;
+        hasVersions?: boolean;
+      }
+    | undefined;
+
+  return Boolean(
+    row?.hasSlug &&
+      row?.hasStatus &&
+      row?.hasIsDeleted &&
+      row?.hasEditRequests &&
+      row?.hasVersions
+  );
+}
+
+async function isArticleWorkflowSchemaReady() {
+  if (!articleWorkflowSchemaReadyPromise) {
+    articleWorkflowSchemaReadyPromise = detectArticleWorkflowSchemaReady().catch(
+      () => false
+    );
+  }
+
+  return articleWorkflowSchemaReadyPromise;
+}
+
+async function getPublishedArticlesLegacyFallback() {
+  const result = await db.execute(sql`
+    select
+      "id",
+      "category",
+      "title",
+      "author",
+      "date",
+      "excerpt",
+      "content",
+      "coverImage",
+      "isPublished",
+      "isFeatured",
+      "tags",
+      "createdAt",
+      "updatedAt"
+    from "articles"
+    where "isPublished" = true
+    order by "updatedAt" desc
+  `);
+
+  return result.rows.map((row: any) => serializeArticle(row));
+}
+
+async function getArticleDetailLegacyFallback(slugOrId: string) {
+  const result = await db.execute(sql`
+    select
+      "id",
+      "category",
+      "title",
+      "author",
+      "date",
+      "excerpt",
+      "content",
+      "coverImage",
+      "isPublished",
+      "isFeatured",
+      "tags",
+      "createdAt",
+      "updatedAt"
+    from "articles"
+    where "id" = ${slugOrId}
+    limit 1
+  `);
+
+  const row = result.rows[0] as any;
+  if (!row) {
+    return null;
+  }
+
+  const normalized = serializeArticle(row);
+  if (normalized.status !== "published") {
+    return null;
+  }
+
+  return {
+    article: normalized,
+    versions: [],
+    approvalLogs: [],
+    activeLock: null,
+  };
+}
+
+async function getArticleManagementSnapshotLegacyFallback() {
+  const result = await db.execute(sql`
+    select
+      "id",
+      "category",
+      "title",
+      "author",
+      "date",
+      "excerpt",
+      "content",
+      "coverImage",
+      "isPublished",
+      "isFeatured",
+      "tags",
+      "createdAt",
+      "updatedAt"
+    from "articles"
+    order by "updatedAt" desc
+  `);
+
+  return {
+    articles: result.rows.map((row: any) => serializeArticle(row)),
+    editRequests: [],
+  };
+}
+
+export async function getPublishedArticlesAction() {
+  if (!(await isArticleWorkflowSchemaReady())) {
+    return await getPublishedArticlesLegacyFallback();
+  }
+
+  try {
+    const rows = await db
+      .select()
+      .from(articles)
+      .where(
+        and(
+          or(eq(articles.isDeleted, false), isNull(articles.isDeleted)),
+          or(eq(articles.status, "published"), eq(articles.isPublished, true))
+        )
+      )
+      .orderBy(desc(articles.publishedAt), desc(articles.updatedAt));
+
+    return rows.map(serializeArticle);
+  } catch (error) {
+    if (!isMissingArticleWorkflowColumnError(error)) {
+      throw error;
+    }
+
+    console.warn("[articles] Falling back to legacy published article query because workflow columns are not migrated yet.");
+    return await getPublishedArticlesLegacyFallback();
+  }
 }
 
 export async function getArticleDetailAction(slugOrId: string) {
   const session = await auth.api.getSession({ headers: await headers() });
   const viewerId = session?.user?.id || null;
   const viewerAccess = viewerId ? await getArticleAccess(viewerId) : null;
-  const rows = await db
-    .select()
-    .from(articles)
-    .where(
-      and(
-        eq(articles.isDeleted, false),
-        or(eq(articles.id, slugOrId), eq(articles.slug, slugOrId))
-      )
-    )
-    .limit(1);
+  if (!(await isArticleWorkflowSchemaReady())) {
+    return await getArticleDetailLegacyFallback(slugOrId);
+  }
 
-  const article = rows[0];
+  let article: any = null;
+  let versions: any[] = [];
+  let approvalLogs: any[] = [];
+  let locks: any[] = [];
+
+  try {
+    const rows = await db
+      .select()
+      .from(articles)
+      .where(
+        and(
+          or(eq(articles.isDeleted, false), isNull(articles.isDeleted)),
+          or(eq(articles.id, slugOrId), eq(articles.slug, slugOrId))
+        )
+      )
+      .limit(1);
+
+    article = rows[0];
+    if (article && (viewerAccess?.isAdmin || viewerAccess?.canReview)) {
+      versions = await db
+        .select()
+        .from(article_versions)
+        .where(eq(article_versions.articleId, article.id))
+        .orderBy(desc(article_versions.versionNumber));
+      approvalLogs = await db
+        .select()
+        .from(article_approval_logs)
+        .where(eq(article_approval_logs.articleId, article.id))
+        .orderBy(desc(article_approval_logs.createdAt));
+      locks = await db
+        .select()
+        .from(article_edit_locks)
+        .where(
+          and(
+            eq(article_edit_locks.articleId, article.id),
+            isNull(article_edit_locks.releasedAt),
+            gt(article_edit_locks.expiresAt, new Date())
+          )
+        )
+        .orderBy(desc(article_edit_locks.updatedAt));
+    }
+  } catch (error) {
+    if (!isMissingArticleWorkflowColumnError(error)) {
+      throw error;
+    }
+
+    console.warn("[articles] Falling back to legacy article detail query because workflow columns are not migrated yet.");
+    return await getArticleDetailLegacyFallback(slugOrId);
+  }
+
   if (!article) {
     return null;
   }
@@ -305,37 +543,6 @@ export async function getArticleDetailAction(slugOrId: string) {
   if (!canViewUnpublished && normalized.status !== "published") {
     return null;
   }
-
-  const versions =
-    viewerAccess?.isAdmin || viewerAccess?.canReview
-      ? await db
-          .select()
-          .from(article_versions)
-          .where(eq(article_versions.articleId, article.id))
-          .orderBy(desc(article_versions.versionNumber))
-      : [];
-  const approvalLogs =
-    viewerAccess?.isAdmin || viewerAccess?.canReview
-      ? await db
-          .select()
-          .from(article_approval_logs)
-          .where(eq(article_approval_logs.articleId, article.id))
-          .orderBy(desc(article_approval_logs.createdAt))
-      : [];
-  const locks =
-    viewerAccess?.isAdmin || viewerAccess?.canReview
-      ? await db
-          .select()
-          .from(article_edit_locks)
-          .where(
-            and(
-              eq(article_edit_locks.articleId, article.id),
-              isNull(article_edit_locks.releasedAt),
-              gt(article_edit_locks.expiresAt, new Date())
-            )
-          )
-          .orderBy(desc(article_edit_locks.updatedAt))
-      : [];
 
   return {
     article: serializeArticle(article),
@@ -365,25 +572,48 @@ export async function getArticleManagementSnapshotAction() {
     throw new Error("Forbidden");
   }
 
-  const articleRows = await db
-    .select()
-    .from(articles)
-    .where(eq(articles.isDeleted, false))
-    .orderBy(desc(articles.updatedAt));
-  const editRequestRows = await db
-    .select()
-    .from(article_edit_requests)
-    .orderBy(desc(article_edit_requests.updatedAt));
+  if (!(await isArticleWorkflowSchemaReady())) {
+    const legacy = await getArticleManagementSnapshotLegacyFallback();
+    return {
+      access,
+      articles: legacy.articles,
+      editRequests: legacy.editRequests,
+    };
+  }
 
-  return {
-    access,
-    articles: articleRows.map(serializeArticle),
-    editRequests: editRequestRows.map((request) => ({
-      ...request,
-      createdAt: request.createdAt?.toISOString?.() || null,
-      updatedAt: request.updatedAt?.toISOString?.() || null,
-    })),
-  };
+  try {
+    const articleRows = await db
+      .select()
+      .from(articles)
+      .where(or(eq(articles.isDeleted, false), isNull(articles.isDeleted)))
+      .orderBy(desc(articles.updatedAt));
+    const editRequestRows = await db
+      .select()
+      .from(article_edit_requests)
+      .orderBy(desc(article_edit_requests.updatedAt));
+
+    return {
+      access,
+      articles: articleRows.map(serializeArticle),
+      editRequests: editRequestRows.map((request) => ({
+        ...request,
+        createdAt: request.createdAt?.toISOString?.() || null,
+        updatedAt: request.updatedAt?.toISOString?.() || null,
+      })),
+    };
+  } catch (error) {
+    if (!isMissingArticleWorkflowColumnError(error)) {
+      throw error;
+    }
+
+    console.warn("[articles] Falling back to legacy article management query because workflow columns are not migrated yet.");
+    const legacy = await getArticleManagementSnapshotLegacyFallback();
+    return {
+      access,
+      articles: legacy.articles,
+      editRequests: legacy.editRequests,
+    };
+  }
 }
 
 export async function saveArticleAction(input: ArticleInput, mode: "draft" | "review" | "publish") {
@@ -411,6 +641,10 @@ export async function saveArticleAction(input: ArticleInput, mode: "draft" | "re
   const slug = await buildUniqueSlug(input.title, existing?.id);
   const tags = parseArticleTags(input.tags);
   const now = new Date();
+  const contentType = normalizeArticleType(input.contentType || existing?.contentType || existing?.category);
+  const knowledgeCategory = normalizeKnowledgeCategory(
+    (input.knowledgeCategory as string | undefined) || existing?.knowledgeCategory || existing?.category
+  );
   const status: ArticleStatus =
     mode === "publish" ? "published" : mode === "review" ? "under_review" : "draft";
 
@@ -425,12 +659,9 @@ export async function saveArticleAction(input: ArticleInput, mode: "draft" | "re
     excerpt,
     author: existing?.author || user.name || "Astronomy Club",
     authorId: existing?.authorId || user.id,
-    category: existing?.category || input.contentType || "article",
-    contentType: input.contentType || existing?.contentType || "article",
-    knowledgeCategory:
-      (input.knowledgeCategory as any) ||
-      existing?.knowledgeCategory ||
-      "Theory",
+    category: contentType,
+    contentType,
+    knowledgeCategory,
     tags,
     status,
     coreApproved: mode === "publish" ? true : mode === "review" ? false : existing?.coreApproved || false,
