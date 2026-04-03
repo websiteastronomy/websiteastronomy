@@ -23,7 +23,6 @@ export default function Portal() {
   const [name, setName] = useState('');
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
-  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
 
   // Live data states
   const [announcements, setAnnouncements] = useState<Notification[]>([]);
@@ -75,23 +74,6 @@ export default function Portal() {
     }
     return () => unsubLeaderboard();
   }, [user, fetchPortalData]);
-
-  useEffect(() => {
-    if (!user) {
-      setProfileImageUrl(null);
-      setImgError(false);
-      return;
-    }
-
-    const nextProfileSrc =
-      user.image ||
-      ((user as any).profileImageKey
-        ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL || ""}/${(user as any).profileImageKey}`
-        : null);
-
-    setProfileImageUrl(nextProfileSrc);
-    setImgError(false);
-  }, [user]);
 
   return (
     <div className="page-container">
@@ -279,7 +261,7 @@ export default function Portal() {
           <AnimatedSection direction="right" delay={0.1}>
             <div className="feature-card" style={{ padding: '2rem', textAlign: 'center', marginBottom: '1.5rem' }}>
               {(() => {
-                const profileSrc = profileImageUrl;
+                const profileSrc = user.image || ((user as any).profileImageKey ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL || ""}/${(user as any).profileImageKey}` : null);
                 return profileSrc && !imgError ? (
                   <img src={profileSrc} alt="Avatar" onError={() => setImgError(true)} style={{ width: '70px', height: '70px', borderRadius: '50%', margin: '0 auto 1rem', border: "2px solid var(--gold)", objectFit: "cover" }} />
                 ) : (
@@ -450,11 +432,7 @@ export default function Portal() {
       <AvatarCropperModal 
         isOpen={isCropperOpen} 
         onClose={() => setIsCropperOpen(false)} 
-        onSuccess={(imageUrl) => {
-          setProfileImageUrl(imageUrl);
-          setImgError(false);
-          setIsCropperOpen(false);
-        }} 
+        onSuccess={() => window.location.reload()} 
       />
     </div>
   );

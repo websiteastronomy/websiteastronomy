@@ -9,8 +9,6 @@ export default function OutreachManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingOutreach, setEditingOutreach] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = subscribeToCollection('outreach', (data) => setOutreach(data));
@@ -19,7 +17,6 @@ export default function OutreachManager() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    setFeedback(null);
     try {
       const container = document.getElementById('outreach-form');
       if (!container) return;
@@ -33,36 +30,31 @@ export default function OutreachManager() {
       });
 
       if (!data.title || !data.date) {
-        setFeedback({ type: 'error', message: 'Please fill out Title and Date.' });
+        alert("Please fill out Title and Date.");
         setIsSaving(false);
         return;
       }
 
       if (editingOutreach?.id) {
         await updateDocument('outreach', editingOutreach.id, data);
-        setFeedback({ type: 'success', message: 'Updated successfully!' });
+        alert("Updated successfully!");
       } else {
         await addDocument('outreach', data);
-        setFeedback({ type: 'success', message: 'Created successfully!' });
+        alert("Created successfully!");
       }
       setShowForm(false);
       setEditingOutreach(null);
     } catch (err) {
       console.error(err);
-      setFeedback({ type: 'error', message: 'Operation failed. Check console.' });
+      alert("Operation failed. Check console.");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    try {
+    if (confirm("Delete this outreach record?")) {
       await deleteDocument('outreach', id);
-      setFeedback({ type: 'success', message: 'Outreach record deleted.' });
-      setPendingDeleteId(null);
-    } catch (err) {
-      console.error(err);
-      setFeedback({ type: 'error', message: 'Delete failed. Check console.' });
     }
   };
 
@@ -78,22 +70,6 @@ export default function OutreachManager() {
         </button>
       </div>
 
-      {feedback && (
-        <div
-          style={{
-            marginBottom: '1rem',
-            padding: '0.8rem 1rem',
-            borderRadius: '8px',
-            border: feedback.type === 'success' ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(239,68,68,0.35)',
-            background: feedback.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-            color: feedback.type === 'success' ? '#86efac' : '#fca5a5',
-            fontSize: '0.85rem',
-          }}
-        >
-          {feedback.message}
-        </div>
-      )}
-
       {showForm && (
         <div style={{ padding: '1.5rem', background: 'rgba(15, 22, 40, 0.4)', borderRadius: '8px', border: '1px solid var(--border-subtle)', marginBottom: '1.5rem' }}>
           <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--gold)' }}>
@@ -107,7 +83,7 @@ export default function OutreachManager() {
               <option value="workshop">Workshop</option>
               <option value="ngo">NGO / Orphanage</option>
             </select>
-            <input type="date" name="date" defaultValue={editingOutreach?.date ? String(editingOutreach.date).slice(0, 10) : ''} style={inputStyle} />
+            <input name="date" placeholder="ISO Date (e.g. 2026-03-20...)" defaultValue={editingOutreach?.date || ''} style={inputStyle} />
             <input name="location" placeholder="Location" defaultValue={editingOutreach?.location || ''} style={inputStyle} />
             <input name="imageUrl" placeholder="Image URL (Required Proof)" defaultValue={editingOutreach?.images?.[0] || ''} style={{ ...inputStyle, gridColumn: '1 / -1' }} />
             <textarea name="description" placeholder="Event Description / Outcome" defaultValue={editingOutreach?.description || ''} rows={3} style={{ ...inputStyle, gridColumn: '1 / -1', resize: 'vertical' }} />
@@ -196,19 +172,11 @@ export default function OutreachManager() {
                   Edit
                 </button>
                 <button 
-                  onClick={() => setPendingDeleteId((current) => current === out.id ? null : out.id)}
+                  onClick={() => handleDelete(out.id)}
                   style={{ background: 'none', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit', minWidth: '80px' }}
                 >
-                  {pendingDeleteId === out.id ? 'Cancel' : 'Delete'}
+                  Delete
                 </button>
-                {pendingDeleteId === out.id && (
-                  <button
-                    onClick={() => handleDelete(out.id)}
-                    style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.45)', color: '#fecaca', padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit', minWidth: '80px' }}
-                  >
-                    Confirm
-                  </button>
-                )}
               </div>
             </div>
           );

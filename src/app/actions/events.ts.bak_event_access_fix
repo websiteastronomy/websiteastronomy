@@ -19,17 +19,14 @@ export async function registerForEvent(eventId: string, name?: string, email?: s
     if (!eventRes.length) return { success: false, error: "Event not found." };
     const event = eventRes[0];
 
-    const requiresAuthenticatedRegistration =
-      !event.isPublic || event.registrationType === "internal";
-
-    if (requiresAuthenticatedRegistration && !authUser) {
-      return {
-        success: false,
-        error:
-          event.registrationType === "internal"
-            ? "Authentication required for internal registration."
-            : "Authentication required for private events.",
-      };
+    // Access Check - if event is strictly for members-only
+    if (!event.isPublic || event.registrationType === 'internal') {
+      if (!authUser) {
+        // If event is public and registrationType is internal, we CAN register external users
+        if (!event.isPublic) {
+            return { success: false, error: "Authentication required for private events." };
+        }
+      }
     }
 
     if (authUser) {
@@ -37,13 +34,13 @@ export async function registerForEvent(eventId: string, name?: string, email?: s
       if (userRes.length) {
         dbUser = userRes[0];
         if (dbUser.status !== 'approved') return { success: false, error: "Wait for admin approval" };
-        // Internal/private registrations require an established member role.
-        if (requiresAuthenticatedRegistration && !dbUser.roleId) {
+        // Private events require the user to have an established RBAC role (any role beats 'none')
+        if (!event.isPublic && !dbUser.roleId) {
            return { success: false, error: "This is a members-only event" };
         }
       }
     } else {
-        // Public guest registration logic
+        // Unauthenticated registration logic
         if (!name || !email) {
             return { success: false, error: "Name and email are required for public registration." };
         }

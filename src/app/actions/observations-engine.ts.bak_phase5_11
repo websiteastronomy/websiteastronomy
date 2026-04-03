@@ -154,18 +154,6 @@ async function buildReviewWorkflowState({
   };
 }
 
-function getReviewConsensusThreshold(assignedReviewers: unknown) {
-  const reviewerCount = Array.isArray(assignedReviewers)
-    ? assignedReviewers.filter(Boolean).length
-    : 0;
-
-  if (reviewerCount <= 1) {
-    return 1;
-  }
-
-  return Math.min(2, reviewerCount);
-}
-
 // ==========================================
 // 1. SUBMIT & EDIT (MEMBER ACTIONS)
 // ==========================================
@@ -344,7 +332,6 @@ export async function processCoreVoteAction(id: string, vote: "approve" | "rejec
   const assignedReviewers = Array.isArray(obs.assignedReviewers)
     ? (obs.assignedReviewers as string[])
     : [];
-  const consensusThreshold = getReviewConsensusThreshold(assignedReviewers);
   if (
     assignedReviewers.length > 0 &&
     !assignedReviewers.includes(session.user.id)
@@ -366,13 +353,13 @@ export async function processCoreVoteAction(id: string, vote: "approve" | "rejec
     if (idx > -1) approvals.splice(idx, 1);
   }
 
-  // Evaluate state advancement based on the assigned reviewer pool.
+  // Evaluate state advancement (2 required)
   let newStatus: string = obs.status === "Submitted" ? "Under_Review" : obs.status;
   let rejectionReasonStr = obs.rejectionReason;
 
-  if (approvals.length >= consensusThreshold) {
+  if (approvals.length >= 2) {
     newStatus = "Core_Approved";
-  } else if (rejections.length >= consensusThreshold) {
+  } else if (rejections.length >= 2) {
     newStatus = "Rejected";
     rejectionReasonStr = reason || "Declined by Core review consensus.";
   }

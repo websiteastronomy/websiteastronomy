@@ -10,7 +10,7 @@ type Mode = "select" | "camera" | "crop";
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (imageUrl: string) => void;
+  onSuccess: () => void;
 }
 
 export default function AvatarCropperModal({ isOpen, onClose, onSuccess }: Props) {
@@ -87,8 +87,8 @@ export default function AvatarCropperModal({ isOpen, onClose, onSuccess }: Props
       const formData = new FormData();
       formData.append("file", new File([croppedImageBlob], "profile.jpg", { type: "image/jpeg" }));
 
-      const result = await uploadProfileImageAction(formData);
-      onSuccess(result.url);
+      await uploadProfileImageAction(formData);
+      onSuccess();
     } catch (err: any) {
       alert("Upload failed: " + err.message);
     } finally {
