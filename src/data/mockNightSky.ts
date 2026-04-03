@@ -26,7 +26,19 @@ export interface CelestialEvent {
   imageUrl?: string;
 }
 
-export const MOCK_NIGHT_SKY = {
+export interface NightSkyLegacyData {
+  moon: MoonPhase;
+  planets: PlanetVisibility[];
+  upcomingEvents: CelestialEvent[];
+}
+
+export interface NightSkySettings extends NightSkyLegacyData {
+  isEnabled: boolean;
+  mode: "auto" | "hybrid" | "manual";
+  lastUpdated: string | null;
+}
+
+export const MOCK_NIGHT_SKY: NightSkyLegacyData = {
   moon: {
     phase: "Waning Gibbous",
     illumination: 78,

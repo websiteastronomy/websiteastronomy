@@ -21,7 +21,10 @@ import AchievementsManager from "./components/AchievementsManager";
 import SettingsManager from "./components/SettingsManager";
 import MembersManager from "./components/MembersManager";
 import NightSkyManager from "./components/NightSkyManager";
+import SystemControlManager from "./components/SystemControlManager";
 import SystemSettingsManager from "./components/SystemSettingsManager";
+import ActivityLogsManager from "./components/ActivityLogsManager";
+import AnnouncementsManager from "./components/AnnouncementsManager";
 import GlobalSearch from "./components/GlobalSearch";
 import ApprovalsPanel from "./components/ApprovalsPanel";
 import PublicMembersManager from "./components/PublicMembersManager";
@@ -68,6 +71,9 @@ export default function Admin() {
     { id: "outreach", label: "Outreach", icon: "🤝", visible: ADMIN_PAGE_PERMISSIONS.outreach(access) },
     { id: "achievements", label: "Achievements", icon: "🏆", visible: ADMIN_PAGE_PERMISSIONS.achievements(access) },
     { id: "night-sky", label: "Night Sky", icon: "🌙", visible: ADMIN_PAGE_PERMISSIONS.nightSky(access) },
+    { id: "system-control", label: "System Control", icon: "🛠️", visible: ADMIN_PAGE_PERMISSIONS.systemControl(access) },
+    { id: "announcements", label: "Announcements", icon: "📣", visible: ADMIN_PAGE_PERMISSIONS.announcements(access) },
+    { id: "logs", label: "Activity Logs", icon: "🧾", visible: ADMIN_PAGE_PERMISSIONS.logs(access) },
     { id: "settings", label: "Site Settings", icon: "⚙️", visible: ADMIN_PAGE_PERMISSIONS.settings(access) },
     { id: "system", label: "System Storage", icon: "💾", visible: ADMIN_PAGE_PERMISSIONS.system(access) },
   ].filter((tab) => tab.visible);
@@ -359,6 +365,24 @@ export default function Admin() {
         {currentTab === "night-sky" && (
           <div style={{ animation: "fadeIn 0.3s ease" }}>
             <NightSkyManager />
+          </div>
+        )}
+
+        {currentTab === "system-control" && (
+          <div style={{ animation: "fadeIn 0.3s ease" }}>
+            <SystemControlManager />
+          </div>
+        )}
+
+        {currentTab === "announcements" && (
+          <div style={{ animation: "fadeIn 0.3s ease" }}>
+            <AnnouncementsManager />
+          </div>
+        )}
+
+        {currentTab === "logs" && (
+          <div style={{ animation: "fadeIn 0.3s ease" }}>
+            <ActivityLogsManager />
           </div>
         )}
 

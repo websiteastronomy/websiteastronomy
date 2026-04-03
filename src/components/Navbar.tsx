@@ -1,23 +1,52 @@
 "use client";
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, useMotionValueEvent, useScroll } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import NotificationBell from '@/components/NotificationBell';
+import { loadSiteSettingsClient } from '@/data/siteSettingsStatic';
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const { scrollY } = useScroll();
   const pathname = usePathname();
   const { user } = useAuth();
-
-  const isRecruiting = true;
+  const [features, setFeatures] = useState({ quizzesEnabled: true, observationsEnabled: true, eventsEnabled: true });
+  const [isRecruiting, setIsRecruiting] = useState(true);
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     setScrolled(latest > 50);
   });
+
+  useEffect(() => {
+    const syncRecruitmentStatus = () => {
+      setIsRecruiting(loadSiteSettingsClient().isRecruiting);
+    };
+
+    syncRecruitmentStatus();
+
+    const handleFocus = () => syncRecruitmentStatus();
+    const handleStorage = () => syncRecruitmentStatus();
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('storage', handleStorage);
+
+    import('@/app/actions/system-control')
+      .then(({ getSystemControlPublicSnapshotAction }) => getSystemControlPublicSnapshotAction())
+      .then((settings) => {
+        setFeatures(settings.features);
+      })
+      .catch((error) => {
+        console.error('[Navbar] system control fetch failed:', error);
+      });
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, []);
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
@@ -78,14 +107,14 @@ export default function Navbar() {
           <span className="nav-link" style={{ cursor: 'default', color: isActive('/projects') || isActive('/observations') || isActive('/outreach') ? 'var(--gold-light)' : undefined }}>Explore ▾</span>
           <div className="dropdown-menu">
             <Link href="/projects" className="dropdown-item" style={isActive('/projects') ? { color: 'var(--gold-light)' } : {}}>Projects</Link>
-            <Link href="/observations" className="dropdown-item" style={isActive('/observations') ? { color: 'var(--gold-light)' } : {}}>Observations</Link>
+            {features.observationsEnabled && <Link href="/observations" className="dropdown-item" style={isActive('/observations') ? { color: 'var(--gold-light)' } : {}}>Observations</Link>}
             <Link href="/outreach" className="dropdown-item" style={isActive('/outreach') ? { color: 'var(--gold-light)' } : {}}>Outreach</Link>
           </div>
         </div>
 
-        <Link href="/events" className="nav-link" style={navLinkStyle('/events')}>Events</Link>
+        {features.eventsEnabled && <Link href="/events" className="nav-link" style={navLinkStyle('/events')}>Events</Link>}
         <Link href="/education" className="nav-link" style={navLinkStyle('/education')}>Education</Link>
-        <Link href="/education/quizzes" className="nav-link" style={navLinkStyle('/education/quizzes')}>Quizzes</Link>
+        {features.quizzesEnabled && <Link href="/education/quizzes" className="nav-link" style={navLinkStyle('/education/quizzes')}>Quizzes</Link>}
         <Link href="/night-sky" className="nav-link" style={navLinkStyle('/night-sky')}>Night Sky</Link>
 
         {isRecruiting && (

@@ -7,8 +7,11 @@ import AnimatedCard from '@/components/AnimatedCard';
 import AvatarCropperModal from '@/components/AvatarCropperModal';
 import { useAuth } from '@/context/AuthContext';
 import { canAccessAdminPage as canAccessAdminDashboard } from '@/lib/admin-access';
+import { getDisabledFeatureKeys, getFeatureDisplayName, isMaintenanceActive, type SystemControlSettings } from '@/lib/system-control';
 
 type Notification = { id: string; type: string; title: string; message: string; isRead: boolean; link: string | null; createdAt: string };
+type Announcement = { id: string; title: string; message: string; targetRoles: string[]; createdAt: string | null };
+type ActivityEntry = { id: string; action: string; entityType: string; entityId: string | null; timestamp: string | null };
 type MyProject = { id: string; name: string; status: string; role: string; progress: number };
 
 type LeaderboardRow = { name: string; score: number; userId: string };
@@ -29,9 +32,13 @@ export default function Portal() {
   const [contactFeedback, setContactFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Live data states
-  const [announcements, setAnnouncements] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [portalAnnouncements, setPortalAnnouncements] = useState<Announcement[]>([]);
+  const [recentActivity, setRecentActivity] = useState<ActivityEntry[]>([]);
+  const [systemControl, setSystemControl] = useState<SystemControlSettings | null>(null);
   const [myProjects, setMyProjects] = useState<MyProject[]>([]);
-  const [announcementsLoading, setAnnouncementsLoading] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [portalMetaLoading, setPortalMetaLoading] = useState(false);
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [leaderboards, setLeaderboards] = useState<QuizLeaderboardGroups>({ daily: [], weekly: [], monthly: [] });
 
@@ -40,22 +47,51 @@ export default function Portal() {
     borderRadius: '6px', color: 'var(--text-primary)', fontSize: '0.9rem', fontFamily: 'inherit', width: '100%'
   };
 
+  const quickLinkStyle = {
+    color: 'var(--text-secondary)',
+    fontSize: '0.85rem',
+    fontWeight: 300,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+  } as const;
+
   const fetchPortalData = useCallback(async () => {
     if (!user) return;
-    setAnnouncementsLoading(true);
+    setNotificationsLoading(true);
+    setPortalMetaLoading(true);
     setProjectsLoading(true);
     try {
-      const { getMyNotificationsAction, getMyProjectsAction } = await import('@/app/actions/notifications');
+      const [
+        { getMyNotificationsAction, getMyProjectsAction },
+        { getSystemControlPublicSnapshotAction },
+        { getMyAnnouncementsAction },
+        { getMyRecentActivityAction },
+      ] = await Promise.all([
+        import('@/app/actions/notifications'),
+        import('@/app/actions/system-control'),
+        import('@/app/actions/announcements'),
+        import('@/app/actions/activity-logs'),
+      ]);
       const [notifs, projects] = await Promise.all([
         getMyNotificationsAction(),
         getMyProjectsAction(),
       ]);
-      setAnnouncements(notifs.slice(0, 5));
+      const [control, announcementRows, activityRows] = await Promise.all([
+        getSystemControlPublicSnapshotAction(),
+        getMyAnnouncementsAction(),
+        getMyRecentActivityAction(),
+      ]);
+      setNotifications(notifs.slice(0, 5));
       setMyProjects(projects);
+      setSystemControl(control);
+      setPortalAnnouncements(announcementRows.slice(0, 5));
+      setRecentActivity(activityRows.slice(0, 5));
     } catch (err) {
       console.error('[Portal] fetchPortalData error:', err);
     } finally {
-      setAnnouncementsLoading(false);
+      setNotificationsLoading(false);
+      setPortalMetaLoading(false);
       setProjectsLoading(false);
     }
   }, [user]);
@@ -86,6 +122,7 @@ export default function Portal() {
     if (!user) {
       setProfileImageUrl(null);
       setImgError(false);
+      setSystemControl(null);
       return;
     }
 
@@ -98,6 +135,22 @@ export default function Portal() {
     setProfileImageUrl(nextProfileSrc);
     setImgError(false);
   }, [user]);
+
+  const disabledFeatures = systemControl ? getDisabledFeatureKeys(systemControl) : [];
+  const maintenanceActive = systemControl ? isMaintenanceActive(systemControl) : false;
+  const formatTimestamp = (value: string | null) =>
+    value
+      ? new Date(value).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' })
+      : 'Unknown';
+  const formatRelativeTime = (value: string) => {
+    const diff = Date.now() - new Date(value).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  };
 
   return (
     <div className="page-container">
@@ -172,6 +225,21 @@ export default function Portal() {
         {/* Main Content */}
         <div>
           {/* Announcements / Notifications */}
+          {maintenanceActive && (
+            <AnimatedSection>
+              <div style={{ marginBottom: '1.2rem', padding: '1rem 1.2rem', borderRadius: '10px', border: '1px solid rgba(201,168,76,0.35)', background: 'rgba(201,168,76,0.08)' }}>
+                <strong style={{ display: 'block', marginBottom: '0.35rem', color: 'var(--gold)' }}>System Status</strong>
+                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+                  Maintenance mode is currently active. {systemControl?.maintenanceReason || 'Some public areas may be unavailable.'}
+                </p>
+                {systemControl?.maintenanceUntil && (
+                  <p style={{ margin: '0.45rem 0 0', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                    Until {formatTimestamp(systemControl.maintenanceUntil)}
+                  </p>
+                )}
+              </div>
+            </AnimatedSection>
+          )}
           <AnimatedSection>
             <h2 style={{ fontSize: '1.3rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
@@ -179,20 +247,20 @@ export default function Portal() {
             </h2>
           </AnimatedSection>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginBottom: '3rem' }}>
-            {announcementsLoading ? (
+            {notificationsLoading ? (
               <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Loading...</div>
-            ) : announcements.length === 0 ? (
+            ) : notifications.length === 0 ? (
               <div style={{ padding: '1.5rem', background: 'rgba(15, 22, 40, 0.3)', borderRadius: '8px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
                 🔕 No notifications yet.
               </div>
             ) : (
-              announcements.map((ann, i) => {
+              notifications.map((ann, i) => {
                 const typeLabel = ann.type === 'approval_request' ? 'Approval' : ann.type === 'task_assigned' ? 'Task' : ann.type === 'mention' ? 'Mention' : 'System';
-                const timeAgo = (() => { const diff = Date.now() - new Date(ann.createdAt).getTime(); const m = Math.floor(diff/60000); if (m < 1) return 'just now'; if (m < 60) return `${m}m ago`; const h = Math.floor(m/60); if (h < 24) return `${h}h ago`; return `${Math.floor(h/24)}d ago`; })();
+                const timeAgo = formatRelativeTime(ann.createdAt);
                 return (
                   <AnimatedSection key={ann.id} direction="left" delay={i * 0.08}>
                     <div
-                      onClick={async () => { if (!ann.isRead) { const { markNotificationReadAction } = await import('@/app/actions/notifications'); await markNotificationReadAction(ann.id); setAnnouncements(prev => prev.map(n => n.id === ann.id ? {...n, isRead: true} : n)); } if (ann.link) window.location.href = ann.link; }}
+                      onClick={async () => { if (!ann.isRead) { const { markNotificationReadAction } = await import('@/app/actions/notifications'); await markNotificationReadAction(ann.id); setNotifications(prev => prev.map(n => n.id === ann.id ? {...n, isRead: true} : n)); } if (ann.link) window.location.href = ann.link; }}
                       style={{ padding: '1.1rem 1.5rem', borderLeft: ann.isRead ? '2px solid var(--border-subtle)' : '2px solid var(--gold)', background: ann.isRead ? 'rgba(15, 22, 40, 0.2)' : 'rgba(201,168,76,0.04)', cursor: ann.link ? 'pointer' : 'default', transition: 'background 0.2s', borderRadius: '0 6px 6px 0' }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', alignItems: 'center' }}>
@@ -205,6 +273,35 @@ export default function Portal() {
                   </AnimatedSection>
                 );
               })
+            )}
+          </div>
+
+          <AnimatedSection>
+            <h2 style={{ fontSize: '1.3rem', marginTop: '3rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <span style={{ fontSize: '1.2rem' }}>📣</span> Club Announcements
+            </h2>
+          </AnimatedSection>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginBottom: '3rem' }}>
+            {portalMetaLoading ? (
+              <div style={{ padding: '1.2rem', background: 'rgba(15, 22, 40, 0.3)', borderRadius: '8px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                Loading announcements...
+              </div>
+            ) : portalAnnouncements.length === 0 ? (
+              <div style={{ padding: '1.2rem', background: 'rgba(15, 22, 40, 0.3)', borderRadius: '8px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                No targeted announcements right now.
+              </div>
+            ) : (
+              portalAnnouncements.map((item, index) => (
+                <AnimatedSection key={item.id} direction="left" delay={index * 0.05}>
+                  <div style={{ padding: '1rem 1.2rem', background: 'rgba(15,22,40,0.35)', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
+                      <strong>{item.title}</strong>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>{formatTimestamp(item.createdAt)}</span>
+                    </div>
+                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.6 }}>{item.message}</p>
+                  </div>
+                </AnimatedSection>
+              ))
             )}
           </div>
 
@@ -281,6 +378,33 @@ export default function Portal() {
                 )}
               </div>
             ))}
+          </div>
+
+          <AnimatedSection>
+            <h2 style={{ fontSize: '1.3rem', marginTop: '3rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <span style={{ fontSize: '1.2rem' }}>🕒</span> Personal Activity
+            </h2>
+          </AnimatedSection>
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            {portalMetaLoading ? (
+              <div style={{ padding: '1.1rem', background: 'rgba(15,22,40,0.3)', borderRadius: '8px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                Loading your activity...
+              </div>
+            ) : recentActivity.length === 0 ? (
+              <div style={{ padding: '1.1rem', background: 'rgba(15,22,40,0.3)', borderRadius: '8px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                No recent personal activity logged yet.
+              </div>
+            ) : (
+              recentActivity.map((entry) => (
+                <div key={entry.id} style={{ padding: '0.9rem 1rem', background: 'rgba(15,22,40,0.35)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                    <strong style={{ fontSize: '0.88rem' }}>{entry.action}</strong>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.76rem' }}>{formatTimestamp(entry.timestamp)}</span>
+                  </div>
+                  <p style={{ margin: '0.35rem 0 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>{entry.entityType}{entry.entityId ? ` · ${entry.entityId}` : ''}</p>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -455,23 +579,34 @@ export default function Portal() {
           <AnimatedSection direction="right" delay={0.3}>
             <div className="feature-card" style={{ padding: '1.5rem', textAlign: 'left' }}>
               <h4 style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--gold)', marginBottom: '1rem' }}>Quick Links</h4>
+              {systemControl && (
+                <div style={{ marginBottom: '1rem', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'rgba(8,12,22,0.35)' }}>
+                  <p style={{ margin: 0, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>Feature Availability</p>
+                  <div style={{ marginTop: '0.5rem', display: 'grid', gap: '0.35rem', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    {disabledFeatures.map((feature) => (
+                      <span key={feature}>{getFeatureDisplayName(feature)} is currently disabled.</span>
+                    ))}
+                    {disabledFeatures.length === 0 ? <span>All member modules are available.</span> : null}
+                  </div>
+                </div>
+              )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                <Link href="/education/quizzes" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {systemControl?.features?.quizzesEnabled !== false && <Link href="/education/quizzes" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
                   Quizzes & Leaderboard
-                </Link>
-                <Link href="/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                </Link>}
+                {systemControl?.features?.observationsEnabled !== false && <Link href="/portal/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                   Observation Feed
-                </Link>
-                <Link href="/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                </Link>}
+                {systemControl?.features?.observationsEnabled !== false && <Link href="/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                   Log Observation
-                </Link>
-                <Link href="/events" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                </Link>}
+                {systemControl?.features?.eventsEnabled !== false && <Link href="/events" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                   Upcoming Events
-                </Link>
+                </Link>}
                 {hasPermission('manage_projects') && (
                   <Link href="/core/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12l2 2 4-4"></path><path d="M21 12c0 1.66-4.03 6-9 6s-9-4.34-9-6 4.03-6 9-6 9 4.34 9 6z"></path></svg>

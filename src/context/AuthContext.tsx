@@ -50,6 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [rbacLoading, setRbacLoading] = useState(false);
   const [hasLoadedRBAC, setHasLoadedRBAC] = useState(false);
   const refreshInFlight = useRef(false);
+  const lastLoggedUserId = useRef<string | null>(null);
 
   const user = session?.user || null;
   const loading = isPending || (!!user?.id && !hasLoadedRBAC);
@@ -139,6 +140,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAdmin = roleName === "Admin";
   const hasPermission = (key: string) => permissions.includes(key);
 
+  useEffect(() => {
+    if (!user?.id || lastLoggedUserId.current === user.id) {
+      return;
+    }
+
+    const sessionStorageKey = `auth-login-logged:${user.id}`;
+    if (typeof window !== "undefined" && window.sessionStorage.getItem(sessionStorageKey) === "true") {
+      lastLoggedUserId.current = user.id;
+      return;
+    }
+
+    lastLoggedUserId.current = user.id;
+    import("@/app/actions/activity-logs")
+      .then(async ({ recordAuthActivityAction }) => {
+        await recordAuthActivityAction("login");
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(sessionStorageKey, "true");
+        }
+      })
+      .catch((err) => {
+        console.error("[auth] login activity log failed:", err);
+      });
+  }, [user?.id]);
+
   const signInWithGoogle = async () => {
     setAuthError(null);
     const { error } = await authClient.signIn.social({
@@ -170,6 +195,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    try {
+      if (user?.id && typeof window !== "undefined") {
+        window.sessionStorage.removeItem(`auth-login-logged:${user.id}`);
+      }
+      await import("@/app/actions/activity-logs").then(({ recordAuthActivityAction }) =>
+        recordAuthActivityAction("logout")
+      );
+    } catch (err) {
+      console.error("[auth] logout activity log failed:", err);
+    }
     const { error } = await authClient.signOut();
     if (error) {
       console.error("Logout Error:", error);

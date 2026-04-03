@@ -11,6 +11,7 @@ import {
   requireAdminAccess,
   requireApprovalAccess,
 } from "@/lib/member-access";
+import { logActivity } from "@/lib/activity-logs";
 
 /**
  * RBAC-aware user approval action.
@@ -67,6 +68,15 @@ export async function approveUserAction(
     })
     .where(eq(users.id, targetUserId));
 
+  await logActivity({
+    userId: session.user.id,
+    action: "approve_member",
+    entityType: "user",
+    entityId: targetUserId,
+    role: access.roleName,
+    details: { roleName },
+  });
+
   revalidatePath("/admin");
   return { success: true };
 }
@@ -84,6 +94,15 @@ export async function rejectUserAction(targetUserId: string) {
     .update(users)
     .set({ status: "rejected", updatedAt: new Date() })
     .where(eq(users.id, targetUserId));
+
+  const access = await requireApprovalAccess(session.user.id);
+  await logActivity({
+    userId: session.user.id,
+    action: "reject_member",
+    entityType: "user",
+    entityId: targetUserId,
+    role: access.roleName,
+  });
 
   revalidatePath("/admin");
   return { success: true };
@@ -188,6 +207,16 @@ export async function updateUserRoleAction(
       updatedAt: new Date(),
     })
     .where(eq(users.id, targetUserId));
+
+  const access = await requireAdminAccess(session.user.id);
+  await logActivity({
+    userId: session.user.id,
+    action: "update_member_role",
+    entityType: "user",
+    entityId: targetUserId,
+    role: access.roleName,
+    details: { roleName },
+  });
 
   revalidatePath("/admin");
   return { success: true };

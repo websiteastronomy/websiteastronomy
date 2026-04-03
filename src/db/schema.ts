@@ -568,3 +568,26 @@ export const notifications = pgTable("notifications", {
   link: text("link"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const activity_logs = pgTable("activity_logs", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  action: text("action").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: text("entity_id"),
+  details: jsonb("details").notNull().default('{}'),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  ipAddress: text("ip_address"),
+  role: text("role"),
+});
+
+export const announcements = pgTable("announcements", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  targetRoles: jsonb("target_roles").notNull().default('[]'),
+  sendEmail: boolean("send_email").default(false).notNull(),
+  sendNotification: boolean("send_notification").default(true).notNull(),
+  createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

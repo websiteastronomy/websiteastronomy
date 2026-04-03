@@ -1,9 +1,25 @@
 "use client";
 
+"use client";
+
 import Link from 'next/link';
 import AnimatedSection from './AnimatedSection';
+import { useEffect, useState } from 'react';
 
 export default function Footer() {
+  const [features, setFeatures] = useState({ quizzesEnabled: true, observationsEnabled: true, eventsEnabled: true });
+
+  useEffect(() => {
+    import('@/app/actions/system-control')
+      .then(({ getSystemControlPublicSnapshotAction }) => getSystemControlPublicSnapshotAction())
+      .then((settings) => {
+        setFeatures(settings.features);
+      })
+      .catch((error) => {
+        console.error('[Footer] system control fetch failed:', error);
+      });
+  }, []);
+
   return (
     <AnimatedSection>
       <footer style={{
@@ -30,9 +46,9 @@ export default function Footer() {
             <h4 style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--gold)', marginBottom: '1rem' }}>Quick Links</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               <Link href="/about" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>About Us</Link>
-              <Link href="/events" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Events</Link>
+              {features.eventsEnabled && <Link href="/events" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Events</Link>}
               <Link href="/projects" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Projects</Link>
-              <Link href="/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Observations</Link>
+              {features.observationsEnabled && <Link href="/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Observations</Link>}
             </div>
           </div>
 
@@ -42,7 +58,7 @@ export default function Footer() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               <Link href="/education" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Education Base</Link>
               <Link href="/night-sky" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Night Sky Dashboard</Link>
-              <Link href="/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Observations</Link>
+              {features.observationsEnabled && <Link href="/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Observations</Link>}
             </div>
           </div>
 

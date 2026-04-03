@@ -12,6 +12,7 @@ import {
   writeAboutSettingsLocal,
   stripUndefinedDeep,
 } from "./settingsLocal";
+import type { NightSkySettings } from "@/data/mockNightSky";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -31,7 +32,8 @@ export interface SiteSettings {
   };
   featuredProjectId: string;
   featuredEventId: string;
-  nightSky?: any;
+  nightSky?: NightSkySettings;
+  nightSkyStructured?: NightSkySettings;
 }
 
 export interface AboutPageSettings {

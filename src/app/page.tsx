@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import WeatherWidget from "@/components/WeatherWidget";
 import AnimatedSection from "@/components/AnimatedSection";
 import AnimatedCard from "@/components/AnimatedCard";
@@ -17,6 +18,7 @@ import {
 } from "@/lib/db";
 
 export default function Home() {
+  const router = useRouter();
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [featuredProject, setFeaturedProject] = useState<any>(null);
   const [upcomingEvent, setUpcomingEvent] = useState<any>(null);
@@ -26,6 +28,10 @@ export default function Home() {
   const [liveStats, setLiveStats] = useState({ members: 0, projects: 0, events: 0, observations: 0 });
 
   useEffect(() => {
+    const syncSettings = () => {
+      setSettings(loadSiteSettingsClient());
+    };
+
     const fetchData = async () => {
       const s = loadSiteSettingsClient();
       setSettings(s);
@@ -78,6 +84,12 @@ export default function Home() {
 
     fetchData();
 
+    const handleFocus = () => syncSettings();
+    const handleStorage = () => syncSettings();
+
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("storage", handleStorage);
+
     const fetchTeam = async () => {
       try {
         const { getPublicMembersAction } = await import('@/app/actions/publicMembers');
@@ -86,6 +98,11 @@ export default function Home() {
       } catch (err) { }
     };
     fetchTeam();
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("storage", handleStorage);
+    };
   }, []);
 
   const heroRef = useRef(null);
@@ -153,6 +170,15 @@ export default function Home() {
           <Link href="/projects" className="btn-primary magnetic-btn">Explore Projects</Link>
           {settings?.isRecruiting && (
             <Link href="/join" className="btn-secondary magnetic-btn">Join Club</Link>
+          )}
+          {settings && !settings.isRecruiting && (
+            <button
+              type="button"
+              className="btn-secondary magnetic-btn"
+              onClick={() => router.push("/join?closed=1")}
+            >
+              Join Club
+            </button>
           )}
         </motion.div>
       </motion.section>

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSearchParams } from "next/navigation";
 import AnimatedSection from "@/components/AnimatedSection";
 import { loadSiteSettingsClient } from "@/data/siteSettingsStatic";
 
@@ -30,10 +31,31 @@ const defaultForm: FormData = {
 type Status = "idle" | "submitting" | "success" | "error";
 
 export default function JoinPage() {
+  const searchParams = useSearchParams();
   const [isRecruiting, setIsRecruiting] = useState(() => loadSiteSettingsClient().isRecruiting);
   const [form, setForm] = useState<FormData>(defaultForm);
   const [status, setStatus] = useState<Status>("idle");
   const [touched, setTouched] = useState<Partial<Record<keyof FormData, boolean>>>({});
+  const showClosedNotice = searchParams.get("closed") === "1" || !isRecruiting;
+
+  useEffect(() => {
+    const syncRecruitmentStatus = () => {
+      setIsRecruiting(loadSiteSettingsClient().isRecruiting);
+    };
+
+    syncRecruitmentStatus();
+
+    const handleFocus = () => syncRecruitmentStatus();
+    const handleStorage = () => syncRecruitmentStatus();
+
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
 
   const set = (key: keyof FormData, val: string | string[]) =>
     setForm((prev) => ({ ...prev, [key]: val }));
@@ -167,17 +189,17 @@ export default function JoinPage() {
             </p>
           ) : (
              <p className="page-subtitle">
-              Registrations are currently closed. Keep an eye on our announcements for the next induction cycle!
+              Registrations are currently closed. Please come back again during the next recruitment window.
             </p>
           )}
         </AnimatedSection>
 
-        {!isRecruiting && (
+        {showClosedNotice && (
           <AnimatedSection delay={0.1}>
             <div style={{ padding: "3rem", textAlign: "center", background: "rgba(15,22,40,0.5)", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.05)" }}>
               <div style={{ fontSize: "3rem", marginBottom: "1rem", opacity: 0.5 }}>🔒</div>
-              <h3 style={{ fontSize: "1.2rem", marginBottom: "0.5rem", color: "var(--text-secondary)" }}>Not Accepting Responses</h3>
-              <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>The recruitment window for this semester has closed.</p>
+              <h3 style={{ fontSize: "1.2rem", marginBottom: "0.5rem", color: "var(--text-secondary)" }}>Registrations Closed</h3>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>Registrations are closed right now. Please come back again when the next recruitment window opens.</p>
             </div>
           </AnimatedSection>
         )}

@@ -9,6 +9,7 @@ import { headers } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
 import { hasPermission } from "@/lib/permissions";
 import { getSystemAccess } from "@/lib/system-rbac";
+import { logActivity } from "@/lib/activity-logs";
 
 // Configure R2 Client
 const r2 = new S3Client({
@@ -56,6 +57,15 @@ export async function setSystemMaxFileSize(mb: number) {
       value: mb.toString()
     });
   }
+  const access = await getSystemAccess(session.user.id);
+  await logActivity({
+    userId: session.user.id,
+    action: "update_storage_settings",
+    entityType: "system_settings",
+    entityId: "max_file_size_mb",
+    role: access.roleName,
+    details: { maxFileSizeMb: mb },
+  });
   return true;
 }
 

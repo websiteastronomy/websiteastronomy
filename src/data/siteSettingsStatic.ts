@@ -1,5 +1,7 @@
 import type { SiteSettings } from "@/lib/db";
 import { readSiteSettingsLocal } from "@/lib/settingsLocal";
+import { MOCK_NIGHT_SKY } from "./mockNightSky";
+import { normalizeNightSkySettings } from "@/lib/night-sky";
 
 /** Default site-wide config (no Firestore). */
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
@@ -9,6 +11,18 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   dailyFact: { text: "The universe is expanding.", source: "NASA" },
   featuredProjectId: "",
   featuredEventId: "",
+  nightSky: {
+    ...MOCK_NIGHT_SKY,
+    isEnabled: true,
+    mode: "manual",
+    lastUpdated: null,
+  },
+  nightSkyStructured: {
+    ...MOCK_NIGHT_SKY,
+    isEnabled: true,
+    mode: "manual",
+    lastUpdated: null,
+  },
 };
 
 /** Defaults merged with `localStorage` (written from admin Save). */
@@ -36,6 +50,7 @@ export function loadSiteSettingsClient(): SiteSettings {
       typeof local.featuredEventId === "string"
         ? local.featuredEventId
         : DEFAULT_SITE_SETTINGS.featuredEventId,
-    nightSky: local.nightSky !== undefined ? local.nightSky : DEFAULT_SITE_SETTINGS.nightSky,
+    nightSky: normalizeNightSkySettings(local.nightSky),
+    nightSkyStructured: normalizeNightSkySettings(local.nightSkyStructured),
   };
 }
