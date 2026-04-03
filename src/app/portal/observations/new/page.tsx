@@ -1,29 +1,33 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import AnimatedSection from "@/components/AnimatedSection";
+import ObservationImageEditorModal from "@/components/ObservationImageEditorModal";
 import { processAndUploadObservationImageAction } from "@/app/actions/uploadObservation";
 import { submitObservationAction } from "@/app/actions/observations-engine";
-import Link from 'next/link';
+import {
+  readFileAsDataUrl,
+  validateObservationImageFile,
+} from "@/lib/observationImage";
 
 export default function SubmitObservationPage() {
   const { user } = useAuth();
   const router = useRouter();
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorObj, setErrorObj] = useState<string | null>(null);
-  
-  // Basic Fields
+  const [processingWarning, setProcessingWarning] = useState<string | null>(null);
+
   const [title, setTitle] = useState("");
   const [celestialTarget, setCelestialTarget] = useState("");
   const [category, setCategory] = useState("Deep Sky");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [capturedAt, setCapturedAt] = useState("");
-  
-  // Tech Fields
+
   const [equipment, setEquipment] = useState("");
   const [exposureTime, setExposureTime] = useState("");
   const [iso, setIso] = useState("");
@@ -32,56 +36,73 @@ export default function SubmitObservationPage() {
   const [bortleScale, setBortleScale] = useState("");
   const [framesCount, setFramesCount] = useState("");
   const [processingSoftware, setProcessingSoftware] = useState("");
-  
-  // Image
+
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [editorImageSrc, setEditorImageSrc] = useState<string | null>(null);
+  const [pendingSourceFile, setPendingSourceFile] = useState<File | null>(null);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const compressImageFrontend = async (file: File): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (e) => {
-        const img = new Image();
-        img.src = e.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          let { width, height } = img;
-          const MAX_DIM = 4000; // Limit to 4K max size for performance before sending to backend
-          if (width > MAX_DIM || height > MAX_DIM) {
-            if (width > height) {
-              height *= MAX_DIM / width;
-              width = MAX_DIM;
-            } else {
-              width *= MAX_DIM / height;
-              height = MAX_DIM;
-            }
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext("2d");
-          ctx?.drawImage(img, 0, 0, width, height);
-          canvas.toBlob((blob) => {
-            if (blob) resolve(blob);
-            else reject(new Error("Canvas blob failed"));
-          }, file.type, 0.95);
-        };
-        img.onerror = (err) => reject(err);
-      };
-      reader.onerror = (err) => reject(err);
-    });
-  };
+  useEffect(() => {
+    return () => {
+      if (imagePreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 20 * 1024 * 1024) {
-      setErrorObj("Please select an image under 20MB.");
+  const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
       return;
     }
+
+    try {
+      validateObservationImageFile(file);
+      const nextImageSrc = await readFileAsDataUrl(file);
+      setPendingSourceFile(file);
+      setEditorImageSrc(nextImageSrc);
+      setIsEditorOpen(true);
+      setErrorObj(null);
+      setProcessingWarning(null);
+    } catch (error: any) {
+      setErrorObj(error.message || "Please select a valid image under 10MB.");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const handleEditorClose = () => {
+    setIsEditorOpen(false);
+    setEditorImageSrc(null);
+    setPendingSourceFile(null);
+  };
+
+  const handleEditorApply = ({
+    file,
+    previewUrl,
+    usedFallback,
+  }: {
+    file: File;
+    previewUrl: string;
+    usedFallback: boolean;
+  }) => {
+    if (imagePreview?.startsWith("blob:")) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
     setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    setImagePreview(previewUrl);
+    setProcessingWarning(
+      usedFallback
+        ? "Automatic enhancement failed, so this upload will use the original image as a fallback."
+        : null
+    );
+    setIsEditorOpen(false);
+    setEditorImageSrc(null);
+    setPendingSourceFile(null);
+    setErrorObj(null);
   };
 
   const handleSubmit = async (isDraft: boolean) => {
@@ -89,6 +110,7 @@ export default function SubmitObservationPage() {
       setErrorObj("Please fill in all core fields (Title, Target, Date, Location, Category).");
       return;
     }
+
     if (!imageFile) {
       setErrorObj("You must attach at least one observation image.");
       return;
@@ -98,33 +120,43 @@ export default function SubmitObservationPage() {
     setErrorObj(null);
 
     try {
-      // 1. Process & Upload Image to R2
-      const compressedBlob = await compressImageFrontend(imageFile);
       const formData = new FormData();
-      formData.append("file", new File([compressedBlob], imageFile.name, { type: imageFile.type }));
-      
+      formData.append("file", imageFile);
+
       const uploadRes = await processAndUploadObservationImageAction(formData);
-      
-      // 2. Transmit to Postgres Observation Engine
+
       const payload = {
-        title, celestialTarget, category, description, location, capturedAt,
+        title,
+        celestialTarget,
+        category,
+        description,
+        location,
+        capturedAt,
         imageOriginalUrl: uploadRes.urls.original,
         imageCompressedUrl: uploadRes.urls.compressed,
         imageThumbnailUrl: uploadRes.urls.thumbnail,
-        equipment, exposureTime, iso, focalLength, filtersUsed, bortleScale, framesCount, processingSoftware
+        equipment,
+        exposureTime,
+        iso,
+        focalLength,
+        filtersUsed,
+        bortleScale,
+        framesCount,
+        processingSoftware,
       };
 
       await submitObservationAction(payload, isDraft);
-      
       router.push("/portal/observations");
-    } catch (err: any) {
-      setErrorObj(err.message || "Failed to submit observation");
+    } catch (error: any) {
+      setErrorObj(error.message || "Failed to submit observation");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!user) return null;
+  if (!user) {
+    return null;
+  }
 
   return (
     <div style={{ padding: "4rem 2rem", maxWidth: "800px", margin: "0 auto" }}>
@@ -132,7 +164,9 @@ export default function SubmitObservationPage() {
         <Link href="/portal/observations" style={{ color: "var(--text-muted)", textDecoration: "none", display: "inline-block", marginBottom: "2rem" }}>
           ← Back to My Logs
         </Link>
-        <h1 className="page-title" style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>Submit <span className="gradient-text">Observation</span></h1>
+        <h1 className="page-title" style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>
+          Submit <span className="gradient-text">Observation</span>
+        </h1>
         <p className="page-subtitle" style={{ fontSize: "1rem", marginBottom: "3rem" }}>
           Add your target capture to the central repository.
         </p>
@@ -143,46 +177,61 @@ export default function SubmitObservationPage() {
           </div>
         )}
 
+        {processingWarning && (
+          <div style={{ padding: "1rem", background: "rgba(245, 158, 11, 0.12)", border: "1px solid rgba(245, 158, 11, 0.3)", borderRadius: "8px", color: "#fcd34d", marginBottom: "2rem" }}>
+            {processingWarning}
+          </div>
+        )}
+
         <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem", background: "rgba(15, 22, 40, 0.4)", padding: "2rem", borderRadius: "16px", border: "1px solid var(--border-subtle)" }}>
-          
-          {/* IMAGE SECION */}
           <section>
             <h3 style={{ fontSize: "1.2rem", marginBottom: "1rem", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "0.5rem" }}>1. Capture Upload</h3>
-            <div 
-              onClick={() => fileInputRef.current?.click()}
-              style={{ 
-                width: "100%", height: "250px", border: "2px dashed var(--border-subtle)", borderRadius: "12px", 
-                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", 
-                cursor: "pointer", position: "relative", overflow: "hidden", background: "var(--background-alt)"
+            <div
+              onClick={() => !isSubmitting && fileInputRef.current?.click()}
+              style={{
+                width: "100%",
+                height: "250px",
+                border: "2px dashed var(--border-subtle)",
+                borderRadius: "12px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: isSubmitting ? "not-allowed" : "pointer",
+                position: "relative",
+                overflow: "hidden",
+                background: "var(--background-alt)",
               }}
             >
               {imagePreview ? (
-                <img src={imagePreview} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.8 }} />
+                <img src={imagePreview} alt="Processed preview" style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.92 }} />
               ) : (
                 <>
                   <div style={{ fontSize: "2rem", color: "var(--gold)", marginBottom: "1rem" }}>📷</div>
-                  <p style={{ color: "var(--text-muted)", margin: 0 }}>Click or drag to upload WebP / JPG / PNG (Max 10MB)</p>
+                  <p style={{ color: "var(--text-muted)", margin: 0 }}>Click to upload WebP / JPG / PNG (Max 10MB)</p>
                 </>
               )}
               <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*" style={{ display: "none" }} />
             </div>
+            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.6rem" }}>
+              Upload, crop, process, then preview. The image shown here is the exact file that will be stored.
+            </p>
           </section>
 
-          {/* BASIC INFO */}
           <section>
             <h3 style={{ fontSize: "1.2rem", marginBottom: "1rem", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "0.5rem" }}>2. Core Meta</h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 <label>Title *</label>
-                <input className="input-field" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Orion Nebula from Bortle 4" />
+                <input className="input-field" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Orion Nebula from Bortle 4" />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 <label>Celestial Target *</label>
-                <input className="input-field" value={celestialTarget} onChange={(e) => setCelestialTarget(e.target.value)} placeholder="e.g. M42" />
+                <input className="input-field" value={celestialTarget} onChange={(event) => setCelestialTarget(event.target.value)} placeholder="e.g. M42" />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 <label>Category *</label>
-                <select className="input-field" value={category} onChange={(e) => setCategory(e.target.value)}>
+                <select className="input-field" value={category} onChange={(event) => setCategory(event.target.value)}>
                   <option>Deep Sky</option>
                   <option>Planetary</option>
                   <option>Lunar</option>
@@ -192,80 +241,75 @@ export default function SubmitObservationPage() {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 <label>Captured At *</label>
-                <input className="input-field" type="datetime-local" value={capturedAt} onChange={(e) => setCapturedAt(e.target.value)} />
+                <input className="input-field" type="datetime-local" value={capturedAt} onChange={(event) => setCapturedAt(event.target.value)} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", gridColumn: "1 / -1" }}>
                 <label>Location *</label>
-                <input className="input-field" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Mauna Kea Summit" />
+                <input className="input-field" value={location} onChange={(event) => setLocation(event.target.value)} placeholder="e.g. Mauna Kea Summit" />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", gridColumn: "1 / -1" }}>
                 <label>Description</label>
-                <textarea className="input-field" style={{ minHeight: "100px" }} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Notes on the session, weather, setup..." />
+                <textarea className="input-field" style={{ minHeight: "100px" }} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Notes on the session, weather, setup..." />
               </div>
             </div>
           </section>
 
-          {/* EXIF / TECH INFO */}
           <section>
             <h3 style={{ fontSize: "1.2rem", marginBottom: "1rem", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "0.5rem" }}>3. Acquisition & Processing (Optional)</h3>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", gridColumn: "1/-1" }}>
                 <label>Equipment (Telescope / Camera / Mount)</label>
-                <input className="input-field" value={equipment} onChange={(e) => setEquipment(e.target.value)} placeholder="e.g. SkyWatcher 80ED + ASI533MC + HEQ5" />
+                <input className="input-field" value={equipment} onChange={(event) => setEquipment(event.target.value)} placeholder="e.g. SkyWatcher 80ED + ASI533MC + HEQ5" />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 <label>Total Exposure</label>
-                <input className="input-field" value={exposureTime} onChange={(e) => setExposureTime(e.target.value)} placeholder="e.g. 5h 30m" />
+                <input className="input-field" value={exposureTime} onChange={(event) => setExposureTime(event.target.value)} placeholder="e.g. 5h 30m" />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 <label>ISO / Gain</label>
-                <input className="input-field" value={iso} onChange={(e) => setIso(e.target.value)} placeholder="e.g. ISO 800 / Gain 100" />
+                <input className="input-field" value={iso} onChange={(event) => setIso(event.target.value)} placeholder="e.g. ISO 800 / Gain 100" />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 <label>Focal Length</label>
-                <input className="input-field" value={focalLength} onChange={(e) => setFocalLength(e.target.value)} placeholder="e.g. 600mm" />
+                <input className="input-field" value={focalLength} onChange={(event) => setFocalLength(event.target.value)} placeholder="e.g. 600mm" />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 <label>Filters Used</label>
-                <input className="input-field" value={filtersUsed} onChange={(e) => setFiltersUsed(e.target.value)} placeholder="e.g. Optolong L-eXtreme" />
+                <input className="input-field" value={filtersUsed} onChange={(event) => setFiltersUsed(event.target.value)} placeholder="e.g. Optolong L-eXtreme" />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 <label>Bortle Scale</label>
-                <input className="input-field" type="number" min="1" max="9" value={bortleScale} onChange={(e) => setBortleScale(e.target.value)} placeholder="1-9" />
+                <input className="input-field" type="number" min="1" max="9" value={bortleScale} onChange={(event) => setBortleScale(event.target.value)} placeholder="1-9" />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 <label>Frame Count</label>
-                <input className="input-field" type="number" value={framesCount} onChange={(e) => setFramesCount(e.target.value)} placeholder="e.g. 120" />
+                <input className="input-field" type="number" value={framesCount} onChange={(event) => setFramesCount(event.target.value)} placeholder="e.g. 120" />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", gridColumn: "1/-1" }}>
                 <label>Processing Software</label>
-                <input className="input-field" value={processingSoftware} onChange={(e) => setProcessingSoftware(e.target.value)} placeholder="e.g. PixInsight, Photoshop" />
+                <input className="input-field" value={processingSoftware} onChange={(event) => setProcessingSoftware(event.target.value)} placeholder="e.g. PixInsight, Photoshop" />
               </div>
             </div>
           </section>
 
-          {/* SUBMIT */}
           <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
-            <button 
-              className="btn-secondary" 
-              onClick={() => handleSubmit(true)} 
-              disabled={isSubmitting}
-              style={{ flex: 1, padding: "1rem", opacity: isSubmitting ? 0.5 : 1 }}
-            >
+            <button className="btn-secondary" onClick={() => handleSubmit(true)} disabled={isSubmitting} style={{ flex: 1, padding: "1rem", opacity: isSubmitting ? 0.5 : 1 }}>
               {isSubmitting ? "Uploading..." : "Save as Draft"}
             </button>
-            <button 
-              className="btn-primary" 
-              onClick={() => handleSubmit(false)} 
-              disabled={isSubmitting}
-              style={{ flex: 2, padding: "1rem", opacity: isSubmitting ? 0.5 : 1 }}
-            >
+            <button className="btn-primary" onClick={() => handleSubmit(false)} disabled={isSubmitting} style={{ flex: 2, padding: "1rem", opacity: isSubmitting ? 0.5 : 1 }}>
               {isSubmitting ? "Uploading..." : "Submit for Review"}
             </button>
           </div>
-
         </div>
       </AnimatedSection>
+
+      <ObservationImageEditorModal
+        isOpen={isEditorOpen}
+        imageSrc={editorImageSrc}
+        sourceFile={pendingSourceFile}
+        onClose={handleEditorClose}
+        onApply={handleEditorApply}
+      />
     </div>
   );
 }

@@ -130,10 +130,10 @@ export async function createProcessedObservationFile(
   pixelCrop: PixelCrop
 ): Promise<File> {
   const blob = await processObservationImage(imageSrc, {
-    x: clamp(pixelCrop.x, 0, pixelCrop.x + pixelCrop.width),
-    y: clamp(pixelCrop.y, 0, pixelCrop.y + pixelCrop.height),
-    width: pixelCrop.width,
-    height: pixelCrop.height,
+    x: Math.round(clamp(pixelCrop.x, 0, Number.MAX_SAFE_INTEGER)),
+    y: Math.round(clamp(pixelCrop.y, 0, Number.MAX_SAFE_INTEGER)),
+    width: Math.max(1, Math.round(pixelCrop.width)),
+    height: Math.max(1, Math.round(pixelCrop.height)),
   });
 
   return new File([blob], "observation.webp", {

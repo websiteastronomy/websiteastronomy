@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
 import Cropper from "react-easy-crop";
 import {
   createFallbackObservationFile,
@@ -20,7 +20,7 @@ type Props = {
   }) => void;
 };
 
-const overlayStyle: React.CSSProperties = {
+const overlayStyle: CSSProperties = {
   position: "fixed",
   inset: 0,
   background: "rgba(3, 7, 18, 0.86)",
@@ -31,7 +31,7 @@ const overlayStyle: React.CSSProperties = {
   padding: "1.5rem",
 };
 
-const panelStyle: React.CSSProperties = {
+const panelStyle: CSSProperties = {
   width: "min(920px, 100%)",
   background: "linear-gradient(180deg, rgba(12,18,32,0.98), rgba(6,10,22,0.98))",
   border: "1px solid rgba(255,255,255,0.08)",
@@ -51,7 +51,6 @@ export default function ObservationImageEditorModal({
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<PixelCrop | null>(null);
   const [isApplying, setIsApplying] = useState(false);
-  const [processMessage, setProcessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -59,7 +58,6 @@ export default function ObservationImageEditorModal({
       setZoom(1);
       setCroppedAreaPixels(null);
       setIsApplying(false);
-      setProcessMessage(null);
     }
   }, [isOpen]);
 
@@ -78,7 +76,6 @@ export default function ObservationImageEditorModal({
     }
 
     setIsApplying(true);
-    setProcessMessage(null);
 
     try {
       const processedFile = await createProcessedObservationFile(imageSrc, croppedAreaPixels);
@@ -94,7 +91,6 @@ export default function ObservationImageEditorModal({
         previewUrl: URL.createObjectURL(fallbackFile),
         usedFallback: true,
       });
-      setProcessMessage("Processing failed, so we kept the original image for this upload.");
     } finally {
       setIsApplying(false);
     }
@@ -196,22 +192,6 @@ export default function ObservationImageEditorModal({
               Drag to reframe
             </div>
           </div>
-
-          {processMessage && (
-            <div
-              style={{
-                marginTop: "1rem",
-                padding: "0.85rem 1rem",
-                borderRadius: "12px",
-                background: "rgba(245, 158, 11, 0.12)",
-                border: "1px solid rgba(245, 158, 11, 0.28)",
-                color: "#fcd34d",
-                fontSize: "0.9rem",
-              }}
-            >
-              {processMessage}
-            </div>
-          )}
 
           <div style={{ display: "flex", gap: "1rem", marginTop: "1.5rem" }}>
             <button
