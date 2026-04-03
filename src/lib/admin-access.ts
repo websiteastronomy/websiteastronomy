@@ -18,6 +18,8 @@ export const ADMIN_PAGE_PERMISSIONS = {
     access.isAdmin || access.hasPermission("manage_projects"),
   observations: (access: AccessLike) =>
     access.isAdmin || access.hasPermission("manage_projects"),
+  quizzes: (access: AccessLike) =>
+    access.isAdmin || access.hasPermission("approve_actions"),
   outreach: (access: AccessLike) => access.isAdmin,
   achievements: (access: AccessLike) => access.isAdmin,
   nightSky: (access: AccessLike) => access.isAdmin,

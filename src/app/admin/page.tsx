@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
   ADMIN_PAGE_PERMISSIONS,
@@ -33,6 +34,7 @@ type AdminTab = {
 };
 
 export default function Admin() {
+  const searchParams = useSearchParams();
   const {
     user,
     isAdmin,
@@ -46,7 +48,7 @@ export default function Admin() {
     hasPermission,
   } = useAuth();
 
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "overview");
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -62,6 +64,7 @@ export default function Admin() {
     { id: "articles", label: "Articles & Facts", icon: "📝", visible: ADMIN_PAGE_PERMISSIONS.articles(access) },
     { id: "projects", label: "Projects", icon: "🚀", visible: ADMIN_PAGE_PERMISSIONS.projects(access) },
     { id: "observations", label: "Observations", icon: "🔭", visible: ADMIN_PAGE_PERMISSIONS.observations(access) },
+    { id: "quizzes", label: "Quizzes", icon: "🧠", visible: ADMIN_PAGE_PERMISSIONS.quizzes(access) },
     { id: "outreach", label: "Outreach", icon: "🤝", visible: ADMIN_PAGE_PERMISSIONS.outreach(access) },
     { id: "achievements", label: "Achievements", icon: "🏆", visible: ADMIN_PAGE_PERMISSIONS.achievements(access) },
     { id: "night-sky", label: "Night Sky", icon: "🌙", visible: ADMIN_PAGE_PERMISSIONS.nightSky(access) },

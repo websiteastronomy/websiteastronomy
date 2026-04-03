@@ -1,149 +1,153 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import Link from 'next/link';
-import AnimatedSection from '@/components/AnimatedSection';
-import { useAuth } from '@/context/AuthContext';
-import { MOCK_QUIZZES, MOCK_ATTEMPTS, MOCK_LEADERBOARD, QuizAttempt } from '@/data/mockQuizzes';
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { useParams } from "next/navigation";
+import { motion } from "framer-motion";
+import Link from "next/link";
+import AnimatedSection from "@/components/AnimatedSection";
+import { useAuth } from "@/context/AuthContext";
+import {
+  evaluateQuizSubmissionAction,
+  getMemberQuizAttemptAction,
+  getQuizByIdAction,
+  getQuizLeaderboardAction,
+  submitMemberQuizAttemptAction,
+} from "@/app/actions/quizzes";
+
+type AnswerValue = string | string[];
 
 export default function QuizAttemptPage() {
   const { id } = useParams();
-  const router = useRouter();
   const { user } = useAuth();
-  
   const [quiz, setQuiz] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
-  // State
-  const [hasStarted, setHasStarted] = useState(false);
-  const [publicName, setPublicName] = useState("");
-  const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
-  const [answers, setAnswers] = useState<number[]>([]);
-  const [isFinished, setIsFinished] = useState(false);
-  
-  // Blocking state
-  const [isBlocked, setIsBlocked] = useState(false);
-  const [previousAttempt, setPreviousAttempt] = useState<QuizAttempt | null>(null);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
-  const [scoreSaveError, setScoreSaveError] = useState<string | null>(null);
+  const [previousAttempt, setPreviousAttempt] = useState<any>(null);
+  const [publicName, setPublicName] = useState("");
+  const [hasStarted, setHasStarted] = useState(false);
+  const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
+  const [result, setResult] = useState<any>(null);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [isSubmitting, startSubmitTransition] = useTransition();
 
   useEffect(() => {
     if (!id) return;
-    const fetchQuiz = async () => {
-      try {
-        const data = await import('@/lib/db').then(m => m.getDocument<any>('quizzes', typeof id === 'string' ? id : id[0]));
-        setQuiz(data);
-        setLoading(false);
-      } catch (err) {
-        setLoading(false);
-      }
-    };
-    fetchQuiz();
-  }, [id]);
+    setLoading(true);
+    Promise.all([
+      getQuizByIdAction(typeof id === "string" ? id : id[0]),
+      user ? getMemberQuizAttemptAction(typeof id === "string" ? id : id[0]) : Promise.resolve(null),
+    ])
+      .then(([quizData, attemptData]) => {
+        setQuiz(quizData);
+        setPreviousAttempt(attemptData);
+      })
+      .catch((error) => {
+        console.error(error);
+      })
+      .finally(() => setLoading(false));
+  }, [id, user]);
 
   useEffect(() => {
-    let unsubAttempts = () => {};
-    let unsubLeaderboard = () => {};
-    if (user && quiz) {
-      import('@/lib/db').then(({ subscribeToCollection }) => {
-        unsubAttempts = subscribeToCollection('quiz_attempts', (data) => {
-          const attempt = data.find((a: any) => a.userId === user.id && a.quizId === quiz.id);
-          if (attempt) {
-            setIsBlocked(true);
-            setPreviousAttempt(attempt);
-          }
-        });
-        unsubLeaderboard = subscribeToCollection('quiz_attempts', (data) => {
-          // Compute leaderboard locally based on attempts
-          const scores: Record<string, {name: string, score: number, userId: string}> = {};
-          data.forEach(a => {
-            if (!scores[a.userId]) scores[a.userId] = { name: a.userName || 'Member', score: 0, userId: a.userId };
-            scores[a.userId].score += a.score;
-          });
-          const sorted = Object.values(scores).sort((a,b) => b.score - a.score);
-          setLeaderboard(sorted);
-        });
-      });
+    if (!quiz) return;
+    getQuizLeaderboardAction(quiz.quizType)
+      .then((data) => setLeaderboard(data))
+      .catch((error) => console.error(error));
+  }, [quiz]);
+
+  useEffect(() => {
+    if (!startedAt) return;
+    const timer = window.setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [startedAt]);
+
+  const questionCount = quiz?.questions?.length || 0;
+  const progressPercent = questionCount ? Math.round((currentQuestionIdx / questionCount) * 100) : 0;
+  const currentQuestion = quiz?.questions?.[currentQuestionIdx] || null;
+
+  const answerReview = useMemo(() => result?.review || [], [result]);
+
+  const setAnswerValue = (questionId: string, value: AnswerValue) => {
+    setAnswers((current) => ({ ...current, [questionId]: value }));
+  };
+
+  const canAdvance = useMemo(() => {
+    if (!currentQuestion) return false;
+    const currentAnswer = answers[currentQuestion.id];
+    if (currentQuestion.type === "checkbox") {
+      return Array.isArray(currentAnswer) && currentAnswer.length > 0;
     }
-    return () => { unsubAttempts(); unsubLeaderboard(); };
-  }, [user, quiz]);
+    return typeof currentAnswer === "string" && currentAnswer.trim().length > 0;
+  }, [answers, currentQuestion]);
+
+  const beginQuiz = () => {
+    setHasStarted(true);
+    setStartedAt(Date.now());
+    setElapsedSeconds(0);
+  };
+
+  const submitQuiz = () => {
+    if (!quiz) return;
+    const orderedAnswers = quiz.questions.map((question: any) => answers[question.id] ?? (question.type === "checkbox" ? [] : ""));
+    setFeedback(null);
+    startSubmitTransition(async () => {
+      try {
+        const evaluation = user
+          ? await submitMemberQuizAttemptAction(quiz.id, orderedAnswers)
+          : await evaluateQuizSubmissionAction(quiz.id, orderedAnswers);
+        setResult(evaluation);
+        if (user) {
+          const updatedAttempt = await getMemberQuizAttemptAction(quiz.id);
+          setPreviousAttempt(updatedAttempt);
+          const nextLeaderboard = await getQuizLeaderboardAction(quiz.quizType);
+          setLeaderboard(nextLeaderboard);
+        }
+      } catch (error) {
+        console.error(error);
+        setFeedback(error instanceof Error ? error.message : "Quiz submission failed.");
+      }
+    });
+  };
+
+  const nextQuestion = () => {
+    if (!quiz) return;
+    if (currentQuestionIdx >= quiz.questions.length - 1) {
+      submitQuiz();
+      return;
+    }
+    setCurrentQuestionIdx((current) => current + 1);
+  };
 
   if (loading) {
-     return <div style={{ minHeight: "80vh", display: "flex", justifyContent: "center", alignItems: "center" }}><p style={{ color: "var(--gold)" }}>Loading quiz...</p></div>;
+    return <div style={{ minHeight: "80vh", display: "flex", justifyContent: "center", alignItems: "center" }}><p style={{ color: "var(--gold)" }}>Loading quiz...</p></div>;
   }
 
   if (!quiz) {
     return (
-      <div className="page-container" style={{ textAlign: 'center', padding: '6rem 0' }}>
+      <div className="page-container" style={{ textAlign: "center", padding: "6rem 0" }}>
         <h1 className="page-title">Quiz Not Found</h1>
-        <Link href="/education/quizzes" style={{ color: 'var(--gold)' }}>← Back to Quizzes</Link>
+        <Link href="/education/quizzes" style={{ color: "var(--gold)" }}>← Back to Quizzes</Link>
       </div>
     );
   }
 
-  // Handle Answer Selection
-  const handleAnswer = (optionIndex: number) => {
-    const newAnswers = [...answers, optionIndex];
-    setAnswers(newAnswers);
-    
-    if (currentQuestionIdx < quiz.questions.length - 1) {
-      setCurrentQuestionIdx(currentQuestionIdx + 1);
-    } else {
-      void finishQuiz(newAnswers);
-    }
-  };
-
-  const finishQuiz = async (finalAnswers: number[]) => {
-    setIsFinished(true);
-    setScoreSaveError(null);
-    let correctCount = 0;
-    finalAnswers.forEach((ans, i) => {
-      if (ans === quiz.questions[i].correctOptionIndex) {
-        correctCount++;
-      }
-    });
-    
-    // Store if member
-    if (user) {
-      const newAttempt = {
-        userId: user.id,
-        userName: user.name || user.email || 'Member',
-        quizId: quiz.id,
-        score: correctCount,
-        totalQuestions: quiz.questions.length,
-        date: new Date().toISOString()
-      };
-      try {
-        const { addDocument } = await import('@/lib/db');
-        await addDocument('quiz_attempts', newAttempt);
-      } catch (error) {
-        console.error("[quiz] failed to save attempt:", error);
-        setScoreSaveError("Your score could not be saved to the leaderboard.");
-      }
-    }
-  };
-
-  const currentQuestion = quiz.questions[currentQuestionIdx];
-  const currentScore = answers.reduce((score, ans, i) => {
-    return score + (ans === quiz.questions[i].correctOptionIndex ? 1 : 0);
-  }, 0);
-
-  // --- RENDER BLOCK: ALREADY ATTEMPTED ---
-  if (isBlocked && previousAttempt) {
+  if (user && previousAttempt && !result) {
     return (
-      <div className="page-container" style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
+      <div className="page-container" style={{ maxWidth: "600px", margin: "0 auto", textAlign: "center" }}>
         <AnimatedSection>
-          <div style={{ background: 'rgba(15,22,40,0.4)', padding: '3rem', borderRadius: '16px', border: '1px solid rgba(239, 68, 68, 0.4)' }}>
-            <h2 style={{ fontSize: '2rem', marginBottom: '1rem', color: '#ef4444' }}>Already Attempted</h2>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-              You have already taken the <strong>{quiz.title}</strong> quiz. Members get 1 attempt per quiz.
+          <div style={{ background: "rgba(15,22,40,0.4)", padding: "3rem", borderRadius: "16px", border: "1px solid rgba(239, 68, 68, 0.4)" }}>
+            <h2 style={{ fontSize: "2rem", marginBottom: "1rem", color: "#ef4444" }}>Already Attempted</h2>
+            <p style={{ color: "var(--text-secondary)", marginBottom: "2rem" }}>
+              You have already taken <strong>{quiz.title}</strong>. Member attempts are still limited to one per quiz.
             </p>
-            <div className="gradient-text" style={{ fontSize: '3rem', fontWeight: 700, marginBottom: '2rem' }}>
+            <div className="gradient-text" style={{ fontSize: "3rem", fontWeight: 700, marginBottom: "2rem" }}>
               Score: {previousAttempt.score}/{previousAttempt.totalQuestions}
             </div>
-            <Link href="/education/quizzes" className="btn-secondary" style={{ textDecoration: 'none' }}>
+            <Link href="/education/quizzes" className="btn-secondary" style={{ textDecoration: "none" }}>
               Return to Quizzes
             </Link>
           </div>
@@ -152,42 +156,44 @@ export default function QuizAttemptPage() {
     );
   }
 
-  // --- RENDER BLOCK: PRE-QUIZ ---
-  if (!hasStarted && !isFinished) {
+  if (!hasStarted && !result) {
     return (
-      <div className="page-container" style={{ maxWidth: '600px', margin: '0 auto' }}>
+      <div className="page-container" style={{ maxWidth: "680px", margin: "0 auto" }}>
         <AnimatedSection>
           <Link href="/education/quizzes" style={{ color: "var(--text-muted)", fontSize: "0.85rem", textDecoration: "none", marginBottom: "2rem", display: "inline-block" }}>
             ← Back to Quizzes
           </Link>
-          <div style={{ background: 'rgba(15,22,40,0.4)', padding: '3rem', borderRadius: '16px', border: '1px solid var(--border-subtle)', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.8rem', padding: '0.3rem 0.8rem', borderRadius: '20px', background: 'rgba(201,168,76,0.1)', color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              {quiz.questions.length} Questions
-            </span>
-            <h1 style={{ fontSize: '2.2rem', margin: '1rem 0' }} className="gradient-text">{quiz.title}</h1>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', lineHeight: 1.6 }}>{quiz.description}</p>
-            
-            {!user && (
-              <div style={{ marginBottom: '2rem', textAlign: 'left' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Enter your name to begin (Public Flow):</label>
-                <input 
-                  type="text" 
+          <div style={{ background: "rgba(15,22,40,0.4)", padding: "3rem", borderRadius: "16px", border: "1px solid var(--border-subtle)", textAlign: "center" }}>
+            <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap", marginBottom: "1rem" }}>
+              <span style={{ fontSize: "0.76rem", padding: "0.3rem 0.8rem", borderRadius: "20px", background: "rgba(201,168,76,0.1)", color: "var(--gold)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                {quiz.quizType}
+              </span>
+              <span style={{ fontSize: "0.76rem", padding: "0.3rem 0.8rem", borderRadius: "20px", background: "rgba(255,255,255,0.05)", color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                {quiz.questions.length} Questions
+              </span>
+            </div>
+            <h1 style={{ fontSize: "2.2rem", margin: "1rem 0" }} className="gradient-text">{quiz.title}</h1>
+            <p style={{ color: "var(--text-secondary)", marginBottom: "2rem", lineHeight: 1.6 }}>{quiz.description}</p>
+
+            {!user ? (
+              <div style={{ marginBottom: "2rem", textAlign: "left" }}>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", color: "var(--text-muted)" }}>Enter your name to begin (optional)</label>
+                <input
+                  type="text"
                   value={publicName}
-                  onChange={e => setPublicName(e.target.value)}
-                  placeholder="Your Name (optional)" 
-                  style={{ width: '100%', padding: '0.8rem', background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: '#fff', outline: 'none' }}
+                  onChange={(event) => setPublicName(event.target.value)}
+                  placeholder="Your Name"
+                  style={{ width: "100%", padding: "0.8rem", background: "rgba(0,0,0,0.5)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "#fff", outline: "none" }}
                 />
+                <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginTop: "0.6rem" }}>Public attempts are not stored.</p>
+              </div>
+            ) : (
+              <div style={{ marginBottom: "2rem", padding: "1rem", background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: "8px", color: "#22c55e", fontSize: "0.9rem" }}>
+                Signed in as {user.name || user.email}. Your score will be stored for the {quiz.quizType} leaderboard.
               </div>
             )}
 
-            {user && (
-              <div style={{ marginBottom: '2rem', padding: '1rem', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '8px', color: '#22c55e', fontSize: '0.9rem' }}>
-                Signed in as {user.name || user.email}.<br/>
-                <strong>Note:</strong> Your score will be logged to the internal leaderboard. You have 1 attempt.
-              </div>
-            )}
-
-            <button onClick={() => setHasStarted(true)} className="btn-primary" style={{ width: '100%', padding: '1rem', fontSize: '1rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+            <button onClick={beginQuiz} className="btn-primary" style={{ width: "100%", padding: "1rem", fontSize: "1rem", cursor: "pointer", fontFamily: "inherit" }}>
               Start Quiz
             </button>
           </div>
@@ -196,166 +202,156 @@ export default function QuizAttemptPage() {
     );
   }
 
-  // --- RENDER BLOCK: FINISHED (RESULTS) ---
-  if (isFinished) {
+  if (result) {
     return (
-      <div className="page-container" style={{ maxWidth: '800px', margin: '0 auto' }}>
+      <div className="page-container" style={{ maxWidth: "900px", margin: "0 auto" }}>
         <AnimatedSection>
-           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-             <h2 style={{ fontSize: '1.2rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Quiz Complete</h2>
-             <h1 style={{ fontSize: '4rem', margin: '1rem 0', fontFamily: "'Cinzel', serif" }} className="gradient-text">
-               {currentScore} / {quiz.questions.length}
-             </h1>
-             <p style={{ color: 'var(--text-secondary)', fontSize: '1.2rem' }}>
-               {user ? `Great job, ${user.name?.split(' ')[0] || 'Member'}! Your score has been logged.` : `Nice work, ${publicName || 'Guest'}!`}
-             </p>
-             {scoreSaveError && (
-               <p style={{ color: '#f59e0b', fontSize: '0.95rem', marginTop: '1rem' }}>
-                 {scoreSaveError}
-               </p>
-             )}
-           </div>
+          <div style={{ textAlign: "center", marginBottom: "3rem" }}>
+            <h2 style={{ fontSize: "1.1rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>Quiz Complete</h2>
+            <h1 style={{ fontSize: "4rem", margin: "1rem 0", fontFamily: "'Cinzel', serif" }} className="gradient-text">
+              {result.score} / {result.totalQuestions}
+            </h1>
+            <p style={{ color: "var(--text-secondary)", fontSize: "1.1rem" }}>
+              {user ? `Your ${quiz.quizType} score has been recorded.` : `Nice work, ${publicName || "Guest"}.`}
+            </p>
+          </div>
         </AnimatedSection>
 
-        {/* Public CTA */}
-        {!user && (
+        {user ? (
           <AnimatedSection delay={0.1}>
-            <div style={{ background: 'linear-gradient(90deg, rgba(201,168,76,0.1), transparent)', border: '1px solid var(--gold)', borderRadius: '12px', padding: '2rem', textAlign: 'center', marginBottom: '3rem' }}>
-              <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Want to compete?</h3>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Join the Astronomy Club to track your stats on the internal leaderboard, join observation nights, and more.</p>
-              <Link href="/join" className="btn-primary" style={{ textDecoration: 'none' }}>Join the Club</Link>
-            </div>
-          </AnimatedSection>
-        )}
-
-        {/* Member Leaderboard */}
-        {user && (
-          <AnimatedSection delay={0.1}>
-            <div style={{ background: 'rgba(15,22,40,0.4)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '2rem', marginBottom: '3rem' }}>
-              <h3 style={{ fontSize: '1.3rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '1.5rem' }}>🏆</span> Internal Leaderboard
+            <div style={{ background: "rgba(15,22,40,0.4)", border: "1px solid var(--border-subtle)", borderRadius: "12px", padding: "2rem", marginBottom: "3rem" }}>
+              <h3 style={{ fontSize: "1.3rem", marginBottom: "1.5rem", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "0.8rem" }}>
+                {quiz.quizType.charAt(0).toUpperCase() + quiz.quizType.slice(1)} Leaderboard
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr 100px', padding: '0.5rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                  <span>Rank</span>
-                  <span>Member</span>
-                  <span style={{ textAlign: 'right' }}>Total Score</span>
-                </div>
-                {leaderboard.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)" }}>No entries yet.</div>
-                ) : (
-                  leaderboard.slice(0, 5).map((entry, idx) => (
-                    <div key={entry.userId} style={{ display: 'grid', gridTemplateColumns: '50px 1fr 100px', padding: '1rem', background: idx === 0 ? 'rgba(201,168,76,0.1)' : 'rgba(0,0,0,0.3)', border: idx === 0 ? '1px solid var(--gold-dark)' : '1px solid transparent', borderRadius: '8px', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 700, color: idx === 0 ? 'var(--gold)' : 'var(--text-secondary)' }}>#{idx + 1}</span>
-                      <span style={{ fontWeight: 500 }}>{entry.name} {entry.userId === user.id && '(You)'}</span>
-                      <span style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: '1.1rem', color: 'var(--gold-light)' }}>{entry.score}</span>
-                    </div>
-                  ))
-                )}
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem" }}>
+                {(leaderboard || []).slice(0, 5).map((entry, index) => (
+                  <div key={entry.userId} style={{ display: "grid", gridTemplateColumns: "50px 1fr 100px", padding: "1rem", background: index === 0 ? "rgba(201,168,76,0.1)" : "rgba(0,0,0,0.3)", border: index === 0 ? "1px solid var(--gold-dark)" : "1px solid transparent", borderRadius: "8px", alignItems: "center" }}>
+                    <span style={{ fontWeight: 700, color: index === 0 ? "var(--gold)" : "var(--text-secondary)" }}>#{index + 1}</span>
+                    <span style={{ fontWeight: 500 }}>{entry.name} {entry.userId === user.id ? "(You)" : ""}</span>
+                    <span style={{ textAlign: "right", fontFamily: "monospace", fontSize: "1.1rem", color: "var(--gold-light)" }}>{entry.score}</span>
+                  </div>
+                ))}
+                {leaderboard.length === 0 ? <p style={{ color: "var(--text-muted)" }}>No leaderboard entries yet.</p> : null}
               </div>
-              <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-                 <Link href="/portal" style={{ color: 'var(--gold)', fontSize: '0.9rem', textDecoration: 'none' }}>View Full Leaderboard in Portal →</Link>
-              </div>
+            </div>
+          </AnimatedSection>
+        ) : (
+          <AnimatedSection delay={0.1}>
+            <div style={{ background: "linear-gradient(90deg, rgba(201,168,76,0.1), transparent)", border: "1px solid var(--gold)", borderRadius: "12px", padding: "2rem", textAlign: "center", marginBottom: "3rem" }}>
+              <h3 style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>Want your score on the board?</h3>
+              <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>Join the club to track quiz history, climb the leaderboard, and access member tools.</p>
+              <Link href="/join" className="btn-primary" style={{ textDecoration: "none" }}>Join the Club</Link>
             </div>
           </AnimatedSection>
         )}
 
-        {/* Answer Review */}
         <AnimatedSection delay={0.2}>
-          <h3 style={{ fontSize: '1.2rem', marginBottom: '1.5rem', paddingLeft: '1rem', borderLeft: '3px solid var(--gold)' }}>Review Answers</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {quiz.questions.map((q: any, idx: number) => {
-              const userAnswerIndex = answers[idx];
-              const isCorrect = userAnswerIndex === q.correctOptionIndex;
-              return (
-                <div key={q.id} style={{ background: 'rgba(8, 12, 22, 0.6)', border: `1px solid ${isCorrect ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`, borderRadius: '12px', padding: '1.5rem' }}>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: isCorrect ? 'var(--gold)' : 'rgba(239,68,68,0.2)', color: isCorrect ? '#000' : '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', flexShrink: 0 }}>
-                      {idx + 1}
-                    </span>
-                    <div>
-                      <h4 style={{ fontSize: '1rem', marginBottom: '1rem', lineHeight: 1.4 }}>{q.text}</h4>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {q.options.map((opt: string, optIdx: number) => {
-                          let bgColor = 'rgba(0,0,0,0.3)';
-                          let borderColor = 'var(--border-subtle)';
-                          let color = 'var(--text-secondary)';
-                          
-                          if (optIdx === q.correctOptionIndex) {
-                            bgColor = 'rgba(34,197,94,0.15)';
-                            borderColor = '#22c55e';
-                            color = '#fff';
-                          } else if (optIdx === userAnswerIndex && !isCorrect) {
-                            bgColor = 'rgba(239,68,68,0.15)';
-                            borderColor = '#ef4444';
-                            color = '#fff';
-                          }
-
-                          return (
-                            <div key={optIdx} style={{ padding: '0.8rem 1rem', background: bgColor, border: `1px solid ${borderColor}`, borderRadius: '6px', color: color, fontSize: '0.9rem' }}>
-                              {opt}
-                            </div>
-                          );
-                        })}
+          <h3 style={{ fontSize: "1.2rem", marginBottom: "1.5rem", paddingLeft: "1rem", borderLeft: "3px solid var(--gold)" }}>Review Answers</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+            {answerReview.map((entry: any, index: number) => (
+              <div key={entry.id} style={{ background: "rgba(8, 12, 22, 0.6)", border: `1px solid ${entry.isCorrect ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`, borderRadius: "12px", padding: "1.5rem" }}>
+                <div style={{ display: "flex", gap: "1rem" }}>
+                  <span style={{ width: "24px", height: "24px", borderRadius: "50%", background: entry.isCorrect ? "var(--gold)" : "rgba(239,68,68,0.2)", color: entry.isCorrect ? "#000" : "#ef4444", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "0.8rem", flexShrink: 0 }}>
+                    {index + 1}
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ fontSize: "1rem", marginBottom: "0.8rem", lineHeight: 1.4 }}>{entry.question}</h4>
+                    {entry.imageUrl ? <img src={entry.imageUrl} alt={entry.question} style={{ width: "100%", maxWidth: "340px", borderRadius: "10px", marginBottom: "1rem", objectFit: "cover" }} /> : null}
+                    <p style={{ fontSize: "0.86rem", color: "var(--text-secondary)", marginBottom: "0.5rem" }}>
+                      <strong>Your answer:</strong> {Array.isArray(entry.answer) ? entry.answer.join(", ") || "No answer" : entry.answer || "No answer"}
+                    </p>
+                    <p style={{ fontSize: "0.86rem", color: "var(--text-secondary)", marginBottom: "0.6rem" }}>
+                      <strong>Correct answer:</strong> {Array.isArray(entry.correctAnswer) ? entry.correctAnswer.join(", ") : entry.correctAnswer}
+                    </p>
+                    {entry.explanation ? (
+                      <div style={{ padding: "0.85rem 1rem", borderRadius: "8px", background: "rgba(255,255,255,0.04)", color: "var(--text-muted)", fontSize: "0.84rem", lineHeight: 1.6 }}>
+                        {entry.explanation}
                       </div>
-                    </div>
+                    ) : null}
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
-          <div style={{ textAlign: 'center', marginTop: '3rem' }}>
-            <Link href="/education/quizzes" className="btn-secondary" style={{ textDecoration: 'none' }}>Return to Quizzes</Link>
+          <div style={{ textAlign: "center", marginTop: "3rem" }}>
+            <Link href="/education/quizzes" className="btn-secondary" style={{ textDecoration: "none" }}>Return to Quizzes</Link>
           </div>
         </AnimatedSection>
       </div>
     );
   }
 
-  // --- RENDER BLOCK: ACTIVE QUIZ ---
   return (
-    <div className="page-container" style={{ maxWidth: '700px', margin: '0 auto' }}>
-      {/* Progress Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+    <div className="page-container" style={{ maxWidth: "760px", margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", fontSize: "0.85rem", color: "var(--text-muted)", flexWrap: "wrap", gap: "0.75rem" }}>
         <span>Question {currentQuestionIdx + 1} of {quiz.questions.length}</span>
-        <span>{Math.round(((currentQuestionIdx) / quiz.questions.length) * 100)}% Complete</span>
+        <span>{progressPercent}% Complete</span>
+        <span>{Math.floor(elapsedSeconds / 60)}:{String(elapsedSeconds % 60).padStart(2, "0")}</span>
       </div>
-      <div style={{ width: '100%', height: '6px', background: 'var(--border-subtle)', borderRadius: '3px', marginBottom: '3rem', overflow: 'hidden' }}>
-        <motion.div 
-          initial={{ width: 0 }}
-          animate={{ width: `${((currentQuestionIdx) / quiz.questions.length) * 100}%` }}
-          style={{ height: '100%', background: 'var(--gold)', borderRadius: '3px' }}
-        />
+      <div style={{ width: "100%", height: "6px", background: "var(--border-subtle)", borderRadius: "3px", marginBottom: "2rem", overflow: "hidden" }}>
+        <motion.div initial={{ width: 0 }} animate={{ width: `${progressPercent}%` }} style={{ height: "100%", background: "var(--gold)", borderRadius: "3px" }} />
       </div>
 
-      <motion.div
-        key={currentQuestion.id}
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: -20 }}
-        transition={{ duration: 0.3 }}
-      >
-        <h2 style={{ fontSize: '1.8rem', lineHeight: 1.5, marginBottom: '2rem' }}>
-          {currentQuestion.text}
-        </h2>
+      {feedback ? <p style={{ color: "#fca5a5", marginBottom: "1rem" }}>{feedback}</p> : null}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {currentQuestion.options.map((option: string, idx: number) => (
-            <button
-              key={idx}
-              onClick={() => handleAnswer(idx)}
-              className="option-btn"
-              style={{
-                width: '100%', textAlign: 'left', padding: '1.2rem 1.5rem', background: 'rgba(15, 22, 40, 0.4)',
-                border: '1px solid var(--border-subtle)', borderRadius: '12px', color: 'var(--text-primary)',
-                fontSize: '1.05rem', cursor: 'pointer', transition: 'all 0.2s ease', fontFamily: 'inherit'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(201, 168, 76, 0.1)'; e.currentTarget.style.borderColor = 'var(--gold-dark)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(15, 22, 40, 0.4)'; e.currentTarget.style.borderColor = 'var(--border-subtle)'; }}
-            >
-              {option}
-            </button>
-          ))}
+      <motion.div key={currentQuestion?.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }}>
+        <h2 style={{ fontSize: "1.7rem", lineHeight: 1.45, marginBottom: "1.2rem" }}>{currentQuestion?.question}</h2>
+        {currentQuestion?.imageUrl ? <img src={currentQuestion.imageUrl} alt={currentQuestion.question} style={{ width: "100%", maxWidth: "420px", borderRadius: "12px", marginBottom: "1.5rem", objectFit: "cover" }} /> : null}
+
+        {currentQuestion?.type === "mcq" ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {currentQuestion.options.map((option: string, index: number) => {
+              const active = answers[currentQuestion.id] === option;
+              return (
+                <button key={index} onClick={() => setAnswerValue(currentQuestion.id, option)} style={{ width: "100%", textAlign: "left", padding: "1.1rem 1.4rem", background: active ? "rgba(201,168,76,0.12)" : "rgba(15, 22, 40, 0.4)", border: active ? "1px solid var(--gold)" : "1px solid var(--border-subtle)", borderRadius: "12px", color: "var(--text-primary)", fontSize: "1rem", cursor: "pointer", transition: "all 0.2s ease", fontFamily: "inherit" }}>
+                  {option}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {currentQuestion?.type === "checkbox" ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem" }}>
+            {currentQuestion.options.map((option: string, index: number) => {
+              const selected = Array.isArray(answers[currentQuestion.id]) && (answers[currentQuestion.id] as string[]).includes(option);
+              return (
+                <label key={index} style={{ display: "flex", gap: "0.75rem", alignItems: "center", padding: "1rem 1.2rem", border: selected ? "1px solid var(--gold)" : "1px solid var(--border-subtle)", borderRadius: "12px", background: selected ? "rgba(201,168,76,0.12)" : "rgba(15,22,40,0.4)", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={() => {
+                      const current = Array.isArray(answers[currentQuestion.id]) ? [...(answers[currentQuestion.id] as string[])] : [];
+                      setAnswerValue(
+                        currentQuestion.id,
+                        current.includes(option) ? current.filter((item) => item !== option) : [...current, option]
+                      );
+                    }}
+                  />
+                  <span>{option}</span>
+                </label>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {currentQuestion?.type === "short" || currentQuestion?.type === "long" ? (
+          <textarea
+            value={typeof answers[currentQuestion.id] === "string" ? (answers[currentQuestion.id] as string) : ""}
+            onChange={(event) => setAnswerValue(currentQuestion.id, event.target.value)}
+            placeholder={currentQuestion.type === "long" ? "Write your detailed answer..." : "Write your answer..."}
+            rows={currentQuestion.type === "long" ? 6 : 3}
+            style={{ width: "100%", padding: "1rem 1.1rem", background: "rgba(15,22,40,0.4)", border: "1px solid var(--border-subtle)", borderRadius: "12px", color: "var(--text-primary)", fontSize: "1rem", fontFamily: "inherit", resize: "vertical" }}
+          />
+        ) : null}
+
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginTop: "2rem", flexWrap: "wrap" }}>
+          <button onClick={() => setCurrentQuestionIdx((current) => Math.max(0, current - 1))} className="btn-secondary" style={{ background: "transparent", opacity: currentQuestionIdx === 0 ? 0.5 : 1 }} disabled={currentQuestionIdx === 0 || isSubmitting}>
+            Previous
+          </button>
+          <button onClick={nextQuestion} className="btn-primary" disabled={!canAdvance || isSubmitting}>
+            {isSubmitting ? "Submitting..." : currentQuestionIdx === quiz.questions.length - 1 ? "Submit Quiz" : "Next Question"}
+          </button>
         </div>
       </motion.div>
     </div>

@@ -59,7 +59,7 @@ export async function setSystemMaxFileSize(mb: number) {
   return true;
 }
 
-export async function uploadFile(formData: FormData, category: "projects" | "events" | "media" | "users" | "general", entityId?: string, isPublic?: boolean) {
+export async function uploadFile(formData: FormData, category: "projects" | "events" | "media" | "users" | "general" | "quizzes", entityId?: string, isPublic?: boolean) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) throw new Error("Unauthorized");
 
@@ -78,6 +78,10 @@ export async function uploadFile(formData: FormData, category: "projects" | "eve
 
   if ((category === "media" || category === "general") && !access.isAdmin) {
     throw new Error("Unauthorized: Admin upload access required");
+  }
+
+  if (category === "quizzes" && !access.isAdmin && !access.canApproveActions) {
+    throw new Error("Unauthorized: Quiz upload access required");
   }
 
   const file = formData.get("file") as File;
@@ -99,6 +103,8 @@ export async function uploadFile(formData: FormData, category: "projects" | "eve
     basePath = `projects/${entityId}/media`;
   } else if (category === "events" && entityId) {
     basePath = `events/${entityId}/media`;
+  } else if (category === "quizzes" && entityId) {
+    basePath = `quizzes/${entityId}/media`;
   } else if (category === "users") {
     basePath = `users/${user.id}/uploads`;
   } else {
