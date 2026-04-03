@@ -23,6 +23,9 @@ export interface ProjectTimelineEntry {
 }
 
 export async function getProjectTimelineAction(projectId: string): Promise<ProjectTimelineEntry[]> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  await assertProjectPermission(projectId, session?.user?.id, "canView");
+
   const rows = await db
     .select()
     .from(project_timeline)

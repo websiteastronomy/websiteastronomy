@@ -5,6 +5,51 @@ import { notifications, project_members, projects, users } from "@/db/schema";
 import { eq, desc, and, count } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { v4 as uuidv4 } from "uuid";
+
+type NotificationInsert = {
+  userId: string;
+  type?: "mention" | "task_assigned" | "approval_request" | "system";
+  title: string;
+  message: string;
+  link?: string | null;
+};
+
+export async function createNotificationForUser({
+  userId,
+  type = "system",
+  title,
+  message,
+  link = null,
+}: NotificationInsert) {
+  await db.insert(notifications).values({
+    id: uuidv4(),
+    userId,
+    type,
+    title,
+    message,
+    link,
+  });
+}
+
+export async function createNotificationsForUsers(
+  inserts: NotificationInsert[]
+) {
+  if (inserts.length === 0) {
+    return;
+  }
+
+  await db.insert(notifications).values(
+    inserts.map((insert) => ({
+      id: uuidv4(),
+      userId: insert.userId,
+      type: insert.type ?? "system",
+      title: insert.title,
+      message: insert.message,
+      link: insert.link ?? null,
+    }))
+  );
+}
 
 // ─── Notification Actions ──────────────────────────────────────
 

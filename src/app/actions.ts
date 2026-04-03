@@ -5,10 +5,67 @@ import * as schema from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { revalidatePath } from "next/cache";
+import { getSystemAccess, requireAuthenticatedUser } from "@/lib/system-rbac";
+
+const PUBLIC_COLLECTIONS = new Set([
+  "articles",
+  "events",
+  "outreach",
+  "media",
+  "projects",
+  "quizzes",
+  "achievements",
+  "observations",
+]);
+
+async function assertCollectionReadAccess(collectionName: string) {
+  if (PUBLIC_COLLECTIONS.has(collectionName)) {
+    return;
+  }
+
+  const user = await requireAuthenticatedUser();
+  const access = await getSystemAccess(user.id);
+
+  if (collectionName === "users" && access.canApproveActions) {
+    return;
+  }
+
+  if (collectionName === "members" && (access.canApproveActions || access.canManageProjects)) {
+    return;
+  }
+
+  if (collectionName === "quiz_attempts") {
+    return;
+  }
+
+  if (collectionName === "files" && access.canManageProjects) {
+    return;
+  }
+
+  if (collectionName === "system_settings" && access.isAdmin) {
+    return;
+  }
+
+  throw new Error("Forbidden");
+}
+
+async function assertCollectionWriteAccess(collectionName: string) {
+  const user = await requireAuthenticatedUser();
+  const access = await getSystemAccess(user.id);
+
+  if (collectionName === "events" && access.canManageEvents) return;
+  if (["projects", "observations"].includes(collectionName) && access.canManageProjects) return;
+  if (collectionName === "users" && access.canApproveActions) return;
+  if (collectionName === "quiz_attempts") return;
+  if (["articles", "outreach", "media", "achievements", "quizzes"].includes(collectionName) && access.isAdmin) return;
+
+  throw new Error("Forbidden");
+}
 
 export async function fetchCollectionAction(collectionName: string) {
   const table = (schema as any)[collectionName];
   if (!table) throw new Error(`Collection ${collectionName} not found`);
+  await assertCollectionReadAccess(collectionName);
   
   try {
     const data = await db.select().from(table).orderBy(desc(table.updatedAt));
@@ -23,6 +80,7 @@ export async function fetchCollectionAction(collectionName: string) {
 export async function fetchDocumentAction(collectionName: string, id: string) {
   const table = (schema as any)[collectionName];
   if (!table) return null;
+  await assertCollectionReadAccess(collectionName);
   const data = await db.select().from(table).where(eq(table.id, id)).limit(1);
   return data[0] || null;
 }
@@ -30,6 +88,7 @@ export async function fetchDocumentAction(collectionName: string, id: string) {
 export async function addDocumentAction(collectionName: string, data: any) {
   const table = (schema as any)[collectionName];
   if (!table) throw new Error(`Collection ${collectionName} not found`);
+  await assertCollectionWriteAccess(collectionName);
   
   const id = uuidv4();
   const payload = {
@@ -47,6 +106,7 @@ export async function addDocumentAction(collectionName: string, data: any) {
 export async function updateDocumentAction(collectionName: string, id: string, data: any) {
   const table = (schema as any)[collectionName];
   if (!table) throw new Error(`Collection ${collectionName} not found`);
+  await assertCollectionWriteAccess(collectionName);
   
   const payload = {
     ...data,
@@ -62,6 +122,7 @@ export async function updateDocumentAction(collectionName: string, id: string, d
 export async function deleteDocumentAction(collectionName: string, id: string) {
   const table = (schema as any)[collectionName];
   if (!table) throw new Error(`Collection ${collectionName} not found`);
+  await assertCollectionWriteAccess(collectionName);
   
   await db.delete(table).where(eq(table.id, id));
   revalidatePath("/admin");
@@ -76,6 +137,12 @@ export async function fetchAboutSettingsAction() {
 }
 
 export async function updateAboutSettingsAction(data: any) {
+  const user = await requireAuthenticatedUser();
+  const access = await getSystemAccess(user.id);
+  if (!access.isAdmin) {
+    throw new Error("Forbidden");
+  }
+
   const settingsTable = schema.settingsTable;
   const existing = await db.select().from(settingsTable).where(eq(settingsTable.id, "about_page")).limit(1);
   

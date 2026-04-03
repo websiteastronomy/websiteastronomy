@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { observations } from "@/db/schema";
-import { eq, or, inArray, desc } from "drizzle-orm";
+import { eq, or, desc } from "drizzle-orm";
 import { hasPermission } from "@/lib/permissions";
 import { redirect } from "next/navigation";
 import AnimatedSection from "@/components/AnimatedSection";
@@ -16,7 +16,7 @@ export default async function CoreObservationsQueue() {
   if (!isCore) redirect("/");
 
   // Fetch observations stuck in queue
-  const queue = await db.select()
+  const rawQueue = await db.select()
     .from(observations)
     .where(
       or(
@@ -25,6 +25,16 @@ export default async function CoreObservationsQueue() {
       )
     )
     .orderBy(desc(observations.updatedAt));
+  const queue = rawQueue.filter((observation) => {
+    const assignedReviewers = Array.isArray(observation.assignedReviewers)
+      ? (observation.assignedReviewers as string[])
+      : [];
+
+    return (
+      assignedReviewers.length === 0 ||
+      assignedReviewers.includes(session.user.id)
+    );
+  });
 
   return (
     <div style={{ padding: "4rem 2rem", maxWidth: "1000px", margin: "0 auto", minHeight: "80vh" }}>

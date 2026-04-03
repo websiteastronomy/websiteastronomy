@@ -4,9 +4,13 @@ import { useState, useEffect } from 'react';
 import { subscribeToCollection } from '@/lib/db';
 import ApprovalsPanel from './ApprovalsPanel';
 import { useAuth } from '@/context/AuthContext';
+import { ADMIN_PAGE_PERMISSIONS } from '@/lib/admin-access';
 
 export default function OverviewManager({ onNavigate }: { onNavigate: (tab: string) => void }) {
-  const { user, roleName } = useAuth();
+  const { user, roleName, isAdmin, hasPermission } = useAuth();
+  const access = { isAdmin, hasPermission };
+  const canManageProjects = ADMIN_PAGE_PERMISSIONS.projects(access);
+  const canApproveActions = ADMIN_PAGE_PERMISSIONS.members(access);
   
   const [membersCount, setMembersCount] = useState(0);
   const [eventsCount, setEventsCount] = useState(0);
@@ -52,7 +56,9 @@ export default function OverviewManager({ onNavigate }: { onNavigate: (tab: stri
   return (
     <div style={{ animation: "fadeIn 0.3s ease" }}>
       <h2 style={{ fontSize: '1.6rem', marginBottom: '0.3rem' }}>Dashboard Overview</h2>
-      <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontWeight: 300, fontSize: '0.9rem' }}>Welcome back, Admin. Here&apos;s what&apos;s happening.</p>
+      <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontWeight: 300, fontSize: '0.9rem' }}>
+        Welcome back, {roleName || 'member'}. Here&apos;s what&apos;s happening.
+      </p>
       
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2.5rem' }}>
         {stats.map((stat) => (
@@ -70,10 +76,21 @@ export default function OverviewManager({ onNavigate }: { onNavigate: (tab: stri
 
       <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Quick Actions</h3>
       <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
-        <button className="btn-primary" style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem' }} onClick={() => onNavigate('events')}>Manage Events</button>
-        <button className="btn-secondary" style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem' }} onClick={() => onNavigate('articles')}>Manage Articles</button>
-        <button className="btn-secondary" style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem' }} onClick={() => onNavigate('quizzes')}>Manage Quizzes</button>
-        <button className="btn-secondary" style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem' }} onClick={() => onNavigate('members')}>Manage Members</button>
+        {canManageProjects && (
+          <button className="btn-primary" style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem' }} onClick={() => onNavigate('events')}>
+            Manage Events
+          </button>
+        )}
+        {ADMIN_PAGE_PERMISSIONS.articles(access) && (
+          <button className="btn-secondary" style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem' }} onClick={() => onNavigate('articles')}>
+            Manage Articles
+          </button>
+        )}
+        {canApproveActions && (
+          <button className="btn-secondary" style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem' }} onClick={() => onNavigate('members')}>
+            Manage Members
+          </button>
+        )}
       </div>
     </div>
   );

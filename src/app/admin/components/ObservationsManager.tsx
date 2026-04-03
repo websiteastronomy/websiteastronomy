@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { getAllObservationsForAdminAction, adminFinalizeObservationAction } from '@/app/actions/observations-engine';
 import { rowStyle } from './shared';
+import { formatDateStable } from '@/lib/format-date';
 
 export default function ObservationsManager() {
   const [observations, setObservations] = useState<any[]>([]);
@@ -21,6 +22,12 @@ export default function ObservationsManager() {
   const fetchQueue = () => {
     setLoading(true);
     getAllObservationsForAdminAction().then(data => {
+      console.log("[admin] ObservationsManager.fetchQueue", data.map((obs) => ({
+        id: obs.id,
+        status: obs.status,
+        assignedReviewers: obs.assignedReviewers,
+        reportsCount: obs.reportsCount,
+      })));
       setObservations(data);
       setLoading(false);
     }).catch(e => {
@@ -51,7 +58,7 @@ export default function ObservationsManager() {
     }
   };
 
-  const pendingObs = observations.filter(o => (o.status === 'Submitted' || o.status === 'Under_Review' || o.status === 'Draft') && o.reportsCount === 0);
+  const pendingObs = observations.filter(o => o.status === 'Under_Review' && o.reportsCount === 0);
   const coreApprovedObs = observations.filter(o => o.status === 'Core_Approved' && o.reportsCount === 0);
   const publishedObs = observations.filter(o => o.status === 'Published' && o.reportsCount === 0);
   const rejectedObs = observations.filter(o => o.status === 'Rejected');
@@ -77,7 +84,7 @@ export default function ObservationsManager() {
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem', overflowX: "auto" }}>
         {[
           { id: 'core_approved', label: `Ready for Publish (${coreApprovedObs.length})` },
-          { id: 'pending', label: `Under Review/Drafts (${pendingObs.length})` },
+          { id: 'pending', label: `Under Review (${pendingObs.length})` },
           { id: 'flagged', label: `Flagged Content (${flaggedObs.length})` },
           { id: 'published', label: `Published (${publishedObs.length})` },
           { id: 'rejected', label: `Rejected (${rejectedObs.length})` },
@@ -127,7 +134,7 @@ export default function ObservationsManager() {
                     <strong>Target:</strong> {obs.celestialTarget} | <strong>Observer:</strong> {obs.observerId.slice(0,8)} | <strong>Category:</strong> {obs.category}
                   </div>
                   <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "1rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.3rem" }}>
-                    <span><strong>Captured:</strong> {new Date(obs.capturedAt).toLocaleDateString()}</span>
+                    <span><strong>Captured:</strong> {formatDateStable(obs.capturedAt)}</span>
                     <span><strong>Location:</strong> {obs.location}</span>
                     <span><strong>Ver:</strong> {obs.versionNumber}</span>
                   </div>

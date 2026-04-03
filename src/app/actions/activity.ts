@@ -5,6 +5,9 @@ import { project_activity } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { assertProjectPermission } from "@/lib/project_permissions";
 
 export interface ProjectActivity {
   id: string;
@@ -20,6 +23,9 @@ export interface ProjectActivity {
 
 
 export async function getProjectActivityAction(projectId: string): Promise<ProjectActivity[]> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  await assertProjectPermission(projectId, session?.user?.id, "canView");
+
   const rows = await db
     .select()
     .from(project_activity)

@@ -25,6 +25,9 @@ export interface ProjectFile {
 }
 
 export async function getProjectFilesAction(projectId: string): Promise<ProjectFile[]> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  await assertProjectPermission(projectId, session?.user?.id, "canView");
+
   const rows = await db
     .select()
     .from(project_files)

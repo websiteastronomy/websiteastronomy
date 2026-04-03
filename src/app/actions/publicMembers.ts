@@ -6,7 +6,7 @@ import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { hasPermission } from "@/lib/permissions";
+import { requireAdminAccess } from "@/lib/member-access";
 
 /**
  * Get all public-facing member profiles.
@@ -52,8 +52,7 @@ export async function createPublicMemberAction(data: { name: string, role: strin
 export async function updatePublicMemberAction(id: string, data: { name?: string, role?: string, dept?: string, imageUrl?: string, bio?: string }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) throw new Error("Unauthorized");
-  const canManage = await hasPermission(session.user.id, "manage_projects");
-  if (!canManage) throw new Error("Insufficient permissions");
+  await requireAdminAccess(session.user.id);
 
   await db.update(users)
     .set({
@@ -75,8 +74,7 @@ export async function updatePublicMemberAction(id: string, data: { name?: string
 export async function deletePublicMemberAction(id: string) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) throw new Error("Unauthorized");
-  const canManage = await hasPermission(session.user.id, "manage_projects");
-  if (!canManage) throw new Error("Insufficient permissions");
+  await requireAdminAccess(session.user.id);
 
   await db.update(users)
     .set({ isPublic: false, updatedAt: new Date() })

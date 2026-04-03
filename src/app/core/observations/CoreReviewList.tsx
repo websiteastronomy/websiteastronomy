@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { processCoreVoteAction } from "@/app/actions/observations-engine";
+import { formatDateStable } from "@/lib/format-date";
 
 export default function CoreReviewList({ queue, currentUserId }: { queue: any[], currentUserId: string }) {
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -71,7 +72,7 @@ export default function CoreReviewList({ queue, currentUserId }: { queue: any[],
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
                     <div><strong>Equip:</strong> {obs.equipment || "N/A"}</div>
                     <div><strong>Exposure:</strong> {obs.exposureTime || "N/A"}</div>
-                    <div><strong>Captured:</strong> {new Date(obs.capturedAt).toLocaleDateString()}</div>
+                    <div><strong>Captured:</strong> {formatDateStable(obs.capturedAt)}</div>
                     <div><strong>Location:</strong> {obs.location}</div>
                   </div>
                 </div>

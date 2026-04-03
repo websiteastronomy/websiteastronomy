@@ -73,6 +73,9 @@ async function syncProjectProgress(projectId: string): Promise<void> {
 
 export async function getProjectTasksAction(projectId: string): Promise<ProjectTask[]> {
   try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    await assertProjectPermission(projectId, session?.user?.id, "canView");
+
     const rawTasks = await db.select().from(project_tasks).where(eq(project_tasks.projectId, projectId));
     const taskIds = rawTasks.map(t => t.id);
 
@@ -366,10 +369,12 @@ export async function attachFileToTaskAction(taskId: string, fileId: string): Pr
 }
 
 export async function requestProjectHelpAction(taskId: string, actorName: string): Promise<void> {
+  const session = await auth.api.getSession({ headers: await headers() });
   const [task] = await db.select({ projectId: project_tasks.projectId, title: project_tasks.title })
     .from(project_tasks).where(eq(project_tasks.id, taskId));
 
   if (task) {
+    await assertProjectPermission(task.projectId, session?.user?.id, "canComment");
     await logActivityAction(
       task.projectId, 
       actorName, 

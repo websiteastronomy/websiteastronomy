@@ -3,13 +3,17 @@
 import { useState, useEffect } from 'react';
 import { inputStyle, rowStyle } from './shared';
 import { getPublicMembersAction, createPublicMemberAction, updatePublicMemberAction, deletePublicMemberAction } from '@/app/actions/publicMembers';
+import { useAuth } from '@/context/AuthContext';
+import { canManagePublicDirectory } from '@/lib/member-ui-permissions';
 
 export default function PublicMembersManager() {
+  const { isAdmin, hasPermission } = useAuth();
   const [members, setMembers] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingMember, setEditingMember] = useState<any>(null);
   const [formData, setFormData] = useState<any>({});
   const [isSaving, setIsSaving] = useState(false);
+  const mayManagePublicDirectory = canManagePublicDirectory({ isAdmin, hasPermission });
 
   const fetchMembers = async () => {
     try {
@@ -76,18 +80,20 @@ export default function PublicMembersManager() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
           <h2 style={{ fontSize: '1.4rem' }}>{editingMember ? 'Edit Public Member' : 'Public Directory'}</h2>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: "0.2rem" }}>Manage the public-facing 'About Us' list of executives.</p>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: "0.2rem" }}>Manage the public-facing &apos;About Us&apos; list of executives.</p>
         </div>
-        <button 
-          className="btn-primary" 
-          style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem' }} 
-          onClick={() => { setShowForm(!showForm); setFormData({}); setEditingMember(null); }}
-        >
-          {showForm ? 'Cancel' : '+ Add Public Member'}
-        </button>
+        {mayManagePublicDirectory && (
+          <button 
+            className="btn-primary" 
+            style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem' }} 
+            onClick={() => { setShowForm(!showForm); setFormData({}); setEditingMember(null); }}
+          >
+            {showForm ? 'Cancel' : '+ Add Public Member'}
+          </button>
+        )}
       </div>
 
-      {showForm && (
+      {showForm && mayManagePublicDirectory && (
         <div style={{ padding: '1.5rem', background: 'rgba(15, 22, 40, 0.4)', borderRadius: '8px', border: '1px solid var(--border-subtle)', marginBottom: '1.5rem' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
             <input placeholder="Name" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} style={inputStyle} />
@@ -114,25 +120,27 @@ export default function PublicMembersManager() {
               <h4 style={{ fontSize: '0.95rem' }}>{m.name}</h4>
               <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{m.role} {m.dept ? `• ${m.dept}` : ""}</span>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button 
-                onClick={() => {
-                  setEditingMember(m);
-                  setFormData({ name: m.name, role: m.role, dept: m.dept, imageUrl: m.imageUrl, bio: m.bio });
-                  setShowForm(true);
-                  window.scrollTo(0,0);
-                }} 
-                style={{ background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)', padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit' }}
-              >
-                Edit
-              </button>
-              <button 
-                onClick={() => handleDelete(m.id)} 
-                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit' }}
-              >
-                Remove
-              </button>
-            </div>
+            {mayManagePublicDirectory && (
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button 
+                  onClick={() => {
+                    setEditingMember(m);
+                    setFormData({ name: m.name, role: m.role, dept: m.dept, imageUrl: m.imageUrl, bio: m.bio });
+                    setShowForm(true);
+                    window.scrollTo(0,0);
+                  }} 
+                  style={{ background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)', padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit' }}
+                >
+                  Edit
+                </button>
+                <button 
+                  onClick={() => handleDelete(m.id)} 
+                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit' }}
+                >
+                  Remove
+                </button>
+              </div>
+            )}
           </div>
         ))}
         {members.length === 0 && (

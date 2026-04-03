@@ -1,12 +1,16 @@
 "use server";
 
 import { db } from "@/db";
-import { users, roles } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { users, roles, permissions, role_permissions } from "@/db/schema";
+import { eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { hasPermission } from "@/lib/permissions";
+import {
+  assertValidRoleName,
+  requireAdminAccess,
+  requireApprovalAccess,
+} from "@/lib/member-access";
 
 /**
  * RBAC-aware user approval action.
@@ -25,9 +29,11 @@ export async function approveUserAction(
 ) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) throw new Error("Unauthorized");
-
-  const canApprove = await hasPermission(session.user.id, "approve_actions");
-  if (!canApprove) throw new Error("Insufficient permissions");
+  const access = await requireApprovalAccess(session.user.id);
+  assertValidRoleName(roleName);
+  if (!access.isAdmin && roleName === "Admin") {
+    throw new Error("Forbidden");
+  }
 
   // Look up the RBAC role by name
   const roleRes = await db
@@ -72,9 +78,7 @@ export async function approveUserAction(
 export async function rejectUserAction(targetUserId: string) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) throw new Error("Unauthorized");
-
-  const canApprove = await hasPermission(session.user.id, "approve_actions");
-  if (!canApprove) throw new Error("Insufficient permissions");
+  await requireApprovalAccess(session.user.id);
 
   await db
     .update(users)
@@ -92,9 +96,8 @@ export async function rejectUserAction(targetUserId: string) {
 export async function getAllUsersAction() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) return [];
-
-  const canView = await hasPermission(session.user.id, "approve_actions");
-  if (!canView) return [];
+  const access = await requireApprovalAccess(session.user.id).catch(() => null);
+  if (!access) return [];
 
   const allUsers = await db
     .select({
@@ -120,6 +123,35 @@ export async function getAllUsersAction() {
   return allUsers;
 }
 
+export async function getRolePermissionsCatalogAction() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) throw new Error("Unauthorized");
+  await requireAdminAccess(session.user.id);
+
+  const roleRows = await db.select().from(roles);
+  const permissionRows = await db.select().from(permissions);
+  const rolePermissionRows = await db.select().from(role_permissions);
+
+  return {
+    permissions: permissionRows.map((permission) => ({
+      id: permission.id,
+      key: permission.key,
+      description: permission.description,
+    })),
+    roles: roleRows.map((role) => ({
+      id: role.id,
+      name: role.name,
+      permissions: rolePermissionRows
+        .filter((item) => item.roleId === role.id)
+        .map((item) => {
+          const match = permissionRows.find((permission) => permission.id === item.permissionId);
+          return match?.key;
+        })
+        .filter(Boolean) as string[],
+    })),
+  };
+}
+
 /**
  * Update an existing user's role.
  */
@@ -129,9 +161,8 @@ export async function updateUserRoleAction(
 ) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) throw new Error("Unauthorized");
-
-  const canApprove = await hasPermission(session.user.id, "approve_actions");
-  if (!canApprove) throw new Error("Insufficient permissions");
+  await requireAdminAccess(session.user.id);
+  assertValidRoleName(roleName);
 
   const roleRes = await db
     .select()
@@ -162,15 +193,53 @@ export async function updateUserRoleAction(
   return { success: true };
 }
 
+export async function updateRolePermissionsAction(
+  roleName: "Member" | "Lead" | "Core Committee" | "Admin",
+  permissionKeys: string[]
+) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) throw new Error("Unauthorized");
+  await requireAdminAccess(session.user.id);
+  assertValidRoleName(roleName);
+
+  const roleRes = await db
+    .select()
+    .from(roles)
+    .where(eq(roles.name, roleName))
+    .limit(1);
+  if (!roleRes.length) throw new Error(`Role "${roleName}" not found`);
+
+  const permissionRows = permissionKeys.length
+    ? await db.select().from(permissions).where(inArray(permissions.key, permissionKeys))
+    : [];
+
+  if (permissionRows.length !== permissionKeys.length) {
+    throw new Error("One or more permissions are invalid");
+  }
+
+  await db.delete(role_permissions).where(eq(role_permissions.roleId, roleRes[0].id));
+
+  if (permissionRows.length > 0) {
+    await db.insert(role_permissions).values(
+      permissionRows.map((permission) => ({
+        id: crypto.randomUUID(),
+        roleId: roleRes[0].id,
+        permissionId: permission.id,
+      }))
+    );
+  }
+
+  revalidatePath("/admin");
+  return { success: true };
+}
+
 /**
  * Delete a user from the database.
  */
 export async function deleteUserAction(targetUserId: string) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) throw new Error("Unauthorized");
-
-  const canApprove = await hasPermission(session.user.id, "approve_actions");
-  if (!canApprove) throw new Error("Insufficient permissions");
+  await requireAdminAccess(session.user.id);
 
   await db.delete(users).where(eq(users.id, targetUserId));
   revalidatePath("/admin");
@@ -186,18 +255,32 @@ export async function updateUserMetadataAction(
 ) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) throw new Error("Unauthorized");
+  const access = await requireApprovalAccess(session.user.id);
+  const updates: {
+    responsibility?: string;
+    isPublic?: boolean;
+    department?: string;
+    updatedAt: Date;
+  } = {
+    updatedAt: new Date(),
+  };
 
-  const canApprove = await hasPermission(session.user.id, "approve_actions");
-  if (!canApprove) throw new Error("Insufficient permissions");
+  if (data.responsibility !== undefined) {
+    updates.responsibility = data.responsibility;
+  }
+  if (data.department !== undefined) {
+    updates.department = data.department;
+  }
+  if (data.isPublic !== undefined) {
+    if (!access.isAdmin) {
+      throw new Error("Forbidden");
+    }
+    updates.isPublic = data.isPublic;
+  }
 
   await db
     .update(users)
-    .set({
-      ...(data.responsibility !== undefined && { responsibility: data.responsibility }),
-      ...(data.isPublic !== undefined && { isPublic: data.isPublic }),
-      ...(data.department !== undefined && { department: data.department }),
-      updatedAt: new Date(),
-    })
+    .set(updates)
     .where(eq(users.id, targetUserId));
 
   revalidatePath("/admin");

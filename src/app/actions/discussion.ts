@@ -23,6 +23,9 @@ export interface ProjectDiscussionMessage {
 }
 
 export async function getProjectDiscussionAction(projectId: string): Promise<ProjectDiscussionMessage[]> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  await assertProjectPermission(projectId, session?.user?.id, "canView");
+
   const rows = await db
     .select()
     .from(project_discussion)

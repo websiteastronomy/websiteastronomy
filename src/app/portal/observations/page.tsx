@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import AnimatedSection from "@/components/AnimatedSection";
 import { getMyObservationsAction } from "@/app/actions/observations-engine";
+import { formatDateStable } from "@/lib/format-date";
 
 export default function MyObservationsDashboard() {
   const { user } = useAuth();
@@ -56,7 +57,7 @@ export default function MyObservationsDashboard() {
         <div style={{ textAlign: "center", padding: "6rem 2rem", background: "rgba(15, 22, 40, 0.4)", borderRadius: "16px", border: "1px dashed var(--border-subtle)" }}>
           <div style={{ fontSize: "3rem", opacity: 0.5, marginBottom: "1rem" }}>🔭</div>
           <h3 style={{ fontSize: "1.3rem", marginBottom: "0.5rem" }}>Your Logbook is Empty</h3>
-          <p style={{ color: "var(--text-muted)", marginBottom: "2rem" }}>You haven't submitted any observations yet. Share your captures with the club.</p>
+          <p style={{ color: "var(--text-muted)", marginBottom: "2rem" }}>You haven&apos;t submitted any observations yet. Share your captures with the club.</p>
           <Link href="/portal/observations/new" className="btn-secondary">Submit First Observation</Link>
         </div>
       ) : (
@@ -98,7 +99,7 @@ export default function MyObservationsDashboard() {
                   <strong>Target:</strong> {obs.celestialTarget} &nbsp;|&nbsp; <strong>Category:</strong> {obs.category}
                 </p>
                 <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: 0 }}>
-                  Captured: {new Date(obs.capturedAt).toLocaleDateString()} at {obs.location}
+                  Captured: {formatDateStable(obs.capturedAt)} at {obs.location}
                 </p>
                 
                 {obs.status === 'Rejected' && obs.rejectionReason && (

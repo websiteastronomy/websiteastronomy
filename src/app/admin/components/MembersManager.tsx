@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { rowStyle } from "./shared";
-import { approveUserAction, rejectUserAction, getAllUsersAction, updateUserRoleAction, deleteUserAction, updateUserMetadataAction } from "@/app/actions/members";
+import { approveUserAction, rejectUserAction, getAllUsersAction, updateUserRoleAction, deleteUserAction, updateUserMetadataAction, getRolePermissionsCatalogAction, updateRolePermissionsAction } from "@/app/actions/members";
+import { useAuth } from "@/context/AuthContext";
+import { canApproveMembers, canDeleteUser, canEditResponsibility, canEditRole, canTogglePublic } from "@/lib/member-ui-permissions";
 
 type RoleName = "Member" | "Lead" | "Core Committee" | "Admin";
 
@@ -14,6 +16,7 @@ const ROLE_OPTIONS: { value: RoleName; label: string; color: string }[] = [
 ];
 
 export default function MembersManager() {
+  const { user, refreshRBAC, isAdmin, hasPermission } = useAuth();
   const [users, setUsers] = useState<any[]>([]);
   const [approvingUser, setApprovingUser] = useState<any>(null);
   const [selectedRole, setSelectedRole] = useState<RoleName>("Member");
@@ -24,6 +27,15 @@ export default function MembersManager() {
   // Inline edit state
   const [editingInfoUser, setEditingInfoUser] = useState<string | null>(null);
   const [infoFormData, setInfoFormData] = useState({ responsibility: "", department: "" });
+  const [permissionCatalog, setPermissionCatalog] = useState<{ key: string; description: string | null }[]>([]);
+  const [rolePermissionsMap, setRolePermissionsMap] = useState<Record<string, string[]>>({});
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const access = { isAdmin, hasPermission };
+  const mayApproveMembers = canApproveMembers(access);
+  const mayEditRole = canEditRole(access);
+  const mayDeleteUser = canDeleteUser(access);
+  const mayEditResponsibility = canEditResponsibility(access);
+  const mayTogglePublic = canTogglePublic(access);
 
   const fetchUsers = async () => {
     try {
@@ -38,6 +50,51 @@ export default function MembersManager() {
     fetchUsers();
   }, []);
 
+  useEffect(() => {
+    if (!mayEditRole) {
+      return;
+    }
+
+    getRolePermissionsCatalogAction()
+      .then((data) => {
+        setPermissionCatalog(data.permissions.map((permission) => ({
+          key: permission.key,
+          description: permission.description ?? null,
+        })));
+        setRolePermissionsMap(
+          Object.fromEntries(data.roles.map((role) => [role.name, role.permissions]))
+        );
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }, [mayEditRole]);
+
+  useEffect(() => {
+    if (!approvingUser || !mayEditRole) {
+      return;
+    }
+
+    const mappedPermissions = rolePermissionsMap[selectedRole];
+    if (mappedPermissions && selectedPermissions.length === 0) {
+      setSelectedPermissions(mappedPermissions);
+    }
+  }, [approvingUser, mayEditRole, rolePermissionsMap, selectedPermissions.length, selectedRole]);
+
+  const triggerRoleRefresh = async (targetUserId?: string) => {
+    localStorage.setItem("rbac-profile-updated", `${Date.now()}:${targetUserId || "unknown"}`);
+    if (targetUserId && user?.id === targetUserId) {
+      await refreshRBAC();
+    }
+  };
+
+  const openRoleEditor = (targetUser: any, fallbackRole: RoleName) => {
+    setApprovingUser(targetUser);
+    setSelectedRole(fallbackRole);
+    setSelectedPermissions(rolePermissionsMap[fallbackRole] || []);
+    window.scrollTo(0, 0);
+  };
+
   const handleApprove = async () => {
     if (!approvingUser) return;
     setIsProcessing(true);
@@ -47,6 +104,14 @@ export default function MembersManager() {
       } else {
         await approveUserAction(approvingUser.id, selectedRole);
       }
+      if (mayEditRole) {
+        await updateRolePermissionsAction(selectedRole, selectedPermissions);
+        const refreshedCatalog = await getRolePermissionsCatalogAction();
+        setRolePermissionsMap(
+          Object.fromEntries(refreshedCatalog.roles.map((role) => [role.name, role.permissions]))
+        );
+      }
+      await triggerRoleRefresh(approvingUser.id);
       setApprovingUser(null);
       fetchUsers();
     } catch (err: any) {
@@ -76,6 +141,7 @@ export default function MembersManager() {
     try {
       for (const id of selectedPendingIds) {
         await approveUserAction(id, "Member");
+        await triggerRoleRefresh(id);
       }
       setSelectedPendingIds([]);
       fetchUsers();
@@ -140,7 +206,7 @@ export default function MembersManager() {
       </div>
 
       {/* ── Approval Dialog ── */}
-      {approvingUser && (
+      {approvingUser && mayApproveMembers && (
         <div style={{ padding: "1.5rem", background: "rgba(34, 197, 94, 0.1)", border: "1px solid #22c55e", borderRadius: "8px", marginBottom: "1.5rem" }}>
           <h3 style={{ fontSize: "1.1rem", marginBottom: "0.4rem", color: "#22c55e" }}>
             {approvingUser.status === "approved" ? "Update Role:" : "Approve:"} {approvingUser.name}
@@ -150,7 +216,7 @@ export default function MembersManager() {
           </p>
 
           <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
-            {ROLE_OPTIONS.map((opt) => (
+            {ROLE_OPTIONS.filter((opt) => mayEditRole || opt.value !== "Admin").map((opt) => (
               <label
                 key={opt.value}
                 style={{
@@ -168,13 +234,71 @@ export default function MembersManager() {
                   name="rbac-role"
                   value={opt.value}
                   checked={selectedRole === opt.value}
-                  onChange={() => setSelectedRole(opt.value)}
+                  onChange={() => {
+                    setSelectedRole(opt.value);
+                    setSelectedPermissions(rolePermissionsMap[opt.value] || []);
+                  }}
                   style={{ display: "none" }}
                 />
                 {opt.label}
               </label>
             ))}
           </div>
+
+          {mayEditRole && permissionCatalog.length > 0 && (
+            <div style={{ marginBottom: "1.5rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                <div>
+                  <h4 style={{ fontSize: "0.95rem", color: "var(--text-primary)", marginBottom: "0.25rem" }}>Role Permissions</h4>
+                  <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                    Changes here update the <strong>{selectedRole}</strong> role for everyone who has it.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.6rem" }}>
+                {permissionCatalog.map((permission) => {
+                  const checked = selectedPermissions.includes(permission.key);
+                  return (
+                    <label
+                      key={permission.key}
+                      style={{
+                        display: "flex",
+                        gap: "0.6rem",
+                        alignItems: "flex-start",
+                        padding: "0.75rem",
+                        borderRadius: "8px",
+                        border: "1px solid var(--border-subtle)",
+                        background: checked ? "rgba(201, 168, 76, 0.08)" : "rgba(15, 22, 40, 0.25)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() =>
+                          setSelectedPermissions((previous) =>
+                            checked
+                              ? previous.filter((key) => key !== permission.key)
+                              : [...previous, permission.key]
+                          )
+                        }
+                        style={{ accentColor: "var(--gold)", marginTop: "0.15rem" }}
+                      />
+                      <span>
+                        <span style={{ display: "block", fontSize: "0.82rem", color: "var(--text-primary)", fontWeight: 600 }}>
+                          {permission.key}
+                        </span>
+                        <span style={{ display: "block", fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                          {permission.description || "Role capability"}
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div style={{ display: "flex", gap: "0.8rem" }}>
             <button
@@ -203,7 +327,7 @@ export default function MembersManager() {
           Pending Requests ({pendingUsers.length})
         </h3>
         
-        {selectedPendingIds.length > 0 && (
+        {selectedPendingIds.length > 0 && mayApproveMembers && (
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button onClick={handleBulkApprove} disabled={isProcessing} className="btn-primary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem", background: "#22c55e", borderColor: "#22c55e" }}>Bulk Approve (Member)</button>
             <button onClick={handleBulkReject} disabled={isProcessing} className="btn-secondary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem", color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.5)", background: "transparent" }}>Bulk Reject</button>
@@ -215,12 +339,14 @@ export default function MembersManager() {
         {pendingUsers.map((user) => (
           <div key={user.id} style={{ ...rowStyle, padding: "1.2rem", borderLeft: selectedPendingIds.includes(user.id) ? "4px solid var(--gold)" : "4px solid transparent" }}>
             <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-              <input 
-                type="checkbox" 
-                checked={selectedPendingIds.includes(user.id)} 
-                onChange={() => toggleSelectPending(user.id)}
-                style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "var(--gold)" }}
-              />
+              {mayApproveMembers && (
+                <input 
+                  type="checkbox" 
+                  checked={selectedPendingIds.includes(user.id)} 
+                  onChange={() => toggleSelectPending(user.id)}
+                  style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "var(--gold)" }}
+                />
+              )}
               <div>
                 <h4 style={{ fontSize: "1.05rem", marginBottom: "0.3rem" }}>{user.name}</h4>
                 <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem" }}>
@@ -231,9 +357,9 @@ export default function MembersManager() {
                 </span>
               </div>
             </div>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
+            {mayApproveMembers && <div style={{ display: "flex", gap: "0.5rem" }}>
               <button
-                onClick={() => { setApprovingUser(user); setSelectedRole("Member"); window.scrollTo(0, 0); }}
+                onClick={() => openRoleEditor(user, "Member")}
                 style={{ background: "#22c55e", color: "#000", padding: "0.4rem 0.8rem", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem", fontFamily: "inherit", fontWeight: "bold", border: "none" }}
               >
                 Approve Target
@@ -244,7 +370,7 @@ export default function MembersManager() {
               >
                 Reject
               </button>
-            </div>
+            </div>}
           </div>
         ))}
         {pendingUsers.length === 0 && (
@@ -287,7 +413,7 @@ export default function MembersManager() {
                   )}
                 </div>
 
-                {isEditingInfo ? (
+                {isEditingInfo && mayEditResponsibility ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem" }}>
                     <input 
                       type="text" 
@@ -344,12 +470,13 @@ export default function MembersManager() {
               </div>
 
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "1rem" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", color: user.isPublic ? "#22c55e" : "var(--text-muted)", cursor: "pointer", fontWeight: user.isPublic ? "bold" : "normal" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", color: user.isPublic ? "#22c55e" : "var(--text-muted)", cursor: mayTogglePublic ? "pointer" : "default", fontWeight: user.isPublic ? "bold" : "normal" }}>
                   <input
                     type="checkbox"
                     checked={!!user.isPublic}
+                    disabled={!mayTogglePublic}
                     onChange={async () => {
-                      if (isProcessing) return;
+                      if (!mayTogglePublic || isProcessing) return;
                       setIsProcessing(true);
                       try {
                         await updateUserMetadataAction(user.id, { isPublic: !user.isPublic });
@@ -357,13 +484,13 @@ export default function MembersManager() {
                       } catch (err: any) { alert(err.message); }
                       finally { setIsProcessing(false); }
                     }}
-                    style={{ accentColor: "var(--gold)", cursor: "pointer" }}
+                    style={{ accentColor: "var(--gold)", cursor: mayTogglePublic ? "pointer" : "not-allowed" }}
                   />
                   Public
                 </label>
                 
                 <div style={{ display: "flex", gap: "0.4rem" }}>
-                  {!isEditingInfo && (
+                  {!isEditingInfo && mayEditResponsibility && (
                     <button
                       disabled={isProcessing}
                       onClick={() => {
@@ -375,19 +502,17 @@ export default function MembersManager() {
                       Edit Info
                     </button>
                   )}
-                  <button
+                  {mayEditRole && <button
                     disabled={isProcessing}
                     onClick={() => {
-                      setApprovingUser(user);
                       const matchingOpt = ROLE_OPTIONS.find((o) => o.label.toLowerCase() === user.role?.toLowerCase() || o.value.toLowerCase() === user.role?.toLowerCase());
-                      setSelectedRole(matchingOpt ? matchingOpt.value : "Member");
-                      window.scrollTo(0, 0);
+                      openRoleEditor(user, matchingOpt ? matchingOpt.value : "Member");
                     }}
                     style={{ background: "transparent", border: "1px solid var(--border-subtle)", color: "var(--text-primary)", padding: "0.25rem 0.5rem", borderRadius: "4px", cursor: isProcessing ? "not-allowed" : "pointer", fontSize: "0.7rem", opacity: isProcessing ? 0.5: 1 }}
                   >
                     Role
-                  </button>
-                  <button
+                  </button>}
+                  {mayDeleteUser && <button
                     disabled={isProcessing}
                     onClick={async () => {
                       if (!confirm("Are you sure you want to permanently delete this user?")) return;
@@ -404,7 +529,7 @@ export default function MembersManager() {
                     style={{ background: "transparent", border: "1px solid rgba(239,68,68,0.5)", color: "#ef4444", padding: "0.25rem 0.5rem", borderRadius: "4px", cursor: isProcessing ? "not-allowed" : "pointer", fontSize: "0.7rem", opacity: isProcessing ? 0.5: 1 }}
                   >
                     Delete
-                  </button>
+                  </button>}
                 </div>
               </div>
             </div>

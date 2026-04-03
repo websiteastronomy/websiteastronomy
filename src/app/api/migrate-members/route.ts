@@ -3,6 +3,9 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { getSystemAccess } from "@/lib/system-rbac";
 
 interface LegacyProjectMember {
   userId?: string;
@@ -12,6 +15,16 @@ interface LegacyProjectMember {
 
 export async function GET() {
   try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const access = await getSystemAccess(session.user.id);
+    if (!access.isAdmin) {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
+
     const allProjects = await db.select().from(schema.projects);
     const allUsers = await db.select({ id: schema.users.id }).from(schema.users);
     const validUserIds = new Set(allUsers.map(u => u.id));
