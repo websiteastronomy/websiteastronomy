@@ -12,6 +12,7 @@ import { headers } from "next/headers";
 import { getSystemAccess } from "@/lib/system-rbac";
 import { getFeatureDisplayName, getRestrictedFeatureForPath, isMaintenanceActive } from "@/lib/system-control";
 import { getSystemControlSettingsAction } from "@/app/actions/system-control";
+import { getSiteSettingsAction } from "@/app/actions/site-settings";
 import SystemRestrictionPage from "@/components/SystemRestrictionPage";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -36,6 +37,7 @@ export default async function RootLayout({
   const user = session?.user ?? null;
   const access = user?.id ? await getSystemAccess(user.id).catch(() => null) : null;
   const systemControl = await getSystemControlSettingsAction().catch(() => null);
+  const siteSettings = await getSiteSettingsAction().catch(() => null);
 
   const isAdmin = Boolean(access?.isAdmin);
   const isMaintenance = systemControl ? isMaintenanceActive(systemControl) : false;
@@ -92,7 +94,7 @@ export default async function RootLayout({
           <Starfield />
           <CursorGlow />
           <div style={{ position: "relative", zIndex: 1, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-            <Navbar />
+            <Navbar initialIsRecruiting={siteSettings?.isRecruiting ?? false} />
             <main style={{ flex: 1 }}>
               {children}
             </main>

@@ -6,33 +6,24 @@ import { motion, useMotionValueEvent, useScroll } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import NotificationBell from '@/components/NotificationBell';
-import { loadSiteSettingsClient } from '@/data/siteSettingsStatic';
 
-export default function Navbar() {
+type NavbarProps = {
+  initialIsRecruiting?: boolean;
+};
+
+export default function Navbar({ initialIsRecruiting = false }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const { scrollY } = useScroll();
   const pathname = usePathname();
   const { user } = useAuth();
   const [features, setFeatures] = useState({ quizzesEnabled: true, observationsEnabled: true, eventsEnabled: true });
-  const [isRecruiting, setIsRecruiting] = useState(true);
+  const [isRecruiting, setIsRecruiting] = useState(initialIsRecruiting);
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     setScrolled(latest > 50);
   });
 
   useEffect(() => {
-    const syncRecruitmentStatus = () => {
-      setIsRecruiting(loadSiteSettingsClient().isRecruiting);
-    };
-
-    syncRecruitmentStatus();
-
-    const handleFocus = () => syncRecruitmentStatus();
-    const handleStorage = () => syncRecruitmentStatus();
-
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('storage', handleStorage);
-
     import('@/app/actions/system-control')
       .then(({ getSystemControlPublicSnapshotAction }) => getSystemControlPublicSnapshotAction())
       .then((settings) => {
@@ -42,10 +33,12 @@ export default function Navbar() {
         console.error('[Navbar] system control fetch failed:', error);
       });
 
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('storage', handleStorage);
-    };
+    import('@/app/actions/site-settings')
+      .then(({ getSiteSettingsAction }) => getSiteSettingsAction())
+      .then((settings) => {
+        setIsRecruiting(settings.isRecruiting);
+      })
+      .catch(() => undefined);
   }, []);
 
   const isActive = (href: string) => {

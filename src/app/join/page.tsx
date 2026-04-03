@@ -40,7 +40,14 @@ export default function JoinPage() {
 
   useEffect(() => {
     const syncRecruitmentStatus = () => {
-      setIsRecruiting(loadSiteSettingsClient().isRecruiting);
+      import("@/app/actions/site-settings")
+        .then(({ getSiteSettingsAction }) => getSiteSettingsAction())
+        .then((settings) => {
+          setIsRecruiting(settings.isRecruiting);
+        })
+        .catch(() => {
+          setIsRecruiting(loadSiteSettingsClient().isRecruiting);
+        });
     };
 
     syncRecruitmentStatus();

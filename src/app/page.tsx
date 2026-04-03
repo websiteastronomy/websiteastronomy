@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import WeatherWidget from "@/components/WeatherWidget";
 import AnimatedSection from "@/components/AnimatedSection";
 import AnimatedCard from "@/components/AnimatedCard";
@@ -18,7 +17,6 @@ import {
 } from "@/lib/db";
 
 export default function Home() {
-  const router = useRouter();
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [featuredProject, setFeaturedProject] = useState<any>(null);
   const [upcomingEvent, setUpcomingEvent] = useState<any>(null);
@@ -29,11 +27,24 @@ export default function Home() {
 
   useEffect(() => {
     const syncSettings = () => {
-      setSettings(loadSiteSettingsClient());
+      import("@/app/actions/site-settings")
+        .then(({ getSiteSettingsAction }) => getSiteSettingsAction())
+        .then((serverSettings) => {
+          setSettings(serverSettings);
+        })
+        .catch(() => {
+          setSettings(loadSiteSettingsClient());
+        });
     };
 
     const fetchData = async () => {
-      const s = loadSiteSettingsClient();
+      let s = loadSiteSettingsClient();
+      try {
+        const { getSiteSettingsAction } = await import("@/app/actions/site-settings");
+        s = await getSiteSettingsAction();
+      } catch {
+        s = loadSiteSettingsClient();
+      }
       setSettings(s);
 
       // Fetch featured project
@@ -170,15 +181,6 @@ export default function Home() {
           <Link href="/projects" className="btn-primary magnetic-btn">Explore Projects</Link>
           {settings?.isRecruiting && (
             <Link href="/join" className="btn-secondary magnetic-btn">Join Club</Link>
-          )}
-          {settings && !settings.isRecruiting && (
-            <button
-              type="button"
-              className="btn-secondary magnetic-btn"
-              onClick={() => router.push("/join?closed=1")}
-            >
-              Join Club
-            </button>
           )}
         </motion.div>
       </motion.section>

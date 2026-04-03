@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { inputStyle } from './shared';
 import { loadSiteSettingsClient } from '@/data/siteSettingsStatic';
 import { writeSiteSettingsLocal } from '@/lib/settingsLocal';
+import { getSiteSettingsAction, updateSiteSettingsAction } from '@/app/actions/site-settings';
 
 export default function SettingsManager() {
   const [siteSettings, setSiteSettings] = useState<any>(null);
@@ -11,8 +12,28 @@ export default function SettingsManager() {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
-    const s = loadSiteSettingsClient();
-    setSiteSettings(s);
+    let cancelled = false;
+
+    const loadSettings = async () => {
+      try {
+        const serverSettings = await getSiteSettingsAction();
+        if (!cancelled) {
+          setSiteSettings(serverSettings);
+          writeSiteSettingsLocal(serverSettings as unknown as Record<string, unknown>);
+        }
+      } catch {
+        const localSettings = loadSiteSettingsClient();
+        if (!cancelled) {
+          setSiteSettings(localSettings);
+        }
+      }
+    };
+
+    loadSettings();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleSaveSettings = async () => {
@@ -20,6 +41,7 @@ export default function SettingsManager() {
     setFeedback(null);
     try {
       if (siteSettings) {
+        await updateSiteSettingsAction(siteSettings);
         writeSiteSettingsLocal(siteSettings);
         setFeedback({ type: 'success', message: 'Settings saved successfully!' });
       }

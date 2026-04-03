@@ -3,6 +3,8 @@ import { readSiteSettingsLocal } from "@/lib/settingsLocal";
 import { MOCK_NIGHT_SKY } from "./mockNightSky";
 import { normalizeNightSkySettings } from "@/lib/night-sky";
 
+export const SITE_SETTINGS_ID = "site_settings";
+
 /** Default site-wide config (no Firestore). */
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   id: "global_config",
@@ -28,6 +30,13 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
 /** Defaults merged with `localStorage` (written from admin Save). */
 export function loadSiteSettingsClient(): SiteSettings {
   const local = readSiteSettingsLocal();
+  return normalizeSiteSettings(local);
+}
+
+export function normalizeSiteSettings(raw: unknown): SiteSettings {
+  const local = raw && typeof raw === "object" && !Array.isArray(raw)
+    ? raw as Record<string, unknown>
+    : null;
   if (!local) return DEFAULT_SITE_SETTINGS;
   const h = local.heroStats;
   const d = local.dailyFact;
