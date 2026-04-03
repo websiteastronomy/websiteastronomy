@@ -19,6 +19,8 @@ export async function processAndUploadObservationImageAction(formData: FormData)
   if (!session?.user) throw new Error("Unauthorized");
 
   const file = formData.get("file") as File;
+  const scopeValue = formData.get("scope");
+  const scope = scopeValue === "article" ? "article" : "observation";
   if (!file) throw new Error("No file provided");
 
   // 10MB limit enforcement
@@ -33,7 +35,8 @@ export async function processAndUploadObservationImageAction(formData: FormData)
 
   const fileBuffer = Buffer.from(await file.arrayBuffer());
   const timestamp = Date.now();
-  const baseKey = `observations/${session.user.id}/${timestamp}`;
+  const baseFolder = scope === "article" ? "articles" : "observations";
+  const baseKey = `${baseFolder}/${session.user.id}/${timestamp}`;
   const bucket = process.env.R2_BUCKET_NAME || "";
   const r2Base = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
 

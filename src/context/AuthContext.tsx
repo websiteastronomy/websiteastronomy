@@ -6,6 +6,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { authClient } from "@/lib/auth-client";
@@ -47,33 +48,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [roleName, setRoleName] = useState<string>("none");
   const [permissions, setPermissions] = useState<string[]>([]);
   const [rbacLoading, setRbacLoading] = useState(false);
+  const [hasLoadedRBAC, setHasLoadedRBAC] = useState(false);
+  const refreshInFlight = useRef(false);
 
   const user = session?.user || null;
-  const loading = isPending || rbacLoading;
+  const loading = isPending || (!!user?.id && !hasLoadedRBAC);
 
-  const refreshRBAC = useCallback(async () => {
+  const refreshRBACInternal = useCallback(async (silent: boolean) => {
     if (!user?.id) {
       setRoleName("none");
       setPermissions([]);
+      setHasLoadedRBAC(true);
       return;
     }
 
-    setRbacLoading(true);
+    if (refreshInFlight.current) {
+      return;
+    }
+
+    refreshInFlight.current = true;
+    if (!silent) {
+      setRbacLoading(true);
+    }
     try {
       const profile = await getMyRBACProfile();
       setRoleName(profile?.roleName || "none");
       setPermissions(profile?.permissions || []);
+      setHasLoadedRBAC(true);
     } catch {
       setRoleName("none");
       setPermissions([]);
+      setHasLoadedRBAC(true);
     } finally {
-      setRbacLoading(false);
+      if (!silent) {
+        setRbacLoading(false);
+      }
+      refreshInFlight.current = false;
     }
   }, [user?.id]);
 
+  const refreshRBAC = useCallback(async () => {
+    await refreshRBACInternal(false);
+  }, [refreshRBACInternal]);
+
   useEffect(() => {
-    refreshRBAC();
-  }, [refreshRBAC]);
+    if (!user?.id) {
+      setHasLoadedRBAC(true);
+      return;
+    }
+
+    setHasLoadedRBAC(false);
+    refreshRBACInternal(false);
+  }, [refreshRBACInternal, user?.id]);
 
   useEffect(() => {
     if (!user?.id) {
@@ -81,18 +107,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const onFocus = () => {
-      refreshRBAC();
+      refreshRBACInternal(true);
     };
     const onStorage = (event: StorageEvent) => {
       if (event.key === "rbac-profile-updated") {
-        refreshRBAC();
+        refreshRBACInternal(true);
       }
     };
 
     window.addEventListener("focus", onFocus);
     window.addEventListener("storage", onStorage);
     const intervalId = window.setInterval(() => {
-      refreshRBAC();
+      refreshRBACInternal(true);
     }, 30000);
 
     return () => {
@@ -100,7 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       window.removeEventListener("storage", onStorage);
       window.clearInterval(intervalId);
     };
-  }, [refreshRBAC, user?.id]);
+  }, [refreshRBACInternal, user?.id]);
 
   useEffect(() => {
     if (error) {

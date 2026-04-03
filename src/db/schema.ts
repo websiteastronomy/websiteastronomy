@@ -214,6 +214,33 @@ export const project_discussion = pgTable("project_discussion", {
   ...timestamps,
 });
 
+export const articleStatusEnum = pgEnum("article_status", [
+  "draft",
+  "under_review",
+  "published",
+  "rejected",
+]);
+
+export const articleTypeEnum = pgEnum("article_type", [
+  "article",
+  "guide",
+  "fact",
+]);
+
+export const articleKnowledgeCategoryEnum = pgEnum("article_knowledge_category", [
+  "Physics",
+  "Mission",
+  "Theory",
+  "History",
+  "Hardware",
+]);
+
+export const articleEditRequestStatusEnum = pgEnum("article_edit_request_status", [
+  "pending",
+  "approved",
+  "rejected",
+]);
+
 export const articles = pgTable("articles", {
   id: text("id").primaryKey(),
   category: text("category").notNull(),
@@ -226,7 +253,70 @@ export const articles = pgTable("articles", {
   isPublished: boolean("isPublished").default(false).notNull(),
   isFeatured: boolean("isFeatured").default(false).notNull(),
   tags: jsonb("tags").default('[]').notNull(),        // string[]
+  slug: text("slug").unique(),
+  authorId: text("author_id").references(() => users.id, { onDelete: "set null" }),
+  contentType: articleTypeEnum("content_type").default("article").notNull(),
+  knowledgeCategory: articleKnowledgeCategoryEnum("knowledge_category").default("Theory").notNull(),
+  status: articleStatusEnum("status").default("draft").notNull(),
+  coreApproved: boolean("core_approved").default(false).notNull(),
+  isDeleted: boolean("is_deleted").default(false).notNull(),
+  coverImageUrl: text("cover_image_url"),
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  publishedAt: timestamp("published_at"),
+  submittedAt: timestamp("submitted_at"),
+  rejectionReason: text("rejection_reason"),
+  versionNumber: integer("version_number").default(1).notNull(),
   ...timestamps
+});
+
+export const article_versions = pgTable("article_versions", {
+  id: text("id").primaryKey(),
+  articleId: text("article_id").notNull().references(() => articles.id, { onDelete: "cascade" }),
+  versionNumber: integer("version_number").notNull(),
+  titleSnapshot: text("title_snapshot").notNull(),
+  excerptSnapshot: text("excerpt_snapshot").notNull(),
+  contentSnapshot: text("content_snapshot").notNull(),
+  coverImageUrlSnapshot: text("cover_image_url_snapshot"),
+  metaTitleSnapshot: text("meta_title_snapshot"),
+  metaDescriptionSnapshot: text("meta_description_snapshot"),
+  editedBy: text("edited_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const article_edit_requests = pgTable("article_edit_requests", {
+  id: text("id").primaryKey(),
+  articleId: text("article_id").notNull().references(() => articles.id, { onDelete: "cascade" }),
+  proposedContent: text("proposed_content").notNull(),
+  proposedBy: text("proposed_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  status: articleEditRequestStatusEnum("status").notNull().default("pending"),
+  coreStatus: articleEditRequestStatusEnum("core_status").notNull().default("pending"),
+  adminStatus: articleEditRequestStatusEnum("admin_status").notNull().default("pending"),
+  reviewedBy: text("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+  adminReviewedBy: text("admin_reviewed_by").references(() => users.id, { onDelete: "set null" }),
+  reviewComment: text("review_comment"),
+  adminComment: text("admin_comment"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const article_approval_logs = pgTable("article_approval_logs", {
+  id: text("id").primaryKey(),
+  articleId: text("article_id").notNull().references(() => articles.id, { onDelete: "cascade" }),
+  action: text("action").notNull(),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  comment: text("comment"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const article_edit_locks = pgTable("article_edit_locks", {
+  id: text("id").primaryKey(),
+  articleId: text("article_id").notNull().references(() => articles.id, { onDelete: "cascade" }),
+  lockedBy: text("locked_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at").notNull(),
+  releasedAt: timestamp("released_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const quizzes = pgTable("quizzes", {

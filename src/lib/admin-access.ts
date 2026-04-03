@@ -12,7 +12,8 @@ export const ADMIN_PAGE_PERMISSIONS = {
     access.isAdmin || access.hasPermission("manage_events"),
   members: (access: AccessLike) =>
     access.isAdmin || access.hasPermission("approve_actions"),
-  articles: (access: AccessLike) => access.isAdmin,
+  articles: (access: AccessLike) =>
+    access.isAdmin || access.hasPermission("approve_actions"),
   projects: (access: AccessLike) =>
     access.isAdmin || access.hasPermission("manage_projects"),
   observations: (access: AccessLike) =>
