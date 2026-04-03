@@ -52,6 +52,15 @@ export default function EventsManager() {
         setIsSaving(false);
         return;
       }
+      if (data.isHighlighted) {
+        const highlightedCount = events.filter((event) => event.isHighlighted).length;
+        const isAlreadyHighlighted = Boolean(editingEvent?.isHighlighted);
+        if (!isAlreadyHighlighted && highlightedCount >= 10) {
+          setFeedback({ type: 'error', message: 'Soft limit reached: keep highlighted events within 10.' });
+          setIsSaving(false);
+          return;
+        }
+      }
 
       const fileInput = document.getElementById('mediaUpload') as HTMLInputElement;
       const file = fileInput?.files?.[0];
@@ -97,6 +106,20 @@ export default function EventsManager() {
     } catch (err) {
       console.error(err);
       setFeedback({ type: 'error', message: 'Delete failed. Check console.' });
+    }
+  };
+
+  const handleToggleHighlight = async (id: string, current: boolean, priority: number) => {
+    if (!current && events.filter((event) => event.isHighlighted).length >= 10) {
+      setFeedback({ type: 'error', message: 'Soft limit reached: keep highlighted events within 10.' });
+      return;
+    }
+    try {
+      await updateDocument('events', id, { isHighlighted: !current, highlightPriority: Number(priority) || 0 });
+      setFeedback({ type: 'success', message: current ? 'Removed from highlights.' : 'Added to highlights.' });
+    } catch (err) {
+      console.error(err);
+      setFeedback({ type: 'error', message: 'Failed to update highlight.' });
     }
   };
 
@@ -194,6 +217,11 @@ export default function EventsManager() {
               <input name="enableVolunteer" type="checkbox" defaultChecked={editingEvent ? editingEvent.enableVolunteer : false} /> 
               Enable Volunteer Spots
             </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', padding: '0.5rem 1rem', borderRadius: '4px' }}>
+              <input name="isHighlighted" type="checkbox" defaultChecked={editingEvent ? editingEvent.isHighlighted : false} />
+              Mark as Highlight
+            </label>
+            <input type="number" name="highlightPriority" defaultValue={editingEvent?.highlightPriority || 0} min={0} max={999} placeholder="Highlight Priority" style={{ ...inputStyle, maxWidth: '180px' }} />
           </div>
 
           <div style={{ display: 'flex', gap: '1rem' }}>
@@ -225,6 +253,7 @@ export default function EventsManager() {
                   <h4 style={{ fontSize: '1.05rem' }}>{evt.title}</h4>
                   {!evt.isPublished && <span style={{ fontSize: '0.65rem', background: '#333', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>DRAFT</span>}
                   {evt.isPublic === false && <span style={{ fontSize: '0.65rem', background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.4)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>MEMBERS ONLY</span>}
+                  {evt.isHighlighted && <span style={{ fontSize: '0.65rem', background: 'var(--gold)', color: '#000', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 700 }}>HIGHLIGHT P{evt.highlightPriority || 0}</span>}
                 </div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.8rem' }}>{formatDateTimeStable(evt.date)} · {evt.location}</p>
                 
@@ -244,6 +273,12 @@ export default function EventsManager() {
               </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
+                <button 
+                  onClick={() => handleToggleHighlight(evt.id, evt.isHighlighted, evt.highlightPriority || 0)}
+                  style={{ background: 'none', border: '1px solid var(--gold)', color: 'var(--gold)', padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit', minWidth: '80px' }}
+                >
+                  {evt.isHighlighted ? 'Unhighlight' : 'Highlight'}
+                </button>
                 <button 
                   onClick={() => { setEditingEvent(evt); setShowForm(true); window.scrollTo(0,0); }}
                   style={{ background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)', padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit', minWidth: '80px' }}

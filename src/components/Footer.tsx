@@ -32,7 +32,7 @@ export default function Footer() {
               <Link href="/about" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>About Us</Link>
               <Link href="/events" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Events</Link>
               <Link href="/projects" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Projects</Link>
-              <Link href="/media" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Media Hub</Link>
+              <Link href="/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Observations</Link>
             </div>
           </div>
 

@@ -7,6 +7,7 @@ import WeatherWidget from "@/components/WeatherWidget";
 import AnimatedSection from "@/components/AnimatedSection";
 import AnimatedCard from "@/components/AnimatedCard";
 import AnimatedCounter from "@/components/AnimatedCounter";
+import { getHighlights } from "@/app/actions/highlights";
 import { loadSiteSettingsClient } from "@/data/siteSettingsStatic";
 import { 
   getDocument, 
@@ -20,6 +21,7 @@ export default function Home() {
   const [featuredProject, setFeaturedProject] = useState<any>(null);
   const [upcomingEvent, setUpcomingEvent] = useState<any>(null);
   const [coreTeam, setCoreTeam] = useState<any[]>([]);
+  const [highlights, setHighlights] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [liveStats, setLiveStats] = useState({ members: 0, projects: 0, events: 0, observations: 0 });
 
@@ -62,6 +64,13 @@ export default function Home() {
         });
       } catch (err) {
         console.error("Failed to load platform stats:", err);
+      }
+
+      try {
+        const featuredHighlights = await getHighlights();
+        setHighlights(featuredHighlights);
+      } catch (err) {
+        console.error("Failed to load highlights:", err);
       }
 
       setLoading(false);
@@ -243,6 +252,40 @@ export default function Home() {
       </section>
 
       {/* ── ARTICLE / DAILY FACT ─────────────────────── */}
+      <section style={{ width: "100%", maxWidth: "1100px", marginBottom: "4rem" }}>
+        <AnimatedSection style={{ marginBottom: "1.5rem" }}>
+          <p className="section-title">Visual Highlights</p>
+        </AnimatedSection>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
+          {highlights.slice(0, 8).map((item: any, i: number) => (
+            <AnimatedCard key={`${item.type}-${item.id}`} index={i} style={{ textAlign: "left", padding: 0, overflow: "hidden" }}>
+              <Link href={item.link} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+                <div style={{ width: "100%", height: "165px", background: "rgba(12,18,34,0.9)" }}>
+                  {item.image ? (
+                    <img src={item.image} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                      No image
+                    </div>
+                  )}
+                </div>
+                <div style={{ padding: "1rem" }}>
+                  <span style={{ fontSize: "0.66rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--gold)", fontWeight: 700 }}>
+                    {item.type}
+                  </span>
+                  <h3 style={{ margin: "0.45rem 0 0", fontSize: "1rem", lineHeight: 1.35 }}>{item.title}</h3>
+                </div>
+              </Link>
+            </AnimatedCard>
+          ))}
+          {highlights.length === 0 && !loading && (
+            <div style={{ gridColumn: "1 / -1", padding: "1.5rem", border: "1px solid var(--border-subtle)", borderRadius: "10px", color: "var(--text-muted)", textAlign: "center" }}>
+              No highlights yet. Latest content will appear here once published.
+            </div>
+          )}
+        </div>
+      </section>
+
       <AnimatedSection direction="up" style={{ width: "100%", maxWidth: "1100px", marginBottom: "4rem" }}>
         <div style={{ padding: "2.5rem", borderLeft: "3px solid var(--gold)", background: "rgba(15, 22, 40, 0.4)", borderRadius: "0 12px 12px 0", position: "relative", overflow: "hidden" }}>
           <motion.div

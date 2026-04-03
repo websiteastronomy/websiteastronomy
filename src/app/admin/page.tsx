@@ -16,7 +16,6 @@ import OutreachManager from "./components/OutreachManager";
 import ArticlesManager from "./components/ArticlesManager";
 import ProjectsManager from "./components/ProjectsManager";
 import QuizzesManager from "./components/QuizzesManager";
-import GalleryManager from "./components/GalleryManager";
 import AchievementsManager from "./components/AchievementsManager";
 import SettingsManager from "./components/SettingsManager";
 import MembersManager from "./components/MembersManager";
@@ -66,7 +65,6 @@ export default function Admin() {
     { id: "outreach", label: "Outreach", icon: "🤝", visible: ADMIN_PAGE_PERMISSIONS.outreach(access) },
     { id: "achievements", label: "Achievements", icon: "🏆", visible: ADMIN_PAGE_PERMISSIONS.achievements(access) },
     { id: "night-sky", label: "Night Sky", icon: "🌙", visible: ADMIN_PAGE_PERMISSIONS.nightSky(access) },
-    { id: "gallery", label: "Media Gallery", icon: "🖼️", visible: ADMIN_PAGE_PERMISSIONS.gallery(access) },
     { id: "settings", label: "Site Settings", icon: "⚙️", visible: ADMIN_PAGE_PERMISSIONS.settings(access) },
     { id: "system", label: "System Storage", icon: "💾", visible: ADMIN_PAGE_PERMISSIONS.system(access) },
   ].filter((tab) => tab.visible);
@@ -334,12 +332,6 @@ export default function Admin() {
         {currentTab === "projects" && (
           <div style={{ animation: "fadeIn 0.3s ease" }}>
             <ProjectsManager />
-          </div>
-        )}
-
-        {currentTab === "gallery" && (
-          <div style={{ animation: "fadeIn 0.3s ease" }}>
-            <GalleryManager />
           </div>
         )}
 

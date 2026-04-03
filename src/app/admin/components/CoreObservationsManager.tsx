@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import {
   getCoreReviewQueueAction,
   processCoreVoteAction,
+  getHighlightableObservationsAction,
+  setObservationHighlightAction,
 } from "@/app/actions/observations-engine";
 import { formatDateStable } from "@/lib/format-date";
 
@@ -13,6 +15,7 @@ export default function CoreObservationsManager() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [rejectReasonMap, setRejectReasonMap] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<{ type: "error"; message: string } | null>(null);
+  const [published, setPublished] = useState<any[]>([]);
 
   const fetchQueue = () => {
     setLoading(true);
@@ -27,6 +30,12 @@ export default function CoreObservationsManager() {
           }))
         );
         setQueue(data);
+        return getHighlightableObservationsAction();
+      })
+      .then((publishedData) => {
+        if (Array.isArray(publishedData)) {
+          setPublished(publishedData);
+        }
       })
       .catch((error) => {
         console.error(error);
@@ -190,6 +199,65 @@ export default function CoreObservationsManager() {
           ))}
         </div>
       )}
+
+      <div style={{ marginTop: "2rem" }}>
+        <h3 style={{ fontSize: "1.1rem", marginBottom: "0.8rem" }}>Published Highlights Controls</h3>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.82rem", marginBottom: "1rem" }}>
+          Core/Admin can curate homepage highlights from already published observations.
+        </p>
+        {published.length === 0 ? (
+          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>No published observations yet.</p>
+        ) : (
+          <div style={{ display: "grid", gap: "0.6rem" }}>
+            {published.map((obs) => (
+              <div key={obs.id} style={{ background: "rgba(15,22,40,0.45)", border: "1px solid var(--border-subtle)", borderRadius: "10px", padding: "0.9rem 1rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.8rem", flexWrap: "wrap" }}>
+                <div>
+                  <strong>{obs.title}</strong>
+                  <p style={{ margin: "0.25rem 0 0", color: "var(--text-muted)", fontSize: "0.78rem" }}>
+                    Captured on {formatDateStable(obs.capturedAt)}
+                  </p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <input
+                    type="number"
+                    min={0}
+                    max={999}
+                    defaultValue={obs.highlightPriority || 0}
+                    className="input-field"
+                    style={{ fontSize: "0.78rem", padding: "0.35rem 0.45rem", width: "76px" }}
+                    onBlur={async (event) => {
+                      const parsed = Number(event.currentTarget.value);
+                      if (!Number.isFinite(parsed) || !obs.isHighlighted) {
+                        return;
+                      }
+                      try {
+                        await setObservationHighlightAction(obs.id, true, parsed);
+                        fetchQueue();
+                      } catch (error) {
+                        console.error(error);
+                      }
+                    }}
+                  />
+                  <button
+                    className="btn-secondary"
+                    style={{ fontSize: "0.76rem", borderColor: "var(--gold-dark)", color: "var(--gold)" }}
+                    onClick={async () => {
+                      try {
+                        await setObservationHighlightAction(obs.id, !obs.isHighlighted, obs.highlightPriority || 0);
+                        fetchQueue();
+                      } catch (error) {
+                        console.error(error);
+                      }
+                    }}
+                  >
+                    {obs.isHighlighted ? "Unhighlight" : "Highlight"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

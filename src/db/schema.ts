@@ -76,6 +76,8 @@ export const events = pgTable("events", {
   type: text("type").notNull(),
   registrationLink: text("registrationLink"),
   bannerImage: text("bannerImage"),
+  isHighlighted: boolean("is_highlighted").default(false).notNull(),
+  highlightPriority: integer("highlight_priority").default(0).notNull(),
   isPublished: boolean("isPublished").default(false).notNull(),
   isPublic: boolean("is_public").default(true).notNull(),
   status: text("status").default("upcoming").notNull(), // upcoming | ongoing | completed
@@ -123,6 +125,8 @@ export const projects = pgTable("projects", {
   coverImage: text("coverImage").notNull(),          // was imageUrl
   githubUrl: text("githubUrl"),
   isFeatured: boolean("isFeatured").default(false).notNull(),
+  isHighlighted: boolean("is_highlighted").default(false).notNull(),
+  highlightPriority: integer("highlight_priority").default(0).notNull(),
   isPublished: boolean("isPublished").default(true).notNull(),
   progress: integer("progress").default(0).notNull(),
   tags: jsonb("tags").default('[]').notNull(),        // string[]
@@ -252,6 +256,8 @@ export const articles = pgTable("articles", {
   coverImage: text("coverImage").notNull(),
   isPublished: boolean("isPublished").default(false).notNull(),
   isFeatured: boolean("isFeatured").default(false).notNull(),
+  isHighlighted: boolean("is_highlighted").default(false).notNull(),
+  highlightPriority: integer("highlight_priority").default(0).notNull(),
   tags: jsonb("tags").default('[]').notNull(),        // string[]
   slug: text("slug").unique(),
   authorId: text("author_id").references(() => users.id, { onDelete: "set null" }),
@@ -342,18 +348,6 @@ export const quiz_attempts = pgTable("quiz_attempts", {
   ...timestamps
 });
 
-export const media = pgTable("media", {
-  id: text("id").primaryKey(),
-  title: text("title").notNull(),
-  type: text("type").notNull(),
-  url: text("url").notNull(),
-  category: text("category").notNull(),
-  date: text("date").notNull(),
-  isFeatured: boolean("isFeatured").default(false).notNull(),
-  photographer: text("photographer"),
-  ...timestamps
-});
-
 export const observationStatusEnum = pgEnum("observation_status", [
   "Draft", "Submitted", "Under_Review", "Core_Approved", "Admin_Approved", "Published", "Rejected"
 ]);
@@ -395,6 +389,8 @@ export const observations = pgTable("observations", {
   versionNumber: integer("version_number").default(1).notNull(),
   reportsCount: integer("reports_count").default(0).notNull(),
   isFeatured: boolean("is_featured").default(false).notNull(),
+  isHighlighted: boolean("is_highlighted").default(false).notNull(),
+  highlightPriority: integer("highlight_priority").default(0).notNull(),
   ...timestamps
 });
 

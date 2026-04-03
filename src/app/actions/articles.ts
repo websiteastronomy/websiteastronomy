@@ -306,7 +306,9 @@ function isMissingArticleWorkflowColumnError(error: unknown) {
     message.includes(`column "published_at"`) ||
     message.includes(`column "submitted_at"`) ||
     message.includes(`column "rejection_reason"`) ||
-    message.includes(`column "version_number"`)
+    message.includes(`column "version_number"`) ||
+    message.includes(`column "is_highlighted"`) ||
+    message.includes(`column "highlight_priority"`)
   );
 }
 
@@ -685,6 +687,8 @@ export async function saveArticleAction(input: ArticleInput, mode: "draft" | "re
     coreApproved: mode === "publish" ? true : mode === "review" ? false : existing?.coreApproved || false,
     isPublished: mode === "publish",
     isFeatured: existing?.isFeatured || false,
+    isHighlighted: existing?.isHighlighted || false,
+    highlightPriority: Number(existing?.highlightPriority || 0),
     isDeleted: false,
     coverImage: input.coverImageUrl || existing?.coverImage || "",
     coverImageUrl: input.coverImageUrl || existing?.coverImageUrl || existing?.coverImage || null,
@@ -817,20 +821,56 @@ export async function publishArticleAction(articleId: string) {
   return { success: true };
 }
 
-export async function setArticleFeaturedAction(articleId: string, isFeatured: boolean) {
+export async function setArticleHighlightAction(articleId: string, isHighlighted: boolean, priority: number) {
   const user = await getCurrentSessionUser();
   const access = await getArticleAccess(user.id);
-  if (!access.isAdmin) {
+  if (!access.isAdmin && !access.canReview) {
     throw new Error("Forbidden");
+  }
+  if (!Number.isFinite(priority)) {
+    throw new Error("Priority must be numeric.");
   }
 
   const article = await fetchArticleOrThrow(articleId);
+  if (normalizeArticleRecord(article).status !== "published") {
+    throw new Error("Only published articles can be highlighted.");
+  }
+
+  if (isHighlighted) {
+    const currentHighlighted = await db
+      .select({ id: articles.id })
+      .from(articles)
+      .where(
+        and(
+          eq(articles.isHighlighted, true),
+          or(eq(articles.isDeleted, false), isNull(articles.isDeleted))
+        )
+      );
+    const alreadyHighlighted = currentHighlighted.some((entry) => entry.id === articleId);
+    if (!alreadyHighlighted && currentHighlighted.length >= 10) {
+      throw new Error("Highlight limit reached. Keep at most 10 highlighted articles.");
+    }
+  }
+
   await db
     .update(articles)
-    .set({ isFeatured, updatedAt: new Date() })
+    .set({
+      isHighlighted,
+      highlightPriority: Math.trunc(priority),
+      updatedAt: new Date(),
+    })
     .where(eq(articles.id, articleId));
-  revalidateArticlePaths({ ...article, isFeatured });
+  revalidateArticlePaths({
+    ...article,
+    isHighlighted,
+    highlightPriority: Math.trunc(priority),
+  });
   return { success: true };
+}
+
+// Backward-compatible alias for older callers.
+export async function setArticleFeaturedAction(articleId: string, isFeatured: boolean) {
+  return setArticleHighlightAction(articleId, isFeatured, isFeatured ? 1 : 0);
 }
 
 export async function softDeleteArticleAction(articleId: string) {

@@ -17,8 +17,10 @@ export default function OverviewManager({ onNavigate }: { onNavigate: (tab: stri
   const [obsCount, setObsCount] = useState(0);
   const [outreachCount, setOutreachCount] = useState(0);
   const [quizQuestionsCount, setQuizQuestionsCount] = useState(0);
-  const [mediaTotal, setMediaTotal] = useState(0);
-  const [mediaFeatured, setMediaFeatured] = useState(0);
+  const [articleHighlights, setArticleHighlights] = useState(0);
+  const [observationHighlights, setObservationHighlights] = useState(0);
+  const [eventHighlights, setEventHighlights] = useState(0);
+  const [projectHighlights, setProjectHighlights] = useState(0);
 
   useEffect(() => {
     const unsubEvents = subscribeToCollection('events', (data) => setEventsCount(data.length));
@@ -29,10 +31,10 @@ export default function OverviewManager({ onNavigate }: { onNavigate: (tab: stri
       const totalQ = data.reduce((acc: number, quiz: any) => acc + (quiz?.questions?.length || 0), 0);
       setQuizQuestionsCount(totalQ);
     });
-    const unsubMedia = subscribeToCollection('media', (data) => {
-      setMediaTotal(data.length);
-      setMediaFeatured(data.filter((m: any) => m.isFeatured).length);
-    });
+    const unsubArticles = subscribeToCollection('articles', (data) => setArticleHighlights(data.filter((item: any) => item.isHighlighted).length));
+    const unsubObservations = subscribeToCollection('observations', (data) => setObservationHighlights(data.filter((item: any) => item.isHighlighted).length));
+    const unsubEventsHighlights = subscribeToCollection('events', (data) => setEventHighlights(data.filter((item: any) => item.isHighlighted).length));
+    const unsubProjectsHighlights = subscribeToCollection('projects', (data) => setProjectHighlights(data.filter((item: any) => item.isHighlighted).length));
 
     return () => {
       unsubEvents();
@@ -40,9 +42,14 @@ export default function OverviewManager({ onNavigate }: { onNavigate: (tab: stri
       unsubObs();
       unsubOutreach();
       unsubQuizzes();
-      unsubMedia();
+      unsubArticles();
+      unsubObservations();
+      unsubEventsHighlights();
+      unsubProjectsHighlights();
     };
   }, []);
+
+  const highlightTotal = articleHighlights + observationHighlights + eventHighlights + projectHighlights;
 
   const stats = [
     { label: 'Total Members', value: membersCount.toString(), change: 'Directory' },
@@ -50,7 +57,7 @@ export default function OverviewManager({ onNavigate }: { onNavigate: (tab: stri
     { label: 'Observations', value: obsCount.toString(), change: 'Archive' },
     { label: 'Outreach Impacts', value: outreachCount.toString(), change: 'Global logs' },
     { label: 'Quiz Questions', value: quizQuestionsCount.toString(), change: 'Active pool' },
-    { label: 'Gallery Pool', value: mediaTotal.toString(), change: `${mediaFeatured}/8 Published` },
+    { label: 'Highlights', value: highlightTotal.toString(), change: 'Cross-content picks' },
   ];
 
   return (

@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { revalidatePath } from "next/cache";
 import { getSystemAccess, requireAuthenticatedUser } from "@/lib/system-rbac";
@@ -11,7 +11,6 @@ const PUBLIC_COLLECTIONS = new Set([
   "articles",
   "events",
   "outreach",
-  "media",
   "projects",
   "quizzes",
   "achievements",
@@ -57,7 +56,7 @@ async function assertCollectionWriteAccess(collectionName: string) {
   if (["projects", "observations"].includes(collectionName) && access.canManageProjects) return;
   if (collectionName === "users" && access.canApproveActions) return;
   if (collectionName === "quiz_attempts") return;
-  if (["articles", "outreach", "media", "achievements", "quizzes"].includes(collectionName) && access.isAdmin) return;
+  if (["articles", "outreach", "achievements", "quizzes"].includes(collectionName) && access.isAdmin) return;
 
   throw new Error("Forbidden");
 }
@@ -71,9 +70,19 @@ export async function fetchCollectionAction(collectionName: string) {
     const data = await db.select().from(table).orderBy(desc(table.updatedAt));
     return data;
   } catch (e) {
-    // If table has no updatedAt
-    const data = await db.select().from(table);
-    return data;
+    try {
+      // If table has no updatedAt
+      const data = await db.select().from(table);
+      return data;
+    } catch {
+      // Compatibility fallback for schema drift (e.g. app expects newer columns).
+      if (!/^[a-zA-Z0-9_]+$/.test(collectionName)) {
+        throw e;
+      }
+      const tableName = sql.raw(`"${collectionName}"`);
+      const result = await db.execute(sql`select * from ${tableName}`);
+      return result.rows as any[];
+    }
   }
 }
 
@@ -81,8 +90,17 @@ export async function fetchDocumentAction(collectionName: string, id: string) {
   const table = (schema as any)[collectionName];
   if (!table) return null;
   await assertCollectionReadAccess(collectionName);
-  const data = await db.select().from(table).where(eq(table.id, id)).limit(1);
-  return data[0] || null;
+  try {
+    const data = await db.select().from(table).where(eq(table.id, id)).limit(1);
+    return data[0] || null;
+  } catch {
+    if (!/^[a-zA-Z0-9_]+$/.test(collectionName)) {
+      throw new Error("Invalid collection name");
+    }
+    const tableName = sql.raw(`"${collectionName}"`);
+    const result = await db.execute(sql`select * from ${tableName} where "id" = ${id} limit 1`);
+    return (result.rows[0] as any) || null;
+  }
 }
 
 export async function addDocumentAction(collectionName: string, data: any) {

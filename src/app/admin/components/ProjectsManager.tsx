@@ -15,7 +15,7 @@ export default function ProjectsManager() {
   // Form State
   const [formData, setFormData] = useState<any>({
     title: '', status: 'Planned', description: '', fullDescription: '', tags: '', coverImage: '',
-    isPublished: true, isFeatured: false, githubUrl: '', startDate: '', endDate: '', objective: ''
+    isPublished: true, isFeatured: false, isHighlighted: false, highlightPriority: 0, githubUrl: '', startDate: '', endDate: '', objective: ''
   });
   const [editTeam, setEditTeam] = useState<{name: string, role: string}[]>([]);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -38,6 +38,8 @@ export default function ProjectsManager() {
       coverImage: p.coverImage || '',
       isPublished: p.isPublished !== false,
       isFeatured: p.isFeatured || false,
+      isHighlighted: p.isHighlighted || false,
+      highlightPriority: Number(p.highlightPriority || 0),
       githubUrl: p.githubUrl || '',
       startDate: p.startDate || '',
       endDate: p.endDate || '',
@@ -52,7 +54,7 @@ export default function ProjectsManager() {
     setEditingProject(null);
     setFormData({
       title: '', status: 'Planned', description: '', fullDescription: '', tags: '', coverImage: '',
-      isPublished: true, isFeatured: false, githubUrl: '', startDate: '', endDate: '', objective: ''
+      isPublished: true, isFeatured: false, isHighlighted: false, highlightPriority: 0, githubUrl: '', startDate: '', endDate: '', objective: ''
     });
     setEditTeam([]);
     setShowForm(!showForm);
@@ -92,6 +94,15 @@ export default function ProjectsManager() {
         tags: formData.tags.split(',').map((s: string) => s.trim()).filter(Boolean),
         team: editTeam
       };
+      if (data.isHighlighted) {
+        const highlightedCount = projects.filter((project) => project.isHighlighted).length;
+        const isAlreadyHighlighted = Boolean(editingProject?.isHighlighted);
+        if (!isAlreadyHighlighted && highlightedCount >= 10) {
+          setFeedback({ type: 'error', message: 'Soft limit reached: keep highlighted projects within 10.' });
+          setIsSaving(false);
+          return;
+        }
+      }
 
       if (editingProject?.id) {
         data.updates = editingProject.updates || []; // preserve updates
@@ -112,8 +123,12 @@ export default function ProjectsManager() {
     }
   };
 
-  const handleToggleProjectFeature = async (id: string, current: boolean) => {
-    await updateDocument('projects', id, { isFeatured: !current });
+  const handleToggleProjectHighlight = async (id: string, current: boolean, priority: number) => {
+    if (!current && projects.filter((project) => project.isHighlighted).length >= 10) {
+      setFeedback({ type: 'error', message: 'Soft limit reached: keep highlighted projects within 10.' });
+      return;
+    }
+    await updateDocument('projects', id, { isHighlighted: !current, highlightPriority: Number(priority) || 0 });
   };
 
   const handleDelete = async (id: string) => {
@@ -236,6 +251,11 @@ export default function ProjectsManager() {
               <input type="checkbox" checked={formData.isPublished} onChange={e => setFormData({...formData, isPublished: e.target.checked})} /> 
               Publish publicly
             </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+              <input type="checkbox" checked={formData.isHighlighted} onChange={e => setFormData({...formData, isHighlighted: e.target.checked})} />
+              Mark as Highlight
+            </label>
+            <input type="number" min={0} max={999} value={formData.highlightPriority} onChange={e => setFormData({...formData, highlightPriority: Number(e.target.value) || 0})} style={{ ...inputStyle, maxWidth: '120px' }} placeholder="Priority" />
           </div>
 
           <div style={{ display: 'flex', gap: '1rem' }}>
@@ -263,7 +283,7 @@ export default function ProjectsManager() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.4rem' }}>
                 <h4 style={{ fontSize: '1.05rem' }}>{p.title}</h4>
                 {!p.isPublished && <span style={{ fontSize: '0.65rem', background: '#333', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>DRAFT</span>}
-                {p.isFeatured && <span style={{ fontSize: '0.65rem', background: 'var(--gold)', color: '#000', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>FEATURED</span>}
+                {p.isHighlighted && <span style={{ fontSize: '0.65rem', background: 'var(--gold)', color: '#000', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>HIGHLIGHT P{p.highlightPriority || 0}</span>}
               </div>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.8rem', maxWidth: '600px' }}>{p.description}</p>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -275,10 +295,10 @@ export default function ProjectsManager() {
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
               <button 
-                onClick={() => handleToggleProjectFeature(p.id, p.isFeatured)}
+                onClick={() => handleToggleProjectHighlight(p.id, p.isHighlighted, p.highlightPriority || 0)}
                 style={{ background: 'none', border: '1px solid var(--gold)', color: 'var(--gold)', padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit', minWidth: '100px' }}
               >
-                {p.isFeatured ? '★ Unfeature' : '☆ Make Featured'}
+                {p.isHighlighted ? 'Unhighlight' : 'Highlight'}
               </button>
               <button 
                 onClick={() => handleEditClick(p)}

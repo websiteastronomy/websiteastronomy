@@ -478,6 +478,44 @@ export async function adminFinalizeObservationAction(id: string, decision: "appr
   return { success: true };
 }
 
+export async function setObservationHighlightAction(id: string, isHighlighted: boolean, priority: number) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) throw new Error("Unauthorized");
+
+  const access = await getObservationAccess(session.user.id);
+  if (!access.canCoreReview) throw new Error("Forbidden: Core/Admin required");
+  if (!Number.isFinite(priority)) throw new Error("Priority must be numeric.");
+
+  const [existing] = await db.select().from(observations).where(eq(observations.id, id));
+  if (!existing) throw new Error("Observation not found");
+  if (existing.status !== "Published") throw new Error("Only published observations can be highlighted.");
+
+  if (isHighlighted) {
+    const highlighted = await db
+      .select({ id: observations.id })
+      .from(observations)
+      .where(eq(observations.isHighlighted, true));
+    const alreadyHighlighted = highlighted.some((entry) => entry.id === id);
+    if (!alreadyHighlighted && highlighted.length >= 10) {
+      throw new Error("Highlight limit reached. Keep at most 10 highlighted observations.");
+    }
+  }
+
+  await db
+    .update(observations)
+    .set({
+      isHighlighted,
+      highlightPriority: Math.trunc(priority),
+      updatedAt: new Date(),
+    })
+    .where(eq(observations.id, id));
+
+  revalidatePath("/admin");
+  revalidatePath("/observations");
+  revalidatePath(`/observations/${id}`);
+  return { success: true };
+}
+
 // ==========================================
 // 4. GETTERS
 // ==========================================
@@ -570,6 +608,21 @@ export async function getAllObservationsForAdminAction() {
   );
 
   return results;
+}
+
+export async function getHighlightableObservationsAction() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) return [];
+  const access = await getObservationAccess(session.user.id);
+  if (!access.canCoreReview) {
+    return [];
+  }
+
+  return await db
+    .select()
+    .from(observations)
+    .where(eq(observations.status, "Published"))
+    .orderBy(desc(observations.capturedAt));
 }
 
 export async function getPublishedObservationsAction() {

@@ -21,7 +21,6 @@ export const ADMIN_PAGE_PERMISSIONS = {
   outreach: (access: AccessLike) => access.isAdmin,
   achievements: (access: AccessLike) => access.isAdmin,
   nightSky: (access: AccessLike) => access.isAdmin,
-  gallery: (access: AccessLike) => access.isAdmin,
   settings: (access: AccessLike) => access.isAdmin,
   system: (access: AccessLike) => access.isAdmin,
 } as const;

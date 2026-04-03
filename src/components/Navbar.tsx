@@ -75,12 +75,11 @@ export default function Navbar() {
         <Link href="/about" className="nav-link" style={navLinkStyle('/about')}>About</Link>
 
         <div className="nav-dropdown">
-          <span className="nav-link" style={{ cursor: 'default', color: isActive('/projects') || isActive('/observations') || isActive('/outreach') || isActive('/media') ? 'var(--gold-light)' : undefined }}>Explore ▾</span>
+          <span className="nav-link" style={{ cursor: 'default', color: isActive('/projects') || isActive('/observations') || isActive('/outreach') ? 'var(--gold-light)' : undefined }}>Explore ▾</span>
           <div className="dropdown-menu">
             <Link href="/projects" className="dropdown-item" style={isActive('/projects') ? { color: 'var(--gold-light)' } : {}}>Projects</Link>
             <Link href="/observations" className="dropdown-item" style={isActive('/observations') ? { color: 'var(--gold-light)' } : {}}>Observations</Link>
             <Link href="/outreach" className="dropdown-item" style={isActive('/outreach') ? { color: 'var(--gold-light)' } : {}}>Outreach</Link>
-            <Link href="/media" className="dropdown-item" style={isActive('/media') ? { color: 'var(--gold-light)' } : {}}>Media</Link>
           </div>
         </div>
 

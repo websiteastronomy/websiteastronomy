@@ -98,6 +98,8 @@ export function normalizeArticleRecord(article: any) {
     coreApproved: Boolean(article.coreApproved),
     isDeleted: Boolean(article.isDeleted),
     isFeatured: Boolean(article.isFeatured),
+    isHighlighted: Boolean(article.isHighlighted),
+    highlightPriority: Number(article.highlightPriority || 0),
     isPublished: status === "published",
     versionNumber: Number(article.versionNumber || 1),
   };

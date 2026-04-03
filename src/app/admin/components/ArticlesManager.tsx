@@ -12,7 +12,7 @@ import {
   reviewArticleEditRequestAction,
   rollbackArticleVersionAction,
   saveArticleAction,
-  setArticleFeaturedAction,
+  setArticleHighlightAction,
   softDeleteArticleAction,
 } from "@/app/actions/articles";
 import { loadSiteSettingsClient } from "@/data/siteSettingsStatic";
@@ -466,7 +466,7 @@ export default function ArticlesManager() {
                 <div style={{ display: "flex", gap: "0.55rem", flexWrap: "wrap", marginBottom: "0.4rem" }}>
                   <span style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--gold)", fontWeight: 600 }}>{article.contentType}</span>
                   <span style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>{article.knowledgeCategory}</span>
-                  {article.isFeatured ? <span style={{ fontSize: "0.65rem", background: "var(--gold)", color: "#000", padding: "0.2rem 0.5rem", borderRadius: "4px", fontWeight: 700 }}>FEATURED</span> : null}
+                  {article.isHighlighted ? <span style={{ fontSize: "0.65rem", background: "var(--gold)", color: "#000", padding: "0.2rem 0.5rem", borderRadius: "4px", fontWeight: 700 }}>HIGHLIGHT</span> : null}
                 </div>
                 <h4 style={{ fontSize: "1.05rem", margin: "0 0 0.35rem" }}>{article.title}</h4>
                 <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", margin: "0 0 0.5rem" }}>
@@ -494,10 +494,38 @@ export default function ArticlesManager() {
                     Publish
                   </button>
                 ) : null}
-                {canPublish && article.status === "published" ? (
-                  <button className="btn-secondary" style={{ fontSize: "0.75rem", background: "transparent", cursor: "pointer" }} onClick={async () => { setFeedback(null); try { await setArticleFeaturedAction(article.id, !article.isFeatured); await loadSnapshot(); setFeedback({ type: "success", message: article.isFeatured ? "Article removed from featured list." : "Article marked as featured." }); } catch (error) { console.error(error); setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to update featured state." }); } }}>
-                    {article.isFeatured ? "Unfeature" : "Feature"}
-                  </button>
+                {canReview && article.status === "published" ? (
+                  <div style={{ display: "flex", gap: "0.45rem", alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    <input
+                      type="number"
+                      defaultValue={article.highlightPriority || 0}
+                      min={0}
+                      max={999}
+                      style={{ ...inputStyle, width: "86px", padding: "0.35rem 0.45rem", fontSize: "0.75rem" }}
+                      onBlur={async (event) => {
+                        const parsed = Number(event.currentTarget.value);
+                        if (!Number.isFinite(parsed)) {
+                          setFeedback({ type: "error", message: "Priority must be numeric." });
+                          event.currentTarget.value = String(article.highlightPriority || 0);
+                          return;
+                        }
+                        if (!article.isHighlighted) {
+                          return;
+                        }
+                        setFeedback(null);
+                        try {
+                          await setArticleHighlightAction(article.id, true, parsed);
+                          await loadSnapshot();
+                        } catch (error) {
+                          console.error(error);
+                          setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to update highlight priority." });
+                        }
+                      }}
+                    />
+                    <button className="btn-secondary" style={{ fontSize: "0.75rem", background: "transparent", cursor: "pointer" }} onClick={async () => { setFeedback(null); try { await setArticleHighlightAction(article.id, !article.isHighlighted, article.highlightPriority || 0); await loadSnapshot(); setFeedback({ type: "success", message: article.isHighlighted ? "Article removed from highlights." : "Article added to highlights." }); } catch (error) { console.error(error); setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to update highlight state." }); } }}>
+                      {article.isHighlighted ? "Unhighlight" : "Highlight"}
+                    </button>
+                  </div>
                 ) : null}
                 {canPublish ? (
                   <button className="btn-secondary" style={{ fontSize: "0.75rem", background: "transparent", cursor: "pointer", borderColor: "rgba(239,68,68,0.35)", color: "#ef4444" }} onClick={async () => { if (pendingDeleteArticleId !== article.id) { setFeedback(null); setPendingDeleteArticleId(article.id); return; } setFeedback(null); try { await softDeleteArticleAction(article.id); setPendingDeleteArticleId(null); await loadSnapshot(); setFeedback({ type: "success", message: `Article "${article.title}" moved out of the active queue.` }); } catch (error) { console.error(error); setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to delete article." }); } }}>

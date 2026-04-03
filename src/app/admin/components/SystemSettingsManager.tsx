@@ -79,7 +79,7 @@ export default function SystemSettingsManager() {
               }}
             />
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-              Controls the maximum allowed size per file uploaded to Cloudflare R2 via the Admin Portal or Media galleries. Valid bounds: 1MB – 100MB.
+              Controls the maximum allowed size per file uploaded to Cloudflare R2 via the Admin Portal. Valid bounds: 1MB – 100MB.
             </p>
           </div>
 

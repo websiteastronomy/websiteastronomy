@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { getAllObservationsForAdminAction, adminFinalizeObservationAction } from '@/app/actions/observations-engine';
+import { getAllObservationsForAdminAction, adminFinalizeObservationAction, setObservationHighlightAction } from '@/app/actions/observations-engine';
 import { rowStyle } from './shared';
 import { formatDateStable } from '@/lib/format-date';
 
@@ -170,6 +170,13 @@ export default function ObservationsManager() {
                         Status: <strong style={{ color: "var(--gold)" }}>{obs.status.replace("_", " ")}</strong>
                       </span>
                     </div>
+                    {obs.isHighlighted && (
+                      <div>
+                        <span style={{ background: "rgba(201,168,76,0.2)", border: "1px solid rgba(201,168,76,0.5)", padding: "0.2rem 0.5rem", borderRadius: "4px", color: "var(--gold-light)", fontWeight: 700 }}>
+                          Highlight P{obs.highlightPriority || 0}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   
                   {obs.rejectionReason && (
@@ -230,6 +237,45 @@ export default function ObservationsManager() {
                      >
                        Ignore Reports
                      </button>
+                    )}
+                    {obs.status === "Published" && (
+                      <div style={{ display: "flex", gap: "0.4rem" }}>
+                        <input
+                          type="number"
+                          min={0}
+                          max={999}
+                          defaultValue={obs.highlightPriority || 0}
+                          className="input-field"
+                          style={{ fontSize: "0.75rem", padding: "0.35rem 0.45rem", minWidth: "72px" }}
+                          onBlur={async (event) => {
+                            const parsed = Number(event.currentTarget.value);
+                            if (!Number.isFinite(parsed) || !obs.isHighlighted) {
+                              return;
+                            }
+                            try {
+                              await setObservationHighlightAction(obs.id, true, parsed);
+                              fetchQueue();
+                            } catch (err: any) {
+                              setFeedback({ type: "error", message: "Highlight update failed: " + err.message });
+                            }
+                          }}
+                        />
+                        <button
+                          className="btn-secondary"
+                          style={{ fontSize: "0.75rem", borderColor: "var(--gold-dark)", color: "var(--gold)" }}
+                          onClick={async () => {
+                            setFeedback(null);
+                            try {
+                              await setObservationHighlightAction(obs.id, !obs.isHighlighted, obs.highlightPriority || 0);
+                              fetchQueue();
+                            } catch (err: any) {
+                              setFeedback({ type: "error", message: "Highlight update failed: " + err.message });
+                            }
+                          }}
+                        >
+                          {obs.isHighlighted ? "Unhighlight" : "Highlight"}
+                        </button>
+                      </div>
                     )}
                     {obs.status !== "Rejected" && (
                       <button 
