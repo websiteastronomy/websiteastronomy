@@ -3,6 +3,7 @@
 import { db } from "@/db";
 import { articles, events, observations, projects } from "@/db/schema";
 import { and, desc, eq, isNull, or } from "drizzle-orm";
+import { getHighlightsControlAction, type ManualHighlightItem } from "@/app/actions/highlights-control";
 
 export type HighlightItem = {
   id: string;
@@ -92,7 +93,7 @@ function dedupeKey(item: HighlightItem) {
   return `${item.type}:${item.id}`;
 }
 
-export async function getHighlights() {
+async function getAutomaticHighlights() {
   const [articleRows, observationRows, eventRows, projectRows] = await Promise.all([
     db
       .select()
@@ -142,4 +143,79 @@ export async function getHighlights() {
   const output = [...picked, ...fallback].slice(0, HIGHLIGHTS_LIMIT);
 
   return output.map(({ dateValue: _dateValue, isHighlighted: _isHighlighted, ...rest }) => rest);
+}
+
+async function resolveManualHighlight(item: ManualHighlightItem): Promise<HighlightItem | null> {
+  if (item.type === "article") {
+    const rows = await db
+      .select()
+      .from(articles)
+      .where(
+        and(
+          eq(articles.id, item.id),
+          or(eq(articles.status, "published"), eq(articles.isPublished, true)),
+          or(eq(articles.isDeleted, false), isNull(articles.isDeleted))
+        )
+      )
+      .limit(1);
+    return rows[0] ? { ...mapArticle(rows[0]), priority: item.priority, isHighlighted: true } : null;
+  }
+
+  if (item.type === "observation") {
+    const rows = await db
+      .select()
+      .from(observations)
+      .where(and(eq(observations.id, item.id), eq(observations.status, "Published")))
+      .limit(1);
+    return rows[0] ? { ...mapObservation(rows[0]), priority: item.priority, isHighlighted: true } : null;
+  }
+
+  if (item.type === "event") {
+    const rows = await db
+      .select()
+      .from(events)
+      .where(and(eq(events.id, item.id), eq(events.isPublished, true)))
+      .limit(1);
+    return rows[0] ? { ...mapEvent(rows[0]), priority: item.priority, isHighlighted: true } : null;
+  }
+
+  const rows = await db
+    .select()
+    .from(projects)
+    .where(and(eq(projects.id, item.id), eq(projects.isPublished, true)))
+    .limit(1);
+  return rows[0] ? { ...mapProject(rows[0]), priority: item.priority, isHighlighted: true } : null;
+}
+
+async function getManualHighlights(manualItems: ManualHighlightItem[]) {
+  const resolved = await Promise.all(manualItems.map(resolveManualHighlight));
+  return resolved.filter((item): item is HighlightItem => Boolean(item)).sort(sortManual).slice(0, HIGHLIGHTS_LIMIT);
+}
+
+export async function getHighlights() {
+  const control = await getHighlightsControlAction().catch(() => ({
+    highlight_mode: "auto" as const,
+    manual_highlights: [],
+  }));
+
+  const automatic = await getAutomaticHighlights();
+
+  if (control.highlight_mode === "auto") {
+    return automatic;
+  }
+
+  const manual = await getManualHighlights(control.manual_highlights);
+  if (control.highlight_mode === "manual") {
+    return manual.map(({ dateValue: _dateValue, isHighlighted: _isHighlighted, ...rest }) => rest);
+  }
+
+  const pickedKeys = new Set(manual.map(dedupeKey));
+  const hybrid = [
+    ...manual,
+    ...automatic
+      .filter((item) => !pickedKeys.has(dedupeKey({ ...item, dateValue: 0, isHighlighted: true } as HighlightItem)))
+      .map((item) => ({ ...item, dateValue: 0, isHighlighted: false } as HighlightItem)),
+  ].slice(0, HIGHLIGHTS_LIMIT);
+
+  return hybrid.map(({ dateValue: _dateValue, isHighlighted: _isHighlighted, ...rest }) => rest);
 }

@@ -5,6 +5,8 @@ import { inputStyle } from './shared';
 import { loadSiteSettingsClient } from '@/data/siteSettingsStatic';
 import { writeSiteSettingsLocal } from '@/lib/settingsLocal';
 import { getSiteSettingsAction, updateSiteSettingsAction } from '@/app/actions/site-settings';
+import AboutPageEditor from './AboutPageEditor';
+import HighlightsControlManager from './HighlightsControlManager';
 
 export default function SettingsManager() {
   const [siteSettings, setSiteSettings] = useState<any>(null);
@@ -79,6 +81,10 @@ export default function SettingsManager() {
       ) : null}
 
       <div style={{ display: 'grid', gap: '2rem' }}>
+        <div style={{ padding: '1rem 1.2rem', borderRadius: '10px', border: '1px solid rgba(201,168,76,0.2)', background: 'rgba(201,168,76,0.07)', color: 'var(--text-secondary)', fontSize: '0.84rem', lineHeight: 1.6 }}>
+          The legacy Site Settings fields below are still active in the homepage and education flows, so they are being retained for backward compatibility. New About Page and Highlights controls are managed in separate safe layers below.
+        </div>
+
         {/* Recruitment Toggle */}
         <div style={{ background: 'rgba(15, 22, 40, 0.4)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -103,7 +109,10 @@ export default function SettingsManager() {
 
         {/* Home Page Stats */}
         <div style={{ background: 'rgba(15, 22, 40, 0.4)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '1.2rem' }}>Home Page Stats (Counters)</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', marginBottom: '1.2rem' }}>
+            <h3 style={{ fontSize: '1.1rem', margin: 0 }}>Home Page Stats (Counters)</h3>
+            <span style={{ fontSize: '0.72rem', color: 'var(--gold)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Legacy / Active</span>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.8rem' }}>
             <div>
               <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Members</label>
@@ -126,7 +135,10 @@ export default function SettingsManager() {
 
         {/* Daily Fact */}
         <div style={{ background: 'rgba(15, 22, 40, 0.4)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '1.2rem' }}>Astronomy Fact of the Day</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', marginBottom: '1.2rem' }}>
+            <h3 style={{ fontSize: '1.1rem', margin: 0 }}>Astronomy Fact of the Day</h3>
+            <span style={{ fontSize: '0.72rem', color: 'var(--gold)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Legacy / Active</span>
+          </div>
           <textarea 
             rows={3} 
             value={siteSettings.dailyFact?.text || ''} 
@@ -144,7 +156,10 @@ export default function SettingsManager() {
 
         {/* Feature Highlights */}
         <div style={{ background: 'rgba(15, 22, 40, 0.4)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '1.2rem' }}>Featured ID Overrides</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', marginBottom: '1.2rem' }}>
+            <h3 style={{ fontSize: '1.1rem', margin: 0 }}>Featured ID Overrides</h3>
+            <span style={{ fontSize: '0.72rem', color: 'var(--gold)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Legacy / Active</span>
+          </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>Enter specific IDs to force highlight items on the home page (Leave empty for auto-latest).</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <input 
@@ -161,6 +176,9 @@ export default function SettingsManager() {
             />
           </div>
         </div>
+
+        <AboutPageEditor />
+        <HighlightsControlManager />
       </div>
     </>
   );

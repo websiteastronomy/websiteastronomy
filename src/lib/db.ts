@@ -4,9 +4,9 @@ import {
   addDocumentAction,
   updateDocumentAction,
   deleteDocumentAction,
-  fetchAboutSettingsAction,
   updateAboutSettingsAction
 } from "@/app/actions";
+import { getAboutPageDataAction } from "@/app/actions/about-page-control";
 import {
   readAboutSettingsLocal,
   writeAboutSettingsLocal,
@@ -107,8 +107,7 @@ export const getAboutSettings = async (): Promise<AboutPageSettings> => {
   
   let base: AboutPageSettings = defaults;
   try {
-    const settings = await fetchAboutSettingsAction();
-    if (settings) base = settings as AboutPageSettings;
+    base = await getAboutPageDataAction();
   } catch (err) {
     console.error('[getAboutSettings] DB error, returning defaults:', err);
   }

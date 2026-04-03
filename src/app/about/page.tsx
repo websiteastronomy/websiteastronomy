@@ -5,12 +5,14 @@ import { getCollection } from '@/lib/db';
 import { getPublicMembersAction } from '@/app/actions/publicMembers';
 import { loadSiteSettingsClient } from '@/data/siteSettingsStatic';
 import { ABOUT_VISION_MISSION } from '@/data/aboutPageStatic';
+import { getAboutPageDataAction, type ResolvedAboutPageData } from '@/app/actions/about-page-control';
 import AnimatedSection from '@/components/AnimatedSection';
 import AnimatedCounter from '@/components/AnimatedCounter';
 import { motion, Variants } from 'framer-motion';
 
 export default function About() {
   const [siteSettings, setSiteSettings] = useState<any>(null);
+  const [aboutPageData, setAboutPageData] = useState<ResolvedAboutPageData>(ABOUT_VISION_MISSION);
   const [team, setTeam] = useState<any[]>([]);
   const [achievements, setAchievements] = useState<any[]>([]);
   const [outreach, setOutreach] = useState<any[]>([]);
@@ -36,6 +38,7 @@ export default function About() {
       };
 
       try {
+        const aboutData = await getAboutPageDataAction().catch(() => ABOUT_VISION_MISSION);
         const { getPlatformStatsAction } = await import('@/app/actions/stats');
         const [membersData, achievementsData, outreachData, platformStats, eventsData] = await Promise.all([
           getPublicMembersAction().catch(e => { console.error(e); return []; }),
@@ -45,6 +48,7 @@ export default function About() {
           safeCollection("events")
         ]);
         if (!cancelled) {
+          setAboutPageData(aboutData);
           setTeam(membersData);
           setAchievements(achievementsData);
           setOutreach(outreachData);
@@ -124,16 +128,16 @@ export default function About() {
             <div style={{ flex: "1 1 400px", position: "relative" }}>
               <div style={{ position: "absolute", inset: "-15px", border: "1px solid var(--gold)", opacity: 0.2, borderRadius: "32px", zIndex: 0 }} />
               <img 
-                src={ABOUT_VISION_MISSION.vision.imageUrl} 
+                src={aboutPageData.vision.imageUrl} 
                 alt="Vision" 
                 style={{ width: "100%", height: "450px", objectFit: "cover", borderRadius: "24px", boxShadow: "0 30px 60px rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.1)", position: "relative", zIndex: 1 }} 
               />
             </div>
             <div style={{ flex: "1 1 400px", padding: "1rem" }}>
               <div style={{ width: "40px", height: "2px", background: "var(--gold)", marginBottom: "1.5rem" }} />
-              <h3 style={{ fontSize: "2.4rem", marginBottom: "1.5rem", fontFamily: "'Cinzel', serif", color: "var(--text-primary)" }}>{ABOUT_VISION_MISSION.vision.title}</h3>
+              <h3 style={{ fontSize: "2.4rem", marginBottom: "1.5rem", fontFamily: "'Cinzel', serif", color: "var(--text-primary)" }}>{aboutPageData.vision.title}</h3>
               <p style={{ color: "var(--text-secondary)", fontSize: "1.1rem", lineHeight: 1.8, fontWeight: 300, textAlign: "justify" }}>
-                {ABOUT_VISION_MISSION.vision.text}
+                {aboutPageData.vision.text}
               </p>
             </div>
           </div>
@@ -144,16 +148,16 @@ export default function About() {
             <div style={{ flex: "1 1 400px", position: "relative" }}>
               <div style={{ position: "absolute", inset: "-15px", border: "1px solid var(--gold)", opacity: 0.2, borderRadius: "32px", zIndex: 0 }} />
               <img 
-                src={ABOUT_VISION_MISSION.mission.imageUrl} 
+                src={aboutPageData.mission.imageUrl} 
                 alt="Mission" 
                 style={{ width: "100%", height: "450px", objectFit: "cover", borderRadius: "24px", boxShadow: "0 30px 60px rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.1)", position: "relative", zIndex: 1 }} 
               />
             </div>
             <div style={{ flex: "1 1 400px", padding: "1rem" }}>
               <div style={{ width: "40px", height: "2px", background: "var(--gold)", marginBottom: "1.5rem" }} />
-              <h3 style={{ fontSize: "2.4rem", marginBottom: "1.5rem", fontFamily: "'Cinzel', serif", color: "var(--text-primary)" }}>{ABOUT_VISION_MISSION.mission.title}</h3>
+              <h3 style={{ fontSize: "2.4rem", marginBottom: "1.5rem", fontFamily: "'Cinzel', serif", color: "var(--text-primary)" }}>{aboutPageData.mission.title}</h3>
               <p style={{ color: "var(--text-secondary)", fontSize: "1.1rem", lineHeight: 1.8, fontWeight: 300, textAlign: "justify" }}>
-                {ABOUT_VISION_MISSION.mission.text}
+                {aboutPageData.mission.text}
               </p>
             </div>
           </div>
