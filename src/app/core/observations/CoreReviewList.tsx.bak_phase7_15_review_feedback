@@ -7,20 +7,18 @@ import { formatDateStable } from "@/lib/format-date";
 export default function CoreReviewList({ queue, currentUserId }: { queue: any[], currentUserId: string }) {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [rejectReasonMap, setRejectReasonMap] = useState<Record<string, string>>({});
-  const [feedback, setFeedback] = useState<{ type: "error"; message: string } | null>(null);
 
   const handleVote = async (id: string, vote: "approve" | "reject") => {
     if (vote === "reject" && !rejectReasonMap[id]) {
-      setFeedback({ type: "error", message: "You must provide a rejection reason in the notes box below." });
+      alert("You must provide a rejection reason in the notes box below.");
       return;
     }
     
     setProcessingId(id);
-    setFeedback(null);
     try {
       await processCoreVoteAction(id, vote, vote === "reject" ? rejectReasonMap[id] : undefined);
     } catch (err) {
-      setFeedback({ type: "error", message: "Vote failed. Check console." });
+      alert("Vote failed. Check console.");
       console.error(err);
     } finally {
       setProcessingId(null);
@@ -29,20 +27,6 @@ export default function CoreReviewList({ queue, currentUserId }: { queue: any[],
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-      {feedback && (
-        <div
-          style={{
-            padding: "0.85rem 1rem",
-            borderRadius: "8px",
-            border: "1px solid rgba(239,68,68,0.35)",
-            background: "rgba(239,68,68,0.1)",
-            color: "#fca5a5",
-            fontSize: "0.85rem",
-          }}
-        >
-          {feedback.message}
-        </div>
-      )}
       {queue.map((obs) => {
         const hasApproved = (obs.approvals as string[]).includes(currentUserId);
         const hasRejected = (obs.rejections as string[]).includes(currentUserId);

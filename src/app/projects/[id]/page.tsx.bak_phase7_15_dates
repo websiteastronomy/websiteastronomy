@@ -49,7 +49,6 @@ import { authClient } from "@/lib/auth-client";
 import { getMyRBACProfile } from "@/app/actions/auth";
 import { getProjectPermissionsAction } from "@/app/actions/projectAccess";
 import { type ProjectPermissions } from "@/lib/project_permissions";
-import { formatDateStable } from "@/lib/format-date";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatTimeAgo(dateInput: string | Date) {
@@ -1036,7 +1035,7 @@ export default function ProjectDetail() {
                                 <>
                                   <p style={{ fontSize: "0.85rem", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: file.type === "folder" ? "var(--gold-light)" : "var(--text-primary)" }}>{file.name}</p>
                                   <p style={{ fontSize: "0.65rem", color: "var(--text-muted)", margin: 0 }}>
-                                    {formatDateStable(file.updatedAt)}
+                                    {new Date(file.updatedAt).toLocaleDateString()}
                                   </p>
                                 </>
                               )}

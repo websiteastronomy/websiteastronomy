@@ -23,10 +23,6 @@ export default function MembersManager() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPendingIds, setSelectedPendingIds] = useState<string[]>([]);
-  const [feedback, setFeedback] = useState<{ type: "error" | "success"; message: string } | null>(null);
-  const [pendingRejectId, setPendingRejectId] = useState<string | null>(null);
-  const [pendingBulkAction, setPendingBulkAction] = useState<"approve" | "reject" | null>(null);
-  const [pendingDeleteUserId, setPendingDeleteUserId] = useState<string | null>(null);
 
   // Inline edit state
   const [editingInfoUser, setEditingInfoUser] = useState<string | null>(null);
@@ -101,7 +97,6 @@ export default function MembersManager() {
 
   const handleApprove = async () => {
     if (!approvingUser) return;
-    setFeedback(null);
     setIsProcessing(true);
     try {
       if (approvingUser.status === "approved") {
@@ -118,33 +113,30 @@ export default function MembersManager() {
       }
       await triggerRoleRefresh(approvingUser.id);
       setApprovingUser(null);
-      setFeedback({ type: "success", message: approvingUser.status === "approved" ? "Role updated successfully." : "Member approved successfully." });
       fetchUsers();
     } catch (err: any) {
       console.error(err);
-      setFeedback({ type: "error", message: "Failed to approve user: " + (err.message || "Unknown error") });
+      alert("Failed to approve user: " + (err.message || "Unknown error"));
     } finally {
       setIsProcessing(false);
     }
   };
 
   const handleReject = async (id: string) => {
-    setFeedback(null);
+    if (!confirm("Are you sure you want to reject this user?")) return;
     try {
       await rejectUserAction(id);
       setSelectedPendingIds(prev => prev.filter(uId => uId !== id));
-      setPendingRejectId(null);
-      setFeedback({ type: "success", message: "Member request rejected." });
       fetchUsers();
     } catch (err: any) {
       console.error(err);
-      setFeedback({ type: "error", message: "Failed to reject user: " + (err.message || "Unknown error") });
+      alert("Failed to reject user: " + (err.message || "Unknown error"));
     }
   };
 
   const handleBulkApprove = async () => {
     if (selectedPendingIds.length === 0) return;
-    setFeedback(null);
+    if (!confirm(`Bulk approve ${selectedPendingIds.length} members with 'Member' role?`)) return;
     setIsProcessing(true);
     try {
       for (const id of selectedPendingIds) {
@@ -152,12 +144,10 @@ export default function MembersManager() {
         await triggerRoleRefresh(id);
       }
       setSelectedPendingIds([]);
-      setPendingBulkAction(null);
-      setFeedback({ type: "success", message: "Selected members approved." });
       fetchUsers();
     } catch (err) {
       console.error(err);
-      setFeedback({ type: "error", message: "Error occurred during bulk approval." });
+      alert("Error occurred during bulk approval.");
     } finally {
       setIsProcessing(false);
     }
@@ -165,19 +155,17 @@ export default function MembersManager() {
 
   const handleBulkReject = async () => {
     if (selectedPendingIds.length === 0) return;
-    setFeedback(null);
+    if (!confirm(`Bulk reject ${selectedPendingIds.length} members?`)) return;
     setIsProcessing(true);
     try {
       for (const id of selectedPendingIds) {
         await rejectUserAction(id);
       }
       setSelectedPendingIds([]);
-      setPendingBulkAction(null);
-      setFeedback({ type: "success", message: "Selected member requests rejected." });
       fetchUsers();
     } catch (err) {
       console.error(err);
-      setFeedback({ type: "error", message: "Error occurred during bulk rejection." });
+      alert("Error occurred during bulk rejection.");
     } finally {
       setIsProcessing(false);
     }
@@ -216,20 +204,6 @@ export default function MembersManager() {
           style={{ width: "100%", padding: "0.75rem 1rem", background: "rgba(15, 22, 40, 0.5)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontSize: "0.9rem", outline: "none" }}
         />
       </div>
-
-      {feedback ? (
-        <div style={{
-          marginBottom: "1rem",
-          padding: "0.9rem 1rem",
-          borderRadius: "8px",
-          border: `1px solid ${feedback.type === "error" ? "rgba(239,68,68,0.35)" : "rgba(34,197,94,0.35)"}`,
-          background: feedback.type === "error" ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)",
-          color: feedback.type === "error" ? "#fca5a5" : "#86efac",
-          fontSize: "0.85rem",
-        }}>
-          {feedback.message}
-        </div>
-      ) : null}
 
       {/* ── Approval Dialog ── */}
       {approvingUser && mayApproveMembers && (
@@ -355,14 +329,8 @@ export default function MembersManager() {
         
         {selectedPendingIds.length > 0 && mayApproveMembers && (
           <div style={{ display: "flex", gap: "0.5rem" }}>
-            <button onClick={() => { setFeedback(null); setPendingBulkAction((current) => current === "approve" ? null : "approve"); }} disabled={isProcessing} className="btn-primary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem", background: pendingBulkAction === "approve" ? "#15803d" : "#22c55e", borderColor: pendingBulkAction === "approve" ? "#15803d" : "#22c55e" }}>{pendingBulkAction === "approve" ? `Cancel Approve ${selectedPendingIds.length}` : "Bulk Approve (Member)"}</button>
-            {pendingBulkAction === "approve" ? (
-              <button onClick={handleBulkApprove} disabled={isProcessing} className="btn-secondary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem", color: "#22c55e", borderColor: "rgba(34, 197, 94, 0.5)", background: "transparent" }}>Confirm Approve</button>
-            ) : null}
-            <button onClick={() => { setFeedback(null); setPendingBulkAction((current) => current === "reject" ? null : "reject"); }} disabled={isProcessing} className="btn-secondary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem", color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.5)", background: "transparent" }}>{pendingBulkAction === "reject" ? `Cancel Reject ${selectedPendingIds.length}` : "Bulk Reject"}</button>
-            {pendingBulkAction === "reject" ? (
-              <button onClick={handleBulkReject} disabled={isProcessing} className="btn-secondary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem", color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.5)", background: "rgba(239,68,68,0.08)" }}>Confirm Reject</button>
-            ) : null}
+            <button onClick={handleBulkApprove} disabled={isProcessing} className="btn-primary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem", background: "#22c55e", borderColor: "#22c55e" }}>Bulk Approve (Member)</button>
+            <button onClick={handleBulkReject} disabled={isProcessing} className="btn-secondary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem", color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.5)", background: "transparent" }}>Bulk Reject</button>
           </div>
         )}
       </div>
@@ -397,22 +365,11 @@ export default function MembersManager() {
                 Approve Target
               </button>
               <button
-                onClick={() => {
-                  setFeedback(null);
-                  setPendingRejectId((current) => current === user.id ? null : user.id);
-                }}
+                onClick={() => handleReject(user.id)}
                 style={{ background: "transparent", border: "1px solid rgba(239,68,68,0.5)", color: "#ef4444", padding: "0.4rem 0.8rem", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem", fontFamily: "inherit" }}
               >
-                {pendingRejectId === user.id ? "Cancel" : "Reject"}
+                Reject
               </button>
-              {pendingRejectId === user.id ? (
-                <button
-                  onClick={() => void handleReject(user.id)}
-                  style={{ background: "#ef4444", color: "#fff", padding: "0.4rem 0.8rem", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem", fontFamily: "inherit", border: "none" }}
-                >
-                  Confirm Reject
-                </button>
-              ) : null}
             </div>}
           </div>
         ))}
@@ -475,13 +432,11 @@ export default function MembersManager() {
                     <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.3rem" }}>
                       <button 
                         onClick={() => {
-                          setFeedback(null);
                           setIsProcessing(true);
                           updateUserMetadataAction(user.id, infoFormData).then(() => {
                             setEditingInfoUser(null);
-                            setFeedback({ type: "success", message: "Member information updated." });
                             fetchUsers();
-                          }).catch(e => setFeedback({ type: "error", message: e.message })).finally(() => setIsProcessing(false));
+                          }).catch(e => alert(e.message)).finally(() => setIsProcessing(false));
                         }}
                         disabled={isProcessing}
                         style={{ padding: "0.3rem 0.8rem", background: "var(--gold)", color: "#000", border: "none", borderRadius: "4px", cursor: isProcessing ? "not-allowed" : "pointer", fontSize: "0.75rem", fontWeight: "bold" }}
@@ -522,13 +477,11 @@ export default function MembersManager() {
                     disabled={!mayTogglePublic}
                     onChange={async () => {
                       if (!mayTogglePublic || isProcessing) return;
-                      setFeedback(null);
                       setIsProcessing(true);
                       try {
                         await updateUserMetadataAction(user.id, { isPublic: !user.isPublic });
-                        setFeedback({ type: "success", message: `Public visibility ${user.isPublic ? "disabled" : "enabled"}.` });
                         fetchUsers();
-                      } catch (err: any) { setFeedback({ type: "error", message: err.message }); }
+                      } catch (err: any) { alert(err.message); }
                       finally { setIsProcessing(false); }
                     }}
                     style={{ accentColor: "var(--gold)", cursor: mayTogglePublic ? "pointer" : "not-allowed" }}
@@ -562,27 +515,20 @@ export default function MembersManager() {
                   {mayDeleteUser && <button
                     disabled={isProcessing}
                     onClick={async () => {
-                      if (pendingDeleteUserId !== user.id) {
-                        setFeedback(null);
-                        setPendingDeleteUserId(user.id);
-                        return;
-                      }
-                      setFeedback(null);
+                      if (!confirm("Are you sure you want to permanently delete this user?")) return;
                       setIsProcessing(true);
                       try {
                         await deleteUserAction(user.id);
-                        setPendingDeleteUserId(null);
-                        setFeedback({ type: "success", message: "User deleted successfully." });
                         fetchUsers();
                       } catch (err: any) {
-                        setFeedback({ type: "error", message: err.message });
+                        alert(err.message);
                       } finally {
                         setIsProcessing(false);
                       }
                     }}
                     style={{ background: "transparent", border: "1px solid rgba(239,68,68,0.5)", color: "#ef4444", padding: "0.25rem 0.5rem", borderRadius: "4px", cursor: isProcessing ? "not-allowed" : "pointer", fontSize: "0.7rem", opacity: isProcessing ? 0.5: 1 }}
                   >
-                    {pendingDeleteUserId === user.id ? "Confirm Delete" : "Delete"}
+                    Delete
                   </button>}
                 </div>
               </div>

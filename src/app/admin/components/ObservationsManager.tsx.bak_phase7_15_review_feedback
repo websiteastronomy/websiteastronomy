@@ -10,7 +10,6 @@ export default function ObservationsManager() {
   const [loading, setLoading] = useState(true);
   const [activeQueue, setActiveQueue] = useState<"pending" | "core_approved" | "published" | "rejected" | "flagged">("core_approved");
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<{ type: "error"; message: string } | null>(null);
 
   // Rejection Modals
   const [rejectingId, setRejectingId] = useState<string | null>(null);
@@ -39,7 +38,6 @@ export default function ObservationsManager() {
 
   const handleAdminDecision = async (id: string, decision: "approve" | "reject", reason?: string) => {
     setProcessingId(id);
-    setFeedback(null);
     try {
       await adminFinalizeObservationAction(id, decision, reason);
       // Optimistic Update
@@ -54,7 +52,7 @@ export default function ObservationsManager() {
         setAdminReason("");
       }
     } catch (err: any) {
-      setFeedback({ type: "error", message: "Decision failed: " + err.message });
+      alert("Decision failed: " + err.message);
     } finally {
       setProcessingId(null);
     }
@@ -81,22 +79,6 @@ export default function ObservationsManager() {
         </div>
         <button onClick={fetchQueue} className="btn-secondary" style={{ fontSize: "0.8rem", padding: "0.5rem 1rem" }}>Refresh Queue</button>
       </div>
-
-      {feedback && (
-        <div
-          style={{
-            marginBottom: "1rem",
-            padding: "0.85rem 1rem",
-            borderRadius: "8px",
-            border: "1px solid rgba(239,68,68,0.35)",
-            background: "rgba(239,68,68,0.1)",
-            color: "#fca5a5",
-            fontSize: "0.85rem",
-          }}
-        >
-          {feedback.message}
-        </div>
-      )}
 
       {/* TABS */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem', overflowX: "auto" }}>

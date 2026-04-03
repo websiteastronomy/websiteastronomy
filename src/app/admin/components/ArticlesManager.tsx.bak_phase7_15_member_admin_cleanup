@@ -70,8 +70,6 @@ export default function ArticlesManager() {
   });
   const [dailyFact, setDailyFact] = useState("");
   const [siteSettings, setSiteSettings] = useState<any>(null);
-  const [feedback, setFeedback] = useState<{ type: "error" | "success"; message: string } | null>(null);
-  const [pendingDeleteArticleId, setPendingDeleteArticleId] = useState<string | null>(null);
 
   const loadSnapshot = async () => {
     setIsLoading(true);
@@ -81,7 +79,7 @@ export default function ArticlesManager() {
       setEditRequests(snapshot.editRequests || []);
     } catch (error) {
       console.error(error);
-      setFeedback({ type: "error", message: "Failed to load article queues." });
+      window.alert("Failed to load article queues.");
     } finally {
       setIsLoading(false);
     }
@@ -153,7 +151,7 @@ export default function ArticlesManager() {
       setShowForm(true);
     } catch (error) {
       console.error(error);
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to open article editor." });
+      window.alert(error instanceof Error ? error.message : "Failed to open article editor.");
     }
   };
 
@@ -164,16 +162,15 @@ export default function ArticlesManager() {
     const next = { ...siteSettings, dailyFact: { ...siteSettings.dailyFact, text: dailyFact } };
     setSiteSettings(next);
     writeSiteSettingsLocal(next);
-    setFeedback({ type: "success", message: "Daily fact updated in local site settings." });
+    window.alert("Daily fact updated in local site settings.");
   };
 
   const handleSave = async () => {
     if (!formState.title.trim() || !formState.content.trim()) {
-      setFeedback({ type: "error", message: "Title and content are required." });
+      window.alert("Title and content are required.");
       return;
     }
 
-    setFeedback(null);
     setIsSaving(true);
     try {
       await saveArticleAction(
@@ -193,10 +190,9 @@ export default function ArticlesManager() {
       );
       await loadSnapshot();
       await closeEditor();
-      setFeedback({ type: "success", message: "Article saved successfully." });
     } catch (error) {
       console.error(error);
-      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to save article." });
+      window.alert(error instanceof Error ? error.message : "Failed to save article.");
     } finally {
       setIsSaving(false);
     }
@@ -252,20 +248,6 @@ export default function ArticlesManager() {
           </div>
         </div>
       )}
-
-      {feedback ? (
-        <div style={{
-          marginBottom: "1rem",
-          padding: "0.9rem 1rem",
-          borderRadius: "8px",
-          border: `1px solid ${feedback.type === "error" ? "rgba(239,68,68,0.35)" : "rgba(34,197,94,0.35)"}`,
-          background: feedback.type === "error" ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)",
-          color: feedback.type === "error" ? "#fca5a5" : "#86efac",
-          fontSize: "0.85rem",
-        }}>
-          {feedback.message}
-        </div>
-      ) : null}
 
       {showForm ? (
         <div style={{ display: "grid", gap: "1.25rem", marginBottom: "2rem" }}>
@@ -354,10 +336,9 @@ export default function ArticlesManager() {
                             await loadSnapshot();
                             const detail = await getArticleDetailAction(editingArticle.id);
                             setArticleDetail(detail);
-                            setFeedback({ type: "success", message: `Rolled back to version ${version.versionNumber}.` });
                           } catch (error) {
                             console.error(error);
-                            setFeedback({ type: "error", message: error instanceof Error ? error.message : "Rollback failed." });
+                            window.alert(error instanceof Error ? error.message : "Rollback failed.");
                           }
                         }}
                       >
@@ -427,20 +408,20 @@ export default function ArticlesManager() {
                     <div style={{ display: "flex", gap: "0.7rem", flexWrap: "wrap" }}>
                       {request.coreStatus === "pending" ? (
                         <>
-                          <button className="btn-secondary" style={{ background: "transparent", cursor: "pointer", fontSize: "0.75rem" }} onClick={async () => { setFeedback(null); try { await reviewArticleEditRequestAction(request.id, "approve"); await loadSnapshot(); setFeedback({ type: "success", message: "Edit request approved by Core." }); } catch (error) { console.error(error); setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to review edit request." }); } }}>
+                          <button className="btn-secondary" style={{ background: "transparent", cursor: "pointer", fontSize: "0.75rem" }} onClick={async () => { await reviewArticleEditRequestAction(request.id, "approve"); await loadSnapshot(); }}>
                             Core Approve
                           </button>
-                          <button className="btn-secondary" style={{ background: "transparent", cursor: "pointer", fontSize: "0.75rem", borderColor: "rgba(239,68,68,0.35)", color: "#ef4444" }} onClick={async () => { setFeedback(null); try { await reviewArticleEditRequestAction(request.id, "reject"); await loadSnapshot(); setFeedback({ type: "success", message: "Edit request rejected by Core." }); } catch (error) { console.error(error); setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to review edit request." }); } }}>
+                          <button className="btn-secondary" style={{ background: "transparent", cursor: "pointer", fontSize: "0.75rem", borderColor: "rgba(239,68,68,0.35)", color: "#ef4444" }} onClick={async () => { await reviewArticleEditRequestAction(request.id, "reject"); await loadSnapshot(); }}>
                             Core Reject
                           </button>
                         </>
                       ) : null}
                       {canPublish && request.coreStatus === "approved" && request.adminStatus === "pending" ? (
                         <>
-                          <button className="btn-primary" style={{ cursor: "pointer", fontSize: "0.75rem" }} onClick={async () => { setFeedback(null); try { await finalizeArticleEditRequestAction(request.id, "approve"); await loadSnapshot(); setFeedback({ type: "success", message: "Edit request merged into article." }); } catch (error) { console.error(error); setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to finalize edit request." }); } }}>
+                          <button className="btn-primary" style={{ cursor: "pointer", fontSize: "0.75rem" }} onClick={async () => { await finalizeArticleEditRequestAction(request.id, "approve"); await loadSnapshot(); }}>
                             Merge Changes
                           </button>
-                          <button className="btn-secondary" style={{ background: "transparent", cursor: "pointer", fontSize: "0.75rem", borderColor: "rgba(239,68,68,0.35)", color: "#ef4444" }} onClick={async () => { setFeedback(null); try { await finalizeArticleEditRequestAction(request.id, "reject"); await loadSnapshot(); setFeedback({ type: "success", message: "Edit request rejected by Admin." }); } catch (error) { console.error(error); setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to finalize edit request." }); } }}>
+                          <button className="btn-secondary" style={{ background: "transparent", cursor: "pointer", fontSize: "0.75rem", borderColor: "rgba(239,68,68,0.35)", color: "#ef4444" }} onClick={async () => { await finalizeArticleEditRequestAction(request.id, "reject"); await loadSnapshot(); }}>
                             Admin Reject
                           </button>
                         </>
@@ -481,27 +462,27 @@ export default function ArticlesManager() {
                 </button>
                 {canReview && article.status === "under_review" && !article.coreApproved ? (
                   <>
-                    <button className="btn-secondary" style={{ fontSize: "0.75rem", background: "transparent", cursor: "pointer" }} onClick={async () => { setFeedback(null); try { await reviewArticleAction(article.id, "approve"); await loadSnapshot(); setFeedback({ type: "success", message: "Article approved by Core." }); } catch (error) { console.error(error); setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to review article." }); } }}>
+                    <button className="btn-secondary" style={{ fontSize: "0.75rem", background: "transparent", cursor: "pointer" }} onClick={async () => { await reviewArticleAction(article.id, "approve"); await loadSnapshot(); }}>
                       Core Approve
                     </button>
-                    <button className="btn-secondary" style={{ fontSize: "0.75rem", background: "transparent", cursor: "pointer", borderColor: "rgba(239,68,68,0.35)", color: "#ef4444" }} onClick={async () => { setFeedback(null); try { await reviewArticleAction(article.id, "reject"); await loadSnapshot(); setFeedback({ type: "success", message: "Article rejected." }); } catch (error) { console.error(error); setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to review article." }); } }}>
+                    <button className="btn-secondary" style={{ fontSize: "0.75rem", background: "transparent", cursor: "pointer", borderColor: "rgba(239,68,68,0.35)", color: "#ef4444" }} onClick={async () => { await reviewArticleAction(article.id, "reject"); await loadSnapshot(); }}>
                       Reject
                     </button>
                   </>
                 ) : null}
                 {canPublish && article.status === "under_review" && article.coreApproved ? (
-                  <button className="btn-primary" style={{ fontSize: "0.75rem", cursor: "pointer" }} onClick={async () => { setFeedback(null); try { await publishArticleAction(article.id); await loadSnapshot(); setFeedback({ type: "success", message: "Article published." }); } catch (error) { console.error(error); setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to publish article." }); } }}>
+                  <button className="btn-primary" style={{ fontSize: "0.75rem", cursor: "pointer" }} onClick={async () => { await publishArticleAction(article.id); await loadSnapshot(); }}>
                     Publish
                   </button>
                 ) : null}
                 {canPublish && article.status === "published" ? (
-                  <button className="btn-secondary" style={{ fontSize: "0.75rem", background: "transparent", cursor: "pointer" }} onClick={async () => { setFeedback(null); try { await setArticleFeaturedAction(article.id, !article.isFeatured); await loadSnapshot(); setFeedback({ type: "success", message: article.isFeatured ? "Article removed from featured list." : "Article marked as featured." }); } catch (error) { console.error(error); setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to update featured state." }); } }}>
+                  <button className="btn-secondary" style={{ fontSize: "0.75rem", background: "transparent", cursor: "pointer" }} onClick={async () => { await setArticleFeaturedAction(article.id, !article.isFeatured); await loadSnapshot(); }}>
                     {article.isFeatured ? "Unfeature" : "Feature"}
                   </button>
                 ) : null}
                 {canPublish ? (
-                  <button className="btn-secondary" style={{ fontSize: "0.75rem", background: "transparent", cursor: "pointer", borderColor: "rgba(239,68,68,0.35)", color: "#ef4444" }} onClick={async () => { if (pendingDeleteArticleId !== article.id) { setFeedback(null); setPendingDeleteArticleId(article.id); return; } setFeedback(null); try { await softDeleteArticleAction(article.id); setPendingDeleteArticleId(null); await loadSnapshot(); setFeedback({ type: "success", message: `Article "${article.title}" moved out of the active queue.` }); } catch (error) { console.error(error); setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to delete article." }); } }}>
-                    {pendingDeleteArticleId === article.id ? "Confirm Delete" : "Delete"}
+                  <button className="btn-secondary" style={{ fontSize: "0.75rem", background: "transparent", cursor: "pointer", borderColor: "rgba(239,68,68,0.35)", color: "#ef4444" }} onClick={async () => { if (window.confirm(`Soft delete "${article.title}"?`)) { await softDeleteArticleAction(article.id); await loadSnapshot(); } }}>
+                    Delete
                   </button>
                 ) : null}
               </div>

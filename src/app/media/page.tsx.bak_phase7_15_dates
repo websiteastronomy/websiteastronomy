@@ -4,7 +4,6 @@ import { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import AnimatedSection from '@/components/AnimatedSection';
 import { subscribeToCollection } from '@/lib/db';
-import { formatDateStable } from '@/lib/format-date';
 
 export default function MediaPage() {
   const [mediaData, setMediaData] = useState<any[]>([]);
@@ -92,7 +91,7 @@ export default function MediaPage() {
                         📸 {item.author}
                       </p>
                       <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
-                        {formatDateStable(item.createdAt)}
+                        {new Date(item.createdAt).toLocaleDateString()}
                       </span>
                     </div>
                   </div>

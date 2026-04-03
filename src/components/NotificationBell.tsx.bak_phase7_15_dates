@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
-import { formatDateStable } from "@/lib/format-date";
 
 interface Notification {
   id: string;
@@ -24,7 +23,7 @@ function relativeTime(iso: string): string {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
-  return formatDateStable(iso);
+  return new Date(iso).toLocaleDateString();
 }
 
 function typeIcon(type: string): string {

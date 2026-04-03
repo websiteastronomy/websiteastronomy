@@ -21,7 +21,6 @@ export default function ArticleReader() {
   const [showEditRequest, setShowEditRequest] = useState(false);
   const [editContent, setEditContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const canReview = isAdmin || hasPermission("approve_actions");
   const canSubmitEditRequest = !!user && !canReview && detail?.article?.status === "published";
@@ -101,17 +100,12 @@ export default function ArticleReader() {
         </div>
       </div>
 
-        <div style={{ maxWidth: "1100px", margin: "4rem auto 0", padding: "0 2rem", display: "grid", gridTemplateColumns: canReview ? "minmax(0, 1fr) 320px" : "minmax(0, 1fr)", gap: "2rem" }}>
-          <div>
-            <AnimatedSection delay={0.1}>
-              {feedback ? (
-                <div style={{ marginBottom: "1rem", padding: "0.85rem 1rem", borderRadius: "10px", border: feedback.type === "success" ? "1px solid rgba(34,197,94,0.35)" : "1px solid rgba(239,68,68,0.35)", background: feedback.type === "success" ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color: feedback.type === "success" ? "#86efac" : "#fca5a5", fontSize: "0.9rem" }}>
-                  {feedback.message}
-                </div>
-              ) : null}
-              <p style={{ fontSize: "1.2rem", color: "var(--text-secondary)", lineHeight: 1.8, marginBottom: "2rem", fontStyle: "italic", borderLeft: "4px solid var(--gold)", paddingLeft: "1.5rem" }}>
-                {article.excerpt}
-              </p>
+      <div style={{ maxWidth: "1100px", margin: "4rem auto 0", padding: "0 2rem", display: "grid", gridTemplateColumns: canReview ? "minmax(0, 1fr) 320px" : "minmax(0, 1fr)", gap: "2rem" }}>
+        <div>
+          <AnimatedSection delay={0.1}>
+            <p style={{ fontSize: "1.2rem", color: "var(--text-secondary)", lineHeight: 1.8, marginBottom: "2rem", fontStyle: "italic", borderLeft: "4px solid var(--gold)", paddingLeft: "1.5rem" }}>
+              {article.excerpt}
+            </p>
 
             <div className="markdown-body" style={{ fontSize: "1.05rem", lineHeight: 1.8, color: "var(--text-primary)" }} dangerouslySetInnerHTML={{ __html: safeContentHtml }} />
 
@@ -195,14 +189,13 @@ export default function ArticleReader() {
                   style={{ flex: 1, cursor: "pointer", opacity: isSubmitting ? 0.7 : 1 }}
                   onClick={async () => {
                     setIsSubmitting(true);
-                    setFeedback(null);
                     try {
                       await submitArticleEditRequestAction(article.id, editContent);
                       setShowEditRequest(false);
-                      setFeedback({ type: "success", message: "Edit request submitted." });
+                      window.alert("Edit request submitted.");
                     } catch (error) {
                       console.error(error);
-                      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to submit edit request." });
+                      window.alert(error instanceof Error ? error.message : "Failed to submit edit request.");
                     } finally {
                       setIsSubmitting(false);
                     }

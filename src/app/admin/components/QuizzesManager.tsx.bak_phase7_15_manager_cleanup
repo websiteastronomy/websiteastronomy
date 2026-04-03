@@ -9,8 +9,6 @@ export default function QuizzesManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = subscribeToCollection('quizzes', (data) => setQuizzes(data));
@@ -19,7 +17,6 @@ export default function QuizzesManager() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    setFeedback(null);
     try {
       const container = document.getElementById('quiz-form-container');
       if (!container) return;
@@ -30,7 +27,7 @@ export default function QuizzesManager() {
       const jsonInput = container.querySelector('#quiz-questions-json') as HTMLTextAreaElement;
       
       if (!titleInput.value) {
-        setFeedback({ type: 'error', message: 'Title is required.' });
+        alert("Title is required.");
         setIsSaving(false);
         return;
       }
@@ -39,7 +36,7 @@ export default function QuizzesManager() {
       try {
         questions = JSON.parse(jsonInput.value || '[]');
       } catch (e) {
-        setFeedback({ type: 'error', message: 'Invalid JSON in questions data.' });
+        alert("Invalid JSON in questions data.");
         setIsSaving(false);
         return;
       }
@@ -53,29 +50,24 @@ export default function QuizzesManager() {
 
       if (editingQuiz?.id) {
         await updateDocument('quizzes', editingQuiz.id, data);
-        setFeedback({ type: 'success', message: 'Updated successfully!' });
+        alert("Updated successfully!");
       } else {
         await addDocument('quizzes', data);
-        setFeedback({ type: 'success', message: 'Created successfully!' });
+        alert("Created successfully!");
       }
       setShowForm(false);
       setEditingQuiz(null);
     } catch (err) {
       console.error(err);
-      setFeedback({ type: 'error', message: 'Operation failed. Check console.' });
+      alert("Operation failed. Check console.");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    try {
+    if (confirm("Delete this quiz?")) {
       await deleteDocument('quizzes', id);
-      setFeedback({ type: 'success', message: 'Quiz deleted.' });
-      setPendingDeleteId(null);
-    } catch (err) {
-      console.error(err);
-      setFeedback({ type: 'error', message: 'Delete failed. Check console.' });
     }
   };
 
@@ -94,11 +86,6 @@ export default function QuizzesManager() {
           {showForm ? 'Cancel' : '+ New Quiz'}
         </button>
       </div>
-      {feedback && (
-        <div style={{ marginBottom: '1rem', padding: '0.8rem 1rem', borderRadius: '8px', border: feedback.type === 'success' ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(239,68,68,0.35)', background: feedback.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: feedback.type === 'success' ? '#86efac' : '#fca5a5', fontSize: '0.85rem' }}>
-          {feedback.message}
-        </div>
-      )}
 
       {showForm && (
         <div id="quiz-form-container" style={{ padding: '1.5rem', background: 'rgba(15, 22, 40, 0.4)', borderRadius: '8px', border: '1px solid var(--border-subtle)', marginBottom: '1.5rem' }}>
@@ -164,16 +151,11 @@ export default function QuizzesManager() {
                 Edit
               </button>
               <button 
-                onClick={() => setPendingDeleteId((current) => current === quiz.id ? null : quiz.id)} 
+                onClick={() => handleDelete(quiz.id)} 
                 style={{ background: 'none', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit' }}
               >
-                {pendingDeleteId === quiz.id ? 'Cancel' : 'Delete'}
+                Delete
               </button>
-              {pendingDeleteId === quiz.id && (
-                <button onClick={() => handleDelete(quiz.id)} style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.45)', color: '#fecaca', padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontFamily: 'inherit' }}>
-                  Confirm
-                </button>
-              )}
             </div>
           </div>
         ))}

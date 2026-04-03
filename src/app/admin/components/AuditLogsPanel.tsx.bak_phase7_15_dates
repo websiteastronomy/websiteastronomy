@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { getAuditLogsAction } from "@/app/actions/audit";
-import { formatDateTimeStable } from "@/lib/format-date";
 
 export default function AuditLogsPanel() {
   const [logs, setLogs] = useState<any[]>([]);
@@ -48,7 +47,7 @@ export default function AuditLogsPanel() {
               {logs.map(log => (
                 <tr key={log.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                   <td style={{ padding: "0.8rem", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-                    {formatDateTimeStable(log.createdAt)}
+                    {new Date(log.createdAt).toLocaleString()}
                   </td>
                   <td style={{ padding: "0.8rem" }}>
                     {log.actorName ? (

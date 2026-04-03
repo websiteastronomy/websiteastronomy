@@ -12,7 +12,6 @@ export default function CoreObservationsManager() {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [rejectReasonMap, setRejectReasonMap] = useState<Record<string, string>>({});
-  const [feedback, setFeedback] = useState<{ type: "error"; message: string } | null>(null);
 
   const fetchQueue = () => {
     setLoading(true);
@@ -42,12 +41,11 @@ export default function CoreObservationsManager() {
 
   const handleVote = async (id: string, vote: "approve" | "reject") => {
     if (vote === "reject" && !rejectReasonMap[id]) {
-      setFeedback({ type: "error", message: "You must provide a rejection reason in the notes box below." });
+      alert("You must provide a rejection reason in the notes box below.");
       return;
     }
 
     setProcessingId(id);
-    setFeedback(null);
     try {
       await processCoreVoteAction(
         id,
@@ -60,7 +58,7 @@ export default function CoreObservationsManager() {
       fetchQueue();
     } catch (error) {
       console.error(error);
-      setFeedback({ type: "error", message: "Vote failed. Check console." });
+      alert("Vote failed. Check console.");
     } finally {
       setProcessingId(null);
     }
@@ -79,22 +77,6 @@ export default function CoreObservationsManager() {
           Refresh Queue
         </button>
       </div>
-
-      {feedback && (
-        <div
-          style={{
-            marginBottom: "1rem",
-            padding: "0.85rem 1rem",
-            borderRadius: "8px",
-            border: "1px solid rgba(239,68,68,0.35)",
-            background: "rgba(239,68,68,0.1)",
-            color: "#fca5a5",
-            fontSize: "0.85rem",
-          }}
-        >
-          {feedback.message}
-        </div>
-      )}
 
       {loading ? (
         <p style={{ textAlign: "center", color: "var(--text-muted)" }}>Loading review queue...</p>

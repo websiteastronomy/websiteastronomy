@@ -9,8 +9,6 @@ export default function AchievementsManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingAchievement, setEditingAchievement] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = subscribeToCollection('achievements', (data) => setAchievements(data));
@@ -19,7 +17,6 @@ export default function AchievementsManager() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    setFeedback(null);
     try {
       const container = document.getElementById('achievement-form');
       if (!container) return;
@@ -32,36 +29,31 @@ export default function AchievementsManager() {
       });
 
       if (!data.title || !data.year) {
-        setFeedback({ type: 'error', message: 'Title and Year are required.' });
+        alert("Title and Year are required.");
         setIsSaving(false);
         return;
       }
 
       if (editingAchievement?.id) {
         await updateDocument('achievements', editingAchievement.id, data);
-        setFeedback({ type: 'success', message: 'Updated successfully!' });
+        alert("Updated successfully!");
       } else {
         await addDocument('achievements', data);
-        setFeedback({ type: 'success', message: 'Created successfully!' });
+        alert("Created successfully!");
       }
       setShowForm(false);
       setEditingAchievement(null);
     } catch (err) {
       console.error(err);
-      setFeedback({ type: 'error', message: 'Operation failed. Check console.' });
+      alert("Operation failed. Check console.");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    try {
+    if (confirm("Delete this achievement?")) {
       await deleteDocument('achievements', id);
-      setFeedback({ type: 'success', message: 'Achievement deleted.' });
-      setPendingDeleteId(null);
-    } catch (err) {
-      console.error(err);
-      setFeedback({ type: 'error', message: 'Delete failed. Check console.' });
     }
   };
 
@@ -80,12 +72,6 @@ export default function AchievementsManager() {
           {showForm ? 'Cancel' : '+ Add Achievement'}
         </button>
       </div>
-
-      {feedback && (
-        <div style={{ marginBottom: '1rem', padding: '0.8rem 1rem', borderRadius: '8px', border: feedback.type === 'success' ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(239,68,68,0.35)', background: feedback.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: feedback.type === 'success' ? '#86efac' : '#fca5a5', fontSize: '0.85rem' }}>
-          {feedback.message}
-        </div>
-      )}
 
       {showForm && (
         <div style={{ padding: '1.5rem', background: 'rgba(15, 22, 40, 0.4)', borderRadius: '8px', border: '1px solid var(--border-subtle)', marginBottom: '1.5rem' }}>
@@ -121,16 +107,11 @@ export default function AchievementsManager() {
                 Edit
               </button>
               <button 
-                onClick={() => setPendingDeleteId((current) => current === a.id ? null : a.id)} 
+                onClick={() => handleDelete(a.id)} 
                 style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit' }}
               >
-                {pendingDeleteId === a.id ? 'Cancel' : 'Delete'}
+                Delete
               </button>
-              {pendingDeleteId === a.id && (
-                <button onClick={() => handleDelete(a.id)} style={{ background: 'none', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'inherit', padding: '0.3rem 0.6rem', borderRadius: '4px' }}>
-                  Confirm
-                </button>
-              )}
             </div>
           </div>
         ))}

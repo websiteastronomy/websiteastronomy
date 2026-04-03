@@ -8,7 +8,6 @@ import AnimatedSection from "@/components/AnimatedSection";
 import { getDocument } from "@/lib/db";
 import { useAuth } from "@/context/AuthContext";
 import { getUserProfile, getEventStats, registerForEvent, applyForVolunteer, getEventParticipants } from "@/app/actions/events";
-import { formatDateStable } from "@/lib/format-date";
 
 export default function EventDetail() {
   const params = useParams();
@@ -24,7 +23,6 @@ export default function EventDetail() {
   const [stats, setStats] = useState({ totalRegistrations: 0, volunteers: 0, backupVolunteers: 0, userRegistered: false, userVolunteered: false });
   const [participants, setParticipants] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   
   // Public Registration State
   const [guestName, setGuestName] = useState("");
@@ -99,37 +97,35 @@ export default function EventDetail() {
 
   const handleRegister = async () => {
     setIsProcessing(true);
-    setFeedback(null);
     const res = await registerForEvent(id, guestName, guestEmail);
     setIsProcessing(false);
     
     if (res.success) {
-      setFeedback({ type: "success", message: "Registration Successful!" });
+      alert("Registration Successful!");
       const st = await getEventStats(id);
       setStats({ ...st, userVolunteered: st.userVolunteered || false });
       if (profile?.canManageEvents) {
         getEventParticipants(id).then(setParticipants);
       }
     } else {
-      setFeedback({ type: "error", message: "Registration failed: " + res.error });
+      alert("Registration failed: " + res.error);
     }
   };
 
   const handleVolunteer = async () => {
     setIsProcessing(true);
-    setFeedback(null);
     const res = await applyForVolunteer(id);
     setIsProcessing(false);
     
     if (res.success) {
-      setFeedback({ type: "success", message: res.message || "Volunteer application submitted successfully." });
+      alert(res.message);
       const st = await getEventStats(id);
       setStats({ ...st, userVolunteered: st.userVolunteered || false });
       if (profile?.canManageEvents) {
         getEventParticipants(id).then(setParticipants);
       }
     } else {
-      setFeedback({ type: "error", message: "Volunteer application failed: " + res.error });
+      alert("Volunteer application failed: " + res.error);
     }
   };
 
@@ -228,22 +224,6 @@ export default function EventDetail() {
           {/* REGISTRATION MODULE */}
           <AnimatedSection delay={0.1}>
             <div style={{ background: "rgba(15, 22, 40, 0.4)", border: "1px solid var(--border-subtle)", borderRadius: "16px", padding: "2rem", textAlign: "center" }}>
-              {feedback && (
-                <div
-                  style={{
-                    marginBottom: "1rem",
-                    padding: "0.75rem 0.9rem",
-                    borderRadius: "8px",
-                    border: feedback.type === "success" ? "1px solid rgba(34,197,94,0.35)" : "1px solid rgba(239,68,68,0.35)",
-                    background: feedback.type === "success" ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
-                    color: feedback.type === "success" ? "#86efac" : "#fca5a5",
-                    fontSize: "0.82rem",
-                    textAlign: "left",
-                  }}
-                >
-                  {feedback.message}
-                </div>
-              )}
               
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1.5rem", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "1rem" }}>
                 <div style={{ textAlign: "left" }}>
@@ -384,7 +364,7 @@ export default function EventDetail() {
                       <p style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{r.email || "No email"}</p>
                     </div>
                     <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textAlign: "right" }}>
-                      Registered: {formatDateStable(r.createdAt)}
+                      Registered: {new Date(r.createdAt).toLocaleDateString()}
                     </div>
                   </div>
                 ))}
@@ -401,7 +381,7 @@ export default function EventDetail() {
                           {v.isBackup && <span style={{ fontSize: "0.7rem", padding: "0.1rem 0.4rem", background: "rgba(255,255,255,0.1)", borderRadius: "4px" }}>Backup</span>}
                         </div>
                         <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textAlign: "right" }}>
-                          Applied: {formatDateStable(v.createdAt)}
+                          Applied: {new Date(v.createdAt).toLocaleDateString()}
                         </div>
                       </div>
                     ))}
