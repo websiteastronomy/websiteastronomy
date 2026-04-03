@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { observations, observation_versions, observation_reports, users } from "@/db/schema";
-import { eq, desc, or, and } from "drizzle-orm";
+import { eq, desc, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -546,23 +546,6 @@ export async function reportObservationAction(id: string, reason: string) {
   
   const [obs] = await db.select().from(observations).where(eq(observations.id, id));
   if (!obs) throw new Error("Observation not found");
-
-  if (session?.user?.id) {
-    const [existingReport] = await db
-      .select({ id: observation_reports.id })
-      .from(observation_reports)
-      .where(
-        and(
-          eq(observation_reports.observationId, id),
-          eq(observation_reports.reporterId, session.user.id)
-        )
-      )
-      .limit(1);
-
-    if (existingReport) {
-      throw new Error("You have already reported this observation.");
-    }
-  }
 
   const reportId = uuidv4();
   await db.insert(observation_reports).values({

@@ -27,7 +27,6 @@ export default function QuizAttemptPage() {
   const [isBlocked, setIsBlocked] = useState(false);
   const [previousAttempt, setPreviousAttempt] = useState<QuizAttempt | null>(null);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
-  const [scoreSaveError, setScoreSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -91,13 +90,12 @@ export default function QuizAttemptPage() {
     if (currentQuestionIdx < quiz.questions.length - 1) {
       setCurrentQuestionIdx(currentQuestionIdx + 1);
     } else {
-      void finishQuiz(newAnswers);
+      finishQuiz(newAnswers);
     }
   };
 
-  const finishQuiz = async (finalAnswers: number[]) => {
+  const finishQuiz = (finalAnswers: number[]) => {
     setIsFinished(true);
-    setScoreSaveError(null);
     let correctCount = 0;
     finalAnswers.forEach((ans, i) => {
       if (ans === quiz.questions[i].correctOptionIndex) {
@@ -115,13 +113,7 @@ export default function QuizAttemptPage() {
         totalQuestions: quiz.questions.length,
         date: new Date().toISOString()
       };
-      try {
-        const { addDocument } = await import('@/lib/db');
-        await addDocument('quiz_attempts', newAttempt);
-      } catch (error) {
-        console.error("[quiz] failed to save attempt:", error);
-        setScoreSaveError("Your score could not be saved to the leaderboard.");
-      }
+      import('@/lib/db').then(m => m.addDocument('quiz_attempts', newAttempt));
     }
   };
 
@@ -209,11 +201,6 @@ export default function QuizAttemptPage() {
              <p style={{ color: 'var(--text-secondary)', fontSize: '1.2rem' }}>
                {user ? `Great job, ${user.name?.split(' ')[0] || 'Member'}! Your score has been logged.` : `Nice work, ${publicName || 'Guest'}!`}
              </p>
-             {scoreSaveError && (
-               <p style={{ color: '#f59e0b', fontSize: '0.95rem', marginTop: '1rem' }}>
-                 {scoreSaveError}
-               </p>
-             )}
            </div>
         </AnimatedSection>
 
