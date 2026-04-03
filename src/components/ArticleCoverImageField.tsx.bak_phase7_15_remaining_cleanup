@@ -21,7 +21,6 @@ export default function ArticleCoverImageField({
   const [editorSrc, setEditorSrc] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState(value || "");
   const [isUploading, setIsUploading] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "error" | "success"; message: string } | null>(null);
 
   useEffect(() => {
     setPreviewUrl(value || "");
@@ -56,11 +55,10 @@ export default function ArticleCoverImageField({
       setSourceFile(file);
       setEditorSrc(nextSrc);
       setEditorOpen(true);
-      setFeedback(null);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Only image files up to 10MB are allowed.";
-      setFeedback({ type: "error", message });
+      window.alert(message);
     }
   };
 
@@ -72,7 +70,6 @@ export default function ArticleCoverImageField({
     setEditorOpen(false);
     setPreviewUrl(result.previewUrl);
     setIsUploading(true);
-    setFeedback(null);
 
     try {
       const formData = new FormData();
@@ -84,14 +81,13 @@ export default function ArticleCoverImageField({
       setPreviewUrl(finalUrl);
 
       if (result.usedFallback) {
-        setFeedback({
-          type: "success",
-          message: "Automatic enhancement fell back to the uploaded image, but the article can still be saved.",
-        });
+        window.alert(
+          "Automatic enhancement fell back to the uploaded image, but the article can still be saved."
+        );
       }
     } catch (error) {
       console.error(error);
-      setFeedback({ type: "error", message: "Cover image upload failed. Please try again." });
+      window.alert("Cover image upload failed. Please try again.");
     } finally {
       setIsUploading(false);
       setSourceFile(null);
@@ -128,18 +124,6 @@ export default function ArticleCoverImageField({
         </label>
       </div>
       <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "0.8rem" }}>{helperText}</p>
-      {feedback ? (
-        <div style={{
-          padding: "0.8rem 0.9rem",
-          borderRadius: "8px",
-          border: `1px solid ${feedback.type === "error" ? "rgba(239,68,68,0.35)" : "rgba(34,197,94,0.35)"}`,
-          background: feedback.type === "error" ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)",
-          color: feedback.type === "error" ? "#fca5a5" : "#86efac",
-          fontSize: "0.8rem",
-        }}>
-          {feedback.message}
-        </div>
-      ) : null}
       {previewUrl ? (
         <div
           style={{
@@ -163,10 +147,7 @@ export default function ArticleCoverImageField({
         isOpen={editorOpen}
         imageSrc={editorSrc}
         sourceFile={sourceFile}
-        onClose={() => {
-          setEditorOpen(false);
-          setFeedback(null);
-        }}
+        onClose={() => setEditorOpen(false)}
         onApply={handleProcessed}
       />
     </div>

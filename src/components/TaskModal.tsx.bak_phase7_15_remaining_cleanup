@@ -54,7 +54,6 @@ export default function TaskModal({
   const [assignees, setAssignees] = useState<TaskAssignee[]>([]);
   const [commentText, setCommentText] = useState("");
   const [isBlocked, setIsBlocked] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (!task) return;
@@ -65,7 +64,6 @@ export default function TaskModal({
     setDeadline(task.deadline || "");
     setAssignees(task.assignees || []);
     setIsBlocked(task.isBlocked);
-    setConfirmDelete(false);
   }, [task]);
 
   if (!task) return null;
@@ -318,16 +316,11 @@ export default function TaskModal({
             )}
             
             {canDeleteTask && (
-              <button onClick={() => { if (confirmDelete) { onDelete(task.id); return; } setConfirmDelete(true); }} style={{
+              <button onClick={() => { if (confirm("Delete this task?")) onDelete(task.id); }} style={{
                 marginLeft: "auto", padding: "0.6rem 1.2rem", borderRadius: "6px", fontSize: "0.8rem", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, border: "1px solid rgba(239,68,68,0.3)", background: "transparent", color: "#ef4444",
               }}>
                 🗑 Delete
               </button>
-            )}
-            {canDeleteTask && confirmDelete && (
-             <div style={{ fontSize: "0.78rem", color: "#fca5a5", paddingTop: "0.5rem" }}>
-               Click Delete again to confirm.
-             </div>
             )}
             {isViewer && (
              <div style={{ marginLeft: "auto", fontSize: "0.8rem", color: "var(--text-muted)", fontStyle: "italic", paddingTop: "0.5rem" }}>

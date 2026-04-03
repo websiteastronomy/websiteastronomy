@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { subscribeToCollection, addDocument, updateDocument, deleteDocument } from '@/lib/db';
 import { inputStyle, rowStyle } from './shared';
 import { uploadFile } from '@/app/actions/storage';
-import { formatDateStable } from '@/lib/format-date';
 
 export default function GalleryManager() {
   const [media, setMedia] = useState<any[]>([]);
