@@ -184,11 +184,9 @@ function KanbanCard({
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex" }}>
           {assignees.slice(0, 3).map((a, i) => (
-            <div key={i} style={{
-              width: "20px", height: "20px", borderRadius: "50%", background: "var(--gold-dark)",
-              display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.5rem",
-              color: "#000", fontWeight: 700, border: "1.5px solid rgba(8,12,22,0.8)", marginLeft: i > 0 ? "-8px" : 0,
-            }}>{a.name.charAt(0)}</div>
+            <div key={i} style={{ width: "20px", height: "20px", borderRadius: "50%", background: "var(--gold-dark)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.5rem", color: "#000", fontWeight: 700, border: "1.5px solid rgba(8,12,22,0.8)", marginLeft: i > 0 ? "-8px" : 0, overflow: "hidden" }}>
+              {a.image ? <img src={a.image} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : a.name.charAt(0)}
+            </div>
           ))}
         </div>
         <div style={{ display: "flex", gap: "0.6rem" }}>

@@ -21,6 +21,7 @@ export default function Home() {
   const [upcomingEvent, setUpcomingEvent] = useState<any>(null);
   const [coreTeam, setCoreTeam] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [liveStats, setLiveStats] = useState({ members: 0, projects: 0, events: 0, observations: 0 });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,12 +38,30 @@ export default function Home() {
       }
 
       // Fetch upcoming event
+      let totalEvents = 0;
       if (s.featuredEventId) {
         const e = await getDocument("events", s.featuredEventId);
         if (e) setUpcomingEvent(e);
+        const events = await getCollection("events");
+        totalEvents = events.length;
       } else {
         const events = await getCollection("events");
+        totalEvents = events.length;
         if (events.length > 0) setUpcomingEvent(events[0]);
+      }
+
+      // Fetch live counts
+      try {
+        const { getPlatformStatsAction } = await import('@/app/actions/stats');
+        const counts = await getPlatformStatsAction();
+        setLiveStats({
+          members: counts.membersCount,
+          projects: counts.projectsCount,
+          events: totalEvents,
+          observations: counts.observationsCount,
+        });
+      } catch (err) {
+        console.error("Failed to load platform stats:", err);
       }
 
       setLoading(false);
@@ -50,13 +69,16 @@ export default function Home() {
 
     fetchData();
 
-    // Subscribe to first 4 members for core team preview
-    const unsubTeam = subscribeToCollection("members", (data) => {
-      setCoreTeam(data.slice(0, 4));
-    });
-
-    return () => unsubTeam();
+    const fetchTeam = async () => {
+      try {
+        const { getPublicMembersAction } = await import('@/app/actions/publicMembers');
+        const members = await getPublicMembersAction();
+        setCoreTeam(members.slice(0, 4));
+      } catch (err) { }
+    };
+    fetchTeam();
   }, []);
+
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 150]);
@@ -130,9 +152,10 @@ export default function Home() {
       <AnimatedSection style={{ width: "100%", maxWidth: "1100px", marginBottom: "4rem" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1px", background: "var(--border-subtle)", borderRadius: "12px", overflow: "hidden", border: "1px solid var(--border-subtle)" }}>
           {[
-            { label: "Members", value: settings?.heroStats.members || 0, suffix: "+" },
-            { label: "Projects", value: settings?.heroStats.projects || 0, suffix: "" },
-            { label: "Events Hosted", value: settings?.heroStats.events || 0, suffix: "+" },
+            { label: "Members", value: liveStats.members, suffix: "" },
+            { label: "Observations", value: liveStats.observations, suffix: "+" },
+            { label: "Projects", value: liveStats.projects, suffix: "" },
+            { label: "Events Hosted", value: liveStats.events, suffix: "" },
           ].map((stat, i) => (
             <div key={stat.label} style={{ background: "rgba(15, 22, 40, 0.6)", padding: "2rem", textAlign: "center", backdropFilter: "blur(8px)" }}>
               <h2 className="gradient-text" style={{ fontSize: "2.8rem", fontFamily: "'Cinzel', serif", marginBottom: "0.3rem" }}>
@@ -248,8 +271,16 @@ export default function Home() {
         </AnimatedSection>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1.5rem" }}>
           {coreTeam.map((member, i) => (
-            <AnimatedCard key={member.name} index={i} style={{ textAlign: "center" }}>
-              <img src={member.imageUrl} alt={member.name} style={{ width: "70px", height: "70px", borderRadius: "50%", objectFit: "cover", margin: "0 auto 0.8rem", display: "block", border: "2px solid rgba(201, 168, 76, 0.2)" }} />
+            <AnimatedCard key={member.name || i} index={i} style={{ textAlign: "center" }}>
+              {member.imageUrl ? (
+                <img src={member.imageUrl} alt={member.name}
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  style={{ width: "70px", height: "70px", borderRadius: "50%", objectFit: "cover", margin: "0 auto 0.8rem", display: "block", border: "2px solid rgba(201, 168, 76, 0.2)" }} />
+              ) : (
+                <div style={{ width: "70px", height: "70px", borderRadius: "50%", background: "rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem", margin: "0 auto 0.8rem", border: "2px solid rgba(201, 168, 76, 0.2)", color: "var(--text-primary)" }}>
+                  {(member.name || "?").charAt(0).toUpperCase()}
+                </div>
+              )}
               <h3 style={{ fontSize: "1rem", marginBottom: "0.25rem" }}>{member.name}</h3>
               <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", fontWeight: 300 }}>{member.role}</p>
             </AnimatedCard>

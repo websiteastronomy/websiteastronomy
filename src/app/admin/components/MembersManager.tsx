@@ -21,6 +21,10 @@ export default function MembersManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPendingIds, setSelectedPendingIds] = useState<string[]>([]);
 
+  // Inline edit state
+  const [editingInfoUser, setEditingInfoUser] = useState<string | null>(null);
+  const [infoFormData, setInfoFormData] = useState({ responsibility: "", department: "" });
+
   const fetchUsers = async () => {
     try {
       const data = await getAllUsersAction();
@@ -251,102 +255,163 @@ export default function MembersManager() {
       </div>
 
       {/* ── Account Directory ── */}
-      <h3 style={{ fontSize: "1.1rem", marginBottom: "1rem", color: "var(--text-secondary)" }}>Account Directory ({processedUsers.length})</h3>
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+      <h3 style={{ fontSize: "1.1rem", marginBottom: "1rem", color: "var(--text-secondary)", marginTop: "2rem" }}>Account Directory ({processedUsers.length})</h3>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1rem" }}>
         {processedUsers.map((user) => {
           const roleOpt = ROLE_OPTIONS.find((o) => o.label.toLowerCase() === user.role?.toLowerCase())
             || ROLE_OPTIONS[0];
+          
+          const isEditingInfo = editingInfoUser === user.id;
+
           return (
-            <div key={user.id} style={{ ...rowStyle, padding: "1rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "1rem", flex: 1 }}>
-                <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem" }}>
-                  {user.name.charAt(0).toUpperCase()}
+            <div key={user.id} style={{ background: "rgba(15, 22, 40, 0.4)", borderRadius: "12px", border: "1px solid var(--border-subtle)", padding: "1.2rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                <div style={{ width: "45px", height: "45px", borderRadius: "50%", background: "linear-gradient(135deg, var(--gold-dark), var(--gold))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", color: "#000", fontWeight: 700, flexShrink: 0, overflow: "hidden" }}>
+                  {user.image ? <img src={user.image} alt={user.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : user.name.charAt(0).toUpperCase()}
                 </div>
-                <div>
-                  <h4 style={{ fontSize: "0.95rem" }}>{user.name}</h4>
-                  <p style={{ color: "var(--text-secondary)", fontSize: "0.8rem" }}>{user.email}</p>
+                <div style={{ overflow: "hidden" }}>
+                  <h4 style={{ fontSize: "1rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.name}</h4>
+                  <p style={{ color: "var(--text-secondary)", fontSize: "0.8rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.email}</p>
                 </div>
               </div>
-              <div style={{ textAlign: "right" }}>
-                <span style={{ fontSize: "0.7rem", textTransform: "uppercase", color: user.status === "approved" ? "#22c55e" : "#ef4444" }}>
-                  {user.status}
-                </span>
-                {user.status === "approved" && (
-                  <div style={{ fontSize: "0.72rem", marginTop: "0.25rem", color: roleOpt.color, fontWeight: 600 }}>
-                    {user.roleId ? user.role : "member"} role
+
+              <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "0.8rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                  <span style={{ fontSize: "0.7rem", textTransform: "uppercase", color: user.status === "approved" ? "#22c55e" : "#ef4444" }}>
+                    {user.status}
+                  </span>
+                  {user.status === "approved" && (
+                    <div style={{ fontSize: "0.75rem", color: roleOpt.color, fontWeight: 600 }}>
+                      {user.roleId ? user.role : "member"} role
+                    </div>
+                  )}
+                </div>
+
+                {isEditingInfo ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem" }}>
+                    <input 
+                      type="text" 
+                      placeholder="Responsibility (About page)" 
+                      value={infoFormData.responsibility} 
+                      onChange={e => setInfoFormData({...infoFormData, responsibility: e.target.value})}
+                      style={{ padding: "0.4rem 0.5rem", borderRadius: "4px", border: "1px solid var(--border-subtle)", background: "rgba(0,0,0,0.2)", color: "#fff", fontSize: "0.8rem", fontFamily: "inherit" }}
+                    />
+                    <input 
+                      type="text" 
+                      placeholder="Department" 
+                      value={infoFormData.department} 
+                      onChange={e => setInfoFormData({...infoFormData, department: e.target.value})}
+                      style={{ padding: "0.4rem 0.5rem", borderRadius: "4px", border: "1px solid var(--border-subtle)", background: "rgba(0,0,0,0.2)", color: "#fff", fontSize: "0.8rem", fontFamily: "inherit" }}
+                    />
+                    <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.3rem" }}>
+                      <button 
+                        onClick={() => {
+                          setIsProcessing(true);
+                          updateUserMetadataAction(user.id, infoFormData).then(() => {
+                            setEditingInfoUser(null);
+                            fetchUsers();
+                          }).catch(e => alert(e.message)).finally(() => setIsProcessing(false));
+                        }}
+                        disabled={isProcessing}
+                        style={{ padding: "0.3rem 0.8rem", background: "var(--gold)", color: "#000", border: "none", borderRadius: "4px", cursor: isProcessing ? "not-allowed" : "pointer", fontSize: "0.75rem", fontWeight: "bold" }}
+                      >
+                        Save
+                      </button>
+                      <button 
+                        onClick={() => setEditingInfoUser(null)}
+                        disabled={isProcessing}
+                        style={{ padding: "0.3rem 0.8rem", background: "transparent", color: "var(--text-muted)", border: "1px solid var(--border-subtle)", borderRadius: "4px", cursor: isProcessing ? "not-allowed" : "pointer", fontSize: "0.75rem" }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
-                )}
-                {user.responsibility && (
-                  <div style={{ fontSize: "0.68rem", marginTop: "0.15rem", color: "var(--text-muted)", fontStyle: "italic" }}>
-                    {user.responsibility}{user.department ? ` • ${user.department}` : ""}
-                  </div>
+                ) : (
+                  <>
+                    <div style={{ minHeight: "2rem" }}>
+                      {user.responsibility ? (
+                        <div style={{ fontSize: "0.75rem", color: "var(--text-primary)" }}>
+                          {user.responsibility} {user.department ? <span style={{ color: "var(--gold)", opacity: 0.8 }}>• {user.department}</span> : ""}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>
+                          No public info set
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginLeft: "1rem", flexWrap: "wrap" }}>
-                {/* isPublic toggle */}
-                <label style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.7rem", color: user.isPublic ? "#22c55e" : "var(--text-muted)", cursor: "pointer" }}>
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "auto", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "1rem" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", color: user.isPublic ? "#22c55e" : "var(--text-muted)", cursor: "pointer", fontWeight: user.isPublic ? "bold" : "normal" }}>
                   <input
                     type="checkbox"
                     checked={!!user.isPublic}
                     onChange={async () => {
+                      if (isProcessing) return;
+                      setIsProcessing(true);
                       try {
                         await updateUserMetadataAction(user.id, { isPublic: !user.isPublic });
                         fetchUsers();
                       } catch (err: any) { alert(err.message); }
+                      finally { setIsProcessing(false); }
                     }}
-                    style={{ accentColor: "var(--gold)" }}
+                    style={{ accentColor: "var(--gold)", cursor: "pointer" }}
                   />
                   Public
                 </label>
-                <button
-                  disabled={isProcessing}
-                  onClick={() => {
-                    const newResp = prompt("Responsibility (shown on About page):", user.responsibility || "");
-                    if (newResp === null) return;
-                    const newDept = prompt("Department:", user.department || "");
-                    if (newDept === null) return;
-                    updateUserMetadataAction(user.id, { responsibility: newResp, department: newDept }).then(() => fetchUsers()).catch((e: any) => alert(e.message));
-                  }}
-                  style={{ background: "transparent", border: "1px solid var(--border-subtle)", color: "var(--gold)", padding: "0.3rem 0.6rem", borderRadius: "4px", cursor: isProcessing ? "not-allowed" : "pointer", fontSize: "0.7rem", opacity: isProcessing ? 0.5: 1 }}
-                >
-                  Edit Info
-                </button>
-                <button
-                  disabled={isProcessing}
-                  onClick={() => {
-                    setApprovingUser(user);
-                    const matchingOpt = ROLE_OPTIONS.find((o) => o.label.toLowerCase() === user.role?.toLowerCase() || o.value.toLowerCase() === user.role?.toLowerCase());
-                    setSelectedRole(matchingOpt ? matchingOpt.value : "Member");
-                    window.scrollTo(0, 0);
-                  }}
-                  style={{ background: "transparent", border: "1px solid var(--border-subtle)", color: "var(--text-primary)", padding: "0.3rem 0.6rem", borderRadius: "4px", cursor: isProcessing ? "not-allowed" : "pointer", fontSize: "0.7rem", opacity: isProcessing ? 0.5: 1 }}
-                >
-                  Edit Role
-                </button>
-                <button
-                  disabled={isProcessing}
-                  onClick={async () => {
-                    if (!confirm("Are you sure you want to permanently delete this user?")) return;
-                    setIsProcessing(true);
-                    try {
-                      await deleteUserAction(user.id);
-                      fetchUsers();
-                    } catch (err: any) {
-                      alert(err.message);
-                    } finally {
-                      setIsProcessing(false);
-                    }
-                  }}
-                  style={{ background: "transparent", border: "1px solid rgba(239,68,68,0.5)", color: "#ef4444", padding: "0.3rem 0.6rem", borderRadius: "4px", cursor: isProcessing ? "not-allowed" : "pointer", fontSize: "0.7rem", opacity: isProcessing ? 0.5: 1 }}
-                >
-                  Delete
-                </button>
+                
+                <div style={{ display: "flex", gap: "0.4rem" }}>
+                  {!isEditingInfo && (
+                    <button
+                      disabled={isProcessing}
+                      onClick={() => {
+                        setInfoFormData({ responsibility: user.responsibility || "", department: user.department || "" });
+                        setEditingInfoUser(user.id);
+                      }}
+                      style={{ background: "transparent", color: "var(--gold)", border: "none", cursor: isProcessing ? "not-allowed" : "pointer", fontSize: "0.75rem", textDecoration: "underline", opacity: isProcessing ? 0.5: 1 }}
+                    >
+                      Edit Info
+                    </button>
+                  )}
+                  <button
+                    disabled={isProcessing}
+                    onClick={() => {
+                      setApprovingUser(user);
+                      const matchingOpt = ROLE_OPTIONS.find((o) => o.label.toLowerCase() === user.role?.toLowerCase() || o.value.toLowerCase() === user.role?.toLowerCase());
+                      setSelectedRole(matchingOpt ? matchingOpt.value : "Member");
+                      window.scrollTo(0, 0);
+                    }}
+                    style={{ background: "transparent", border: "1px solid var(--border-subtle)", color: "var(--text-primary)", padding: "0.25rem 0.5rem", borderRadius: "4px", cursor: isProcessing ? "not-allowed" : "pointer", fontSize: "0.7rem", opacity: isProcessing ? 0.5: 1 }}
+                  >
+                    Role
+                  </button>
+                  <button
+                    disabled={isProcessing}
+                    onClick={async () => {
+                      if (!confirm("Are you sure you want to permanently delete this user?")) return;
+                      setIsProcessing(true);
+                      try {
+                        await deleteUserAction(user.id);
+                        fetchUsers();
+                      } catch (err: any) {
+                        alert(err.message);
+                      } finally {
+                        setIsProcessing(false);
+                      }
+                    }}
+                    style={{ background: "transparent", border: "1px solid rgba(239,68,68,0.5)", color: "#ef4444", padding: "0.25rem 0.5rem", borderRadius: "4px", cursor: isProcessing ? "not-allowed" : "pointer", fontSize: "0.7rem", opacity: isProcessing ? 0.5: 1 }}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           );
         })}
         {processedUsers.length === 0 && (
-          <p style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)" }}>
+          <p style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)", gridColumn: "1 / -1" }}>
             No users match criteria.
           </p>
         )}

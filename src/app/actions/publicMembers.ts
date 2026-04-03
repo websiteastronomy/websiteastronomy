@@ -28,13 +28,10 @@ export async function getPublicMembersAction() {
     .from(users)
     .where(and(eq(users.status, "approved"), eq(users.isPublic, true)));
 
-  // Resolve image URL: prefer R2 profileImageKey, fallback to OAuth image
   const r2Base = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
   return publicUsers.map(u => ({
     ...u,
-    imageUrl: u.profileImageKey
-      ? `${r2Base}/${u.profileImageKey}`
-      : (u.image || `https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=200&q=80`),
+    imageUrl: u.image || (u.profileImageKey ? `${r2Base}/${u.profileImageKey}` : `https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=200&q=80`),
   }));
 }
 

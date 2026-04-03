@@ -1,17 +1,19 @@
 "use client";
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, useMotionValueEvent, useScroll } from 'framer-motion';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import NotificationBell from '@/components/NotificationBell';
 
 export default function Navbar() {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { scrollY } = useScroll();
   const pathname = usePathname();
+  const { user } = useAuth();
 
-  const isRecruiting = true; // MOCK ONLY: Will come from /settings/home in Firebase
+  const isRecruiting = true;
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     setScrolled(latest > 50);
@@ -24,11 +26,6 @@ export default function Navbar() {
 
   const navLinkStyle = (href: string) => ({
     color: isActive(href) ? 'var(--gold-light)' : undefined,
-  });
-
-  const activeUnderline = (href: string) => ({
-    width: isActive(href) ? '100%' : undefined,
-    background: isActive(href) ? 'var(--gold)' : undefined,
   });
 
   return (
@@ -95,6 +92,10 @@ export default function Navbar() {
         {isRecruiting && (
           <Link href="/join" className="nav-link" style={navLinkStyle('/join')}>Join</Link>
         )}
+
+        {/* Notification Bell — only for authenticated users */}
+        {user && <NotificationBell />}
+
         <Link href="/portal" className="btn-primary" style={{ padding: '0.5rem 1.2rem', fontSize: '0.75rem', marginLeft: '0.5rem' }}>Member Portal</Link>
       </div>
     </motion.nav>

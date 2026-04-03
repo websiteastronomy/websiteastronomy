@@ -13,12 +13,15 @@ const r2 = new S3Client({
   },
 });
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const body = await req.json().catch(() => ({}));
+    const fileType = body.fileType || "application/octet-stream";
 
     const userId = session.user.id;
     const timestamp = Date.now();
@@ -28,7 +31,7 @@ export async function POST() {
     const command = new PutObjectCommand({
       Bucket: bucket,
       Key: key,
-      ContentType: "image/jpeg",
+      ContentType: fileType,
     });
 
     const uploadUrl = await getSignedUrl(r2, command, { expiresIn: 300 }); // 5 min

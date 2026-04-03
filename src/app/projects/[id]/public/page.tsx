@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getDocument } from "@/lib/db";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface TeamMember { name: string; role: string; }
+interface TeamMember { name: string; role: string; image?: string; }
 interface ProjectUpdate { title: string; description?: string; typeTag?: string; date?: string; }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -333,8 +333,8 @@ export default function ProjectPublicPage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem" }}>
                   {displayTeam.map((member, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                      <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: i === 0 ? "var(--gold-dark)" : "rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "0.85rem", color: i === 0 ? "#000" : "var(--text-secondary)", flexShrink: 0, border: i === 0 ? "2px solid var(--gold)" : "1px solid var(--border-subtle)" }}>
-                        {member.name.charAt(0)}
+                      <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: i === 0 ? "var(--gold-dark)" : "rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "0.85rem", color: i === 0 ? "#000" : "var(--text-secondary)", flexShrink: 0, border: i === 0 ? "2px solid var(--gold)" : "1px solid var(--border-subtle)", overflow: "hidden" }}>
+                        {member.image ? <img src={member.image} alt={member.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : member.name.charAt(0)}
                       </div>
                       <div>
                         <p style={{ fontSize: "0.85rem", margin: 0, fontWeight: 600 }}>{member.name}</p>

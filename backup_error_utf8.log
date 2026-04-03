@@ -1,5 +1,5 @@
-Error: Failed query: select "id", "name", "email", "email_verified", "image", "created_at", "updated_at", "phone", "status", "role" from "user"
+Error: Failed query: select "id", "name", "email", "email_verified", "image", "created_at", "updated_at", "phone", "status", "role", "role_id", "profile_image_key", "department", "quote", "responsibility", "is_public" from "user"
 params: 
     at NeonPreparedQuery.queryWithCache (C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\node_modules\src\pg-core\session.ts:73:11)
     at async NeonPreparedQuery.execute (C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\node_modules\src\neon-serverless\session.ts:152:18)
-    at async runBackup (C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\scripts\backup.ts:15:14)
+    at async runBackup (C:\Users\shash\.gemini\antigravity\scratch\astronomy-club\src\scripts\backup.ts:18:14)

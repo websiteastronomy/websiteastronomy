@@ -192,8 +192,10 @@ export default function TaskModal({
           <div style={{ marginBottom: "1.5rem" }}>
             <label style={labelStyle}>Assigned Members</label>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-              {teamMembers.map(m => {
-                const selected = assignees.some(a => a.name === m.name);
+              {teamMembers.map((m: any) => {
+                const assignedObj = assignees.find(a => a.name === m.name);
+                const selected = !!assignedObj;
+                const a = assignedObj || m;
                 return (
                   <button key={m.name} onClick={() => canAssignTask && toggleAssignee(m.name)} disabled={!canAssignTask} style={{
                     display: "flex", alignItems: "center", gap: "0.4rem",
@@ -203,8 +205,12 @@ export default function TaskModal({
                     color: selected ? "var(--gold-light)" : "var(--text-muted)",
                     opacity: !canAssignTask && !selected ? 0.5 : 1,
                   }}>
-                    <span style={{ width: "18px", height: "18px", borderRadius: "50%", background: selected ? "var(--gold)" : "var(--border-subtle)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "0.55rem", color: "#000", fontWeight: 700 }}>
-                      {m.name.charAt(0)}
+                    <span style={{ width: "18px", height: "18px", borderRadius: "50%", background: selected ? "var(--gold)" : "var(--border-subtle)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "0.55rem", color: "#000", fontWeight: 700, overflow: "hidden" }}>
+                      {a.image ? (
+                        <img src={a.image} alt={a.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        a.name.charAt(0)
+                      )}
                     </span>
                     {m.name}
                     {selected && " ✓"}
@@ -243,8 +249,12 @@ export default function TaskModal({
               {comments.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>No comments yet.</p>}
               {comments.map((c: TaskComment) => (
                 <div key={c.id} style={{ display: "flex", gap: "0.6rem", padding: "0.6rem", background: "rgba(0,0,0,0.2)", borderRadius: "8px" }}>
-                  <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--gold-dark)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.6rem", color: "#000", fontWeight: 700, flexShrink: 0 }}>
-                    {c.author.charAt(0)}
+                  <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--gold-dark)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.6rem", color: "#000", fontWeight: 700, flexShrink: 0, overflow: "hidden" }}>
+                    {c.authorImage ? (
+                      <img src={c.authorImage} alt={c.author} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ) : (
+                      c.author.charAt(0)
+                    )}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", gap: "0.5rem", alignItems: "baseline", marginBottom: "0.2rem" }}>

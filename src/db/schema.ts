@@ -264,19 +264,64 @@ export const media = pgTable("media", {
   ...timestamps
 });
 
+export const observationStatusEnum = pgEnum("observation_status", [
+  "Draft", "Submitted", "Under_Review", "Core_Approved", "Admin_Approved", "Published", "Rejected"
+]);
+
 export const observations = pgTable("observations", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
-  category: text("category").notNull(),
-  date: text("date").notNull(),
+  observerId: text("observer_id").notNull(),
+  category: text("category").notNull(), // Deep Sky / Planetary / Lunar
+  celestialTarget: text("celestial_target").notNull(),
+  description: text("description").notNull(),
   location: text("location").notNull(),
-  observerName: text("observerName").notNull(),
+  capturedAt: timestamp("captured_at").notNull(),
+  
+  // Image URL Variants
+  imageOriginalUrl: text("image_original_url"),
+  imageCompressedUrl: text("image_compressed_url"),
+  imageThumbnailUrl: text("image_thumbnail_url"),
+
+  // Technical Fields
   equipment: text("equipment"),
-  images: jsonb("images").notNull().default('[]'),
-  notes: text("notes"),
-  isApproved: boolean("isApproved").default(false).notNull(),
-  isFeatured: boolean("isFeatured").default(false).notNull(),
-  settings: jsonb("settings").default('{}'),
+  exposureTime: text("exposure_time"),
+  iso: text("iso"),
+  focalLength: text("focal_length"),
+  filtersUsed: text("filters_used"),
+  bortleScale: text("bortle_scale"),
+  framesCount: integer("frames_count"),
+  processingSoftware: text("processing_software"),
+
+  // Approval Tracking System
+  status: observationStatusEnum("status").default("Draft").notNull(),
+  assignedReviewers: jsonb("assigned_reviewers").default('[]').notNull(), // text array
+  approvals: jsonb("approvals").default('[]').notNull(), // text array
+  rejections: jsonb("rejections").default('[]').notNull(), // text array
+  adminDecision: text("admin_decision"), // "approved" | "rejected" | null
+  rejectionReason: text("rejection_reason"),
+  
+  // Meta
+  versionNumber: integer("version_number").default(1).notNull(),
+  reportsCount: integer("reports_count").default(0).notNull(),
+  isFeatured: boolean("is_featured").default(false).notNull(),
+  ...timestamps
+});
+
+export const observation_versions = pgTable("observation_versions", {
+  id: text("id").primaryKey(),
+  observationId: text("observation_id").notNull(),
+  versionNumber: integer("version_number").notNull(),
+  editedBy: text("edited_by").notNull(), // userId of whoever made the change
+  changes: jsonb("changes").notNull(), // diff or full payload
+  ...timestamps
+});
+
+export const observation_reports = pgTable("observation_reports", {
+  id: text("id").primaryKey(),
+  observationId: text("observation_id").notNull(),
+  reporterId: text("reporter_id"), // Nullable if anonymous reports allowed, but lets use user id if logged in
+  reason: text("reason").notNull(),
   ...timestamps
 });
 

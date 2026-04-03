@@ -164,8 +164,8 @@ export default function MemberRequests() {
           return (
             <div key={user.id} style={{ ...rowStyle, padding: "1rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem" }}>
-                  {user.name.charAt(0).toUpperCase()}
+                <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", overflow: "hidden" }}>
+                  {user.image ? <img src={user.image} alt={user.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : user.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <h4 style={{ fontSize: "0.95rem" }}>{user.name}</h4>

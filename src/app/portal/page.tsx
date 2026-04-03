@@ -1,10 +1,14 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import AnimatedSection from '@/components/AnimatedSection';
 import AnimatedCard from '@/components/AnimatedCard';
+import AvatarCropperModal from '@/components/AvatarCropperModal';
 import { useAuth } from '@/context/AuthContext';
+
+type Notification = { id: string; type: string; title: string; message: string; isRead: boolean; link: string | null; createdAt: string };
+type MyProject = { id: string; name: string; status: string; role: string; progress: number };
 
 type LeaderboardRow = { name: string; score: number; userId: string };
 
@@ -15,32 +19,49 @@ export default function Portal() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [imgError, setImgError] = useState(false);
+
+  // Live data states
+  const [announcements, setAnnouncements] = useState<Notification[]>([]);
+  const [myProjects, setMyProjects] = useState<MyProject[]>([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(false);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);
 
   const inputStyle = {
     padding: '0.7rem 1rem', background: 'rgba(15, 22, 40, 0.5)', border: '1px solid var(--border-subtle)',
     borderRadius: '6px', color: 'var(--text-primary)', fontSize: '0.9rem', fontFamily: 'inherit', width: '100%'
   };
 
-  const announcements = [
-    { date: "Mar 20, 2026", title: "Next observation night: March 25th at 9 PM", type: "Event" },
-    { date: "Mar 18, 2026", title: "New equipment arrived — Celestron NexStar 8SE available for reservation", type: "Equipment" },
-    { date: "Mar 15, 2026", title: "Weekly quiz scores updated — check the leaderboard!", type: "Quiz" },
-  ];
-
-  const myProjects = [
-    { name: "Weather Balloon Launch #4", role: "Data Analyst", progress: 75 },
-    { name: "CubeSat Feasibility Study", role: "Research Member", progress: 30 },
-  ];
-
-  const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);
+  const fetchPortalData = useCallback(async () => {
+    if (!user) return;
+    setAnnouncementsLoading(true);
+    setProjectsLoading(true);
+    try {
+      const { getMyNotificationsAction, getMyProjectsAction } = await import('@/app/actions/notifications');
+      const [notifs, projects] = await Promise.all([
+        getMyNotificationsAction(),
+        getMyProjectsAction(),
+      ]);
+      setAnnouncements(notifs.slice(0, 5));
+      setMyProjects(projects);
+    } catch (err) {
+      console.error('[Portal] fetchPortalData error:', err);
+    } finally {
+      setAnnouncementsLoading(false);
+      setProjectsLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     let unsubLeaderboard = () => {};
     if (user) {
+      fetchPortalData();
       import('@/lib/db').then(({ subscribeToCollection }) => {
         unsubLeaderboard = subscribeToCollection('quiz_attempts', (data) => {
           const scores: Record<string, {name: string, score: number, userId: string}> = {};
-          data.forEach(a => {
+          data.forEach((a: any) => {
             if (!scores[a.userId]) scores[a.userId] = { name: a.userName || 'Member', score: 0, userId: a.userId };
             scores[a.userId].score += a.score;
           });
@@ -50,7 +71,7 @@ export default function Portal() {
       });
     }
     return () => unsubLeaderboard();
-  }, [user]);
+  }, [user, fetchPortalData]);
 
   return (
     <div className="page-container">
@@ -124,25 +145,41 @@ export default function Portal() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '2rem', width: '100%', alignItems: 'start' }}>
         {/* Main Content */}
         <div>
-          {/* Announcements */}
+          {/* Announcements / Notifications */}
           <AnimatedSection>
             <h2 style={{ fontSize: '1.3rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.63 3.18 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.574 2.81.7A2 2 0 0 1 21.32 16a2 2 0 0 1 .6.92z"></path></svg>
-              Announcements
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+              Notifications
             </h2>
           </AnimatedSection>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginBottom: '3rem' }}>
-            {announcements.map((ann, i) => (
-              <AnimatedSection key={i} direction="left" delay={i * 0.1}>
-                <div style={{ padding: '1.2rem 1.5rem', borderLeft: '2px solid var(--gold-dark)', background: 'rgba(15, 22, 40, 0.3)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                    <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--gold)', fontWeight: 600 }}>{ann.type}</span>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{ann.date}</span>
-                  </div>
-                  <p style={{ fontSize: '0.95rem' }}>{ann.title}</p>
-                </div>
-              </AnimatedSection>
-            ))}
+            {announcementsLoading ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Loading...</div>
+            ) : announcements.length === 0 ? (
+              <div style={{ padding: '1.5rem', background: 'rgba(15, 22, 40, 0.3)', borderRadius: '8px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+                🔕 No notifications yet.
+              </div>
+            ) : (
+              announcements.map((ann, i) => {
+                const typeLabel = ann.type === 'approval_request' ? 'Approval' : ann.type === 'task_assigned' ? 'Task' : ann.type === 'mention' ? 'Mention' : 'System';
+                const timeAgo = (() => { const diff = Date.now() - new Date(ann.createdAt).getTime(); const m = Math.floor(diff/60000); if (m < 1) return 'just now'; if (m < 60) return `${m}m ago`; const h = Math.floor(m/60); if (h < 24) return `${h}h ago`; return `${Math.floor(h/24)}d ago`; })();
+                return (
+                  <AnimatedSection key={ann.id} direction="left" delay={i * 0.08}>
+                    <div
+                      onClick={async () => { if (!ann.isRead) { const { markNotificationReadAction } = await import('@/app/actions/notifications'); await markNotificationReadAction(ann.id); setAnnouncements(prev => prev.map(n => n.id === ann.id ? {...n, isRead: true} : n)); } if (ann.link) window.location.href = ann.link; }}
+                      style={{ padding: '1.1rem 1.5rem', borderLeft: ann.isRead ? '2px solid var(--border-subtle)' : '2px solid var(--gold)', background: ann.isRead ? 'rgba(15, 22, 40, 0.2)' : 'rgba(201,168,76,0.04)', cursor: ann.link ? 'pointer' : 'default', transition: 'background 0.2s', borderRadius: '0 6px 6px 0' }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: ann.isRead ? 'var(--text-muted)' : 'var(--gold)', fontWeight: 600 }}>{typeLabel}</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>{timeAgo}</span>
+                      </div>
+                      <p style={{ fontSize: '0.9rem', fontWeight: ann.isRead ? 300 : 500, marginBottom: '0.2rem' }}>{ann.title}</p>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 300 }}>{ann.message}</p>
+                    </div>
+                  </AnimatedSection>
+                );
+              })
+            )}
           </div>
 
           {/* My Projects with animated progress bars */}
@@ -153,24 +190,41 @@ export default function Portal() {
             </h2>
           </AnimatedSection>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {myProjects.map((proj, i) => (
-              <AnimatedCard key={i} index={i} enableTilt={false} style={{ textAlign: 'left', padding: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.8rem' }}>
-                  <h4 style={{ fontSize: '1rem' }}>{proj.name}</h4>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{proj.role}</span>
-                </div>
-                <div style={{ width: '100%', height: '6px', background: 'var(--border-subtle)', borderRadius: '3px', overflow: 'hidden' }}>
-                  <motion.div
-                    initial={{ width: 0 }}
-                    whileInView={{ width: `${proj.progress}%` }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 1.2, delay: 0.3 + i * 0.2, ease: [0.25, 0.4, 0.25, 1] }}
-                    style={{ height: '100%', background: 'linear-gradient(90deg, var(--gold-dark), var(--gold-light))', borderRadius: '3px' }}
-                  />
-                </div>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.5rem', display: 'block' }}>{proj.progress}% complete</span>
-              </AnimatedCard>
-            ))}
+            {projectsLoading ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Loading...</div>
+            ) : myProjects.length === 0 ? (
+              <div style={{ padding: '1.5rem', background: 'rgba(15, 22, 40, 0.3)', borderRadius: '8px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+                🚀 You&apos;re not assigned to any projects yet.
+                <br /><Link href="/projects" style={{ color: 'var(--gold)', fontSize: '0.8rem', marginTop: '0.5rem', display: 'inline-block' }}>Browse projects →</Link>
+              </div>
+            ) : (
+              myProjects.map((proj, i) => (
+                <AnimatedCard key={proj.id} index={i} enableTilt={false} style={{ textAlign: 'left', padding: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', alignItems: 'center' }}>
+                    <h4 style={{ fontSize: '1rem' }}>{proj.name}</h4>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      {proj.role === 'Lead' && (
+                        <span style={{ fontSize: '0.65rem', background: 'rgba(201,168,76,0.15)', color: 'var(--gold)', padding: '0.15rem 0.5rem', borderRadius: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Lead</span>
+                      )}
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{proj.status}</span>
+                    </div>
+                  </div>
+                  <div style={{ width: '100%', height: '6px', background: 'var(--border-subtle)', borderRadius: '3px', overflow: 'hidden', marginBottom: '0.4rem' }}>
+                    <motion.div
+                      initial={{ width: 0 }}
+                      whileInView={{ width: `${proj.progress}%` }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 1.2, delay: 0.3 + i * 0.2, ease: [0.25, 0.4, 0.25, 1] }}
+                      style={{ height: '100%', background: 'linear-gradient(90deg, var(--gold-dark), var(--gold-light))', borderRadius: '3px' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{proj.progress}% complete</span>
+                    <Link href={`/projects/${proj.id}`} style={{ color: 'var(--gold)', fontSize: '0.75rem' }}>View →</Link>
+                  </div>
+                </AnimatedCard>
+              ))
+            )}
           </div>
 
           {/* Internal Leaderboard */}
@@ -205,12 +259,10 @@ export default function Portal() {
           <AnimatedSection direction="right" delay={0.1}>
             <div className="feature-card" style={{ padding: '2rem', textAlign: 'center', marginBottom: '1.5rem' }}>
               {(() => {
-                const profileSrc = (user as any).profileImageKey
-                  ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL || ""}/${(user as any).profileImageKey}`
-                  : user.image;
-                return profileSrc ? (
+                const profileSrc = user.image || ((user as any).profileImageKey ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL || ""}/${(user as any).profileImageKey}` : null);
+                return profileSrc && !imgError ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profileSrc} alt="Avatar" style={{ width: '70px', height: '70px', borderRadius: '50%', margin: '0 auto 1rem', border: "2px solid var(--gold)", objectFit: "cover" }} />
+                  <img src={profileSrc} alt="Avatar" onError={() => setImgError(true)} style={{ width: '70px', height: '70px', borderRadius: '50%', margin: '0 auto 1rem', border: "2px solid var(--gold)", objectFit: "cover" }} />
                 ) : (
                   <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', margin: '0 auto 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', color: '#000', fontWeight: 700 }}>
                     {(user.name || "?").charAt(0).toUpperCase()}
@@ -222,55 +274,13 @@ export default function Portal() {
 
               {/* Profile Image Upload */}
               <div style={{ marginTop: '1rem' }}>
-                <label
-                  htmlFor="profile-upload"
-                  style={{ display: 'inline-block', fontSize: '0.78rem', color: 'var(--gold)', cursor: 'pointer', padding: '0.4rem 0.8rem', border: '1px solid rgba(201,168,76,0.4)', borderRadius: '6px', transition: 'all 0.2s' }}
+                <button
+                  onClick={() => setIsCropperOpen(true)}
+                  style={{ display: 'inline-block', background: 'transparent', fontSize: '0.78rem', color: 'var(--gold)', cursor: 'pointer', padding: '0.4rem 0.8rem', border: '1px solid rgba(201,168,76,0.4)', borderRadius: '6px', transition: 'all 0.2s' }}
                 >
                   📷 Upload Photo
-                </label>
-                <input
-                  id="profile-upload"
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.webp"
-                  style={{ display: 'none' }}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    // Validation
-                    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-                    if (!allowed.includes(file.type)) {
-                      alert('Only JPG, PNG, and WebP files are allowed.');
-                      return;
-                    }
-                    if (file.size > 2 * 1024 * 1024) {
-                      alert('File size must be under 2MB.');
-                      return;
-                    }
-                    try {
-                      // 1. Get presigned URL
-                      const res = await fetch('/api/upload/profile-image-url', { method: 'POST' });
-                      if (!res.ok) throw new Error('Failed to get upload URL');
-                      const { uploadUrl, key } = await res.json();
-                      // 2. Upload directly to R2
-                      const putRes = await fetch(uploadUrl, {
-                        method: 'PUT',
-                        body: file,
-                        headers: { 'Content-Type': file.type },
-                      });
-                      if (!putRes.ok) throw new Error('Upload failed');
-                      // 3. Save key to database
-                      const { updateUserProfileAction } = await import('@/app/actions/members');
-                      await updateUserProfileAction({ profileImageKey: key });
-                      alert('Profile image updated! Refresh to see changes.');
-                      window.location.reload();
-                    } catch (err: any) {
-                      console.error(err);
-                      alert('Failed to upload image: ' + err.message);
-                    }
-                    // Reset input
-                    e.target.value = '';
-                  }}
-                />
+                </button>
+
                 <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>JPG, PNG, WebP • Max 2MB</p>
               </div>
 
@@ -400,8 +410,13 @@ export default function Portal() {
             </div>
           </AnimatedSection>
         </div>
-      </div>
+        </div>
       )}
+      <AvatarCropperModal 
+        isOpen={isCropperOpen} 
+        onClose={() => setIsCropperOpen(false)} 
+        onSuccess={() => window.location.reload()} 
+      />
     </div>
   );
 }

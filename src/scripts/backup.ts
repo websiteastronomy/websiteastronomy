@@ -2,6 +2,9 @@ import * as fs from "fs";
 import * as path from "path";
 import * as dotenv from "dotenv";
 
+import ws from 'ws';
+(globalThis as any).WebSocket = ws;
+
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 import { db } from "../db/index";
@@ -13,6 +16,7 @@ async function runBackup() {
   try {
     const backupData = {
       users: await db.select().from(schema.users),
+      observations: await db.select().from(schema.observations),
       projects: await db.select().from(schema.projects),
       events: await db.select().from(schema.events),
       files: await db.select().from(schema.files),

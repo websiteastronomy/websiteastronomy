@@ -18,6 +18,7 @@ export interface TaskComment {
   id: string;
   author: string;
   authorId?: string;
+  authorImage?: string;
   text: string;
   time: string;
 }
@@ -29,6 +30,7 @@ export interface TaskAttachment {
 
 export interface TaskAssignee {
   name: string;
+  image?: string;
 }
 
 export interface ProjectTask {
@@ -77,14 +79,22 @@ export async function getProjectTasksAction(projectId: string): Promise<ProjectT
     if (taskIds.length === 0) return [];
 
     const assignments = await db
-      .select({ taskId: project_task_assignments.taskId, userName: users.name })
+      .select({ taskId: project_task_assignments.taskId, userName: users.name, userImage: users.image })
       .from(project_task_assignments)
       .leftJoin(users, eq(users.id, project_task_assignments.userId))
       .where(inArray(project_task_assignments.taskId, taskIds));
 
     const comments = await db
-      .select()
+      .select({
+        id: project_task_comments.id,
+        taskId: project_task_comments.taskId,
+        authorName: project_task_comments.authorName,
+        text: project_task_comments.text,
+        createdAt: project_task_comments.createdAt,
+        authorImage: users.image
+      })
       .from(project_task_comments)
+      .leftJoin(users, eq(users.id, project_task_comments.authorId))
       .where(inArray(project_task_comments.taskId, taskIds));
 
     const attachments = await db
@@ -103,8 +113,8 @@ export async function getProjectTasksAction(projectId: string): Promise<ProjectT
       isBlocked: task.isBlocked,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
-      assignees: assignments.filter(a => a.taskId === task.id).map(a => ({ name: a.userName || "Unknown" })),
-      comments: comments.filter(c => c.taskId === task.id).map(c => ({ id: c.id, author: c.authorName, text: c.text, time: c.createdAt.toISOString() })),
+      assignees: assignments.filter(a => a.taskId === task.id).map(a => ({ name: a.userName || "Unknown", image: a.userImage || undefined })),
+      comments: comments.filter(c => c.taskId === task.id).map(c => ({ id: c.id, author: c.authorName, authorImage: c.authorImage || undefined, text: c.text, time: c.createdAt.toISOString() })),
       attachments: attachments.filter(att => att.taskId === task.id).map(att => ({ name: att.fileId, url: "" })),
     }));
   } catch (error) {

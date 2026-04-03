@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getCollection } from '@/lib/db';
+import { getPublicMembersAction } from '@/app/actions/publicMembers';
 import { loadSiteSettingsClient } from '@/data/siteSettingsStatic';
 import { ABOUT_VISION_MISSION } from '@/data/aboutPageStatic';
 import AnimatedSection from '@/components/AnimatedSection';
@@ -14,6 +15,7 @@ export default function About() {
   const [achievements, setAchievements] = useState<any[]>([]);
   const [outreach, setOutreach] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ members: 0, projects: 0, events: 0 });
 
   const cardVariants: Variants = {
     offscreen: { opacity: 0, y: 30 },
@@ -34,15 +36,23 @@ export default function About() {
       };
 
       try {
-        const [membersData, achievementsData, outreachData] = await Promise.all([
-          safeCollection("members"),
+        const { getPlatformStatsAction } = await import('@/app/actions/stats');
+        const [membersData, achievementsData, outreachData, platformStats, eventsData] = await Promise.all([
+          getPublicMembersAction().catch(e => { console.error(e); return []; }),
           safeCollection("achievements"),
           safeCollection("outreach"),
+          getPlatformStatsAction().catch(() => ({ membersCount: 0, projectsCount: 0 })),
+          safeCollection("events")
         ]);
         if (!cancelled) {
           setTeam(membersData);
           setAchievements(achievementsData);
           setOutreach(outreachData);
+          setStats({
+            members: platformStats.membersCount,
+            projects: platformStats.projectsCount,
+            events: eventsData.length
+          });
         }
       } catch (err) {
         console.error("[About] Failed to fetch settings:", err);
@@ -75,15 +85,15 @@ export default function About() {
         </div>
       </AnimatedSection>
 
-      {/* ── STATS ROW (Static for now or keep from settings) ── */}
+      {/* ── STATS ROW ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", width: "100%", margin: "0 0 6rem", textAlign: "center" }}>
         {[
-          { label: "Active Members", value: siteSettings?.heroStats?.members || team.length, suffix: "+" },
-          { label: "Events Done", value: siteSettings?.heroStats?.events || 50, suffix: "+" },
-          { label: "R&D Projects", value: siteSettings?.heroStats?.projects || 10, suffix: "" },
+          { label: "Active Members", value: stats.members || team.length, suffix: "+" },
+          { label: "Events Done", value: stats.events || 0, suffix: "+" },
+          { label: "R&D Projects", value: stats.projects || 0, suffix: "" },
           { 
             label: "Community Impact", 
-            value: outreach.filter(o => o.isApproved).reduce((sum, item) => sum + (item.stats?.peopleReached || 0), 0) || 500, 
+            value: outreach.filter(o => o.isApproved).reduce((sum, item) => sum + (item.stats?.peopleReached || 0), 0) || 0, 
             suffix: "+" 
           },
         ].map((stat, i) => (
