@@ -499,7 +499,12 @@ export const form_responses = pgTable("form_responses", {
   id: text("id").primaryKey(),
   formId: text("form_id").notNull().references(() => project_files.id, { onDelete: "cascade" }),
   userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  isExternal: boolean("is_external").default(false).notNull(),
+  externalDetails: jsonb("external_details").notNull().default('{}'),
+  answers: jsonb("answers").notNull().default('{}'),
   responses: jsonb("responses").notNull().default('{}'),
+  paymentStatus: text("payment_status").default("success").notNull(),
+  paymentId: text("payment_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -567,7 +572,7 @@ export const audit_logs = pgTable("audit_logs", {
 // BLOCK B: NOTIFICATIONS (PHASE 9)
 // ==============================================================================
 
-export const notificationTypeEnum = pgEnum("notification_type", ["mention", "task_assigned", "approval_request", "system"]);
+export const notificationTypeEnum = pgEnum("notification_type", ["mention", "task_assigned", "approval_request", "system", "form"]);
 
 export const notifications = pgTable("notifications", {
   id: text("id").primaryKey(),
@@ -576,6 +581,7 @@ export const notifications = pgTable("notifications", {
   title: text("title").notNull(),
   message: text("message").notNull(),
   isRead: boolean("is_read").default(false).notNull(),
+  referenceId: text("reference_id"),
   link: text("link"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

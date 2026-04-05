@@ -6,6 +6,7 @@ import {
   getDocumentationManagerItemsAction,
   type DocumentationManagerItem,
 } from "@/app/actions/files";
+import FormsManagement from "./FormsManagement";
 
 export default function DocumentationManager() {
   const [rows, setRows] = useState<DocumentationManagerItem[]>([]);
@@ -99,6 +100,9 @@ export default function DocumentationManager() {
           ))
         )}
       </div>
+
+      <div style={{ height: "1px", background: "var(--border-subtle)", margin: "2rem 0" }} />
+      <FormsManagement />
     </>
   );
 }

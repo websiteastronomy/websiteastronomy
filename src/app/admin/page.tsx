@@ -17,6 +17,7 @@ import OutreachManager from "./components/OutreachManager";
 import ArticlesManager from "./components/ArticlesManager";
 import ProjectsManager from "./components/ProjectsManager";
 import DocumentationManager from "./components/DocumentationManager";
+import FormsManagement from "./components/FormsManagement";
 import QuizzesManager from "./components/QuizzesManager";
 import AchievementsManager from "./components/AchievementsManager";
 import SettingsManager from "./components/SettingsManager";

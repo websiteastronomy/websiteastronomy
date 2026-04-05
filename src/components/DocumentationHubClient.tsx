@@ -20,14 +20,25 @@ import {
   updateFormContentAction,
   uploadDocumentationFileEntryAction,
   uploadProjectFileAction,
+  type FormContent,
   type ProjectFile,
 } from "@/app/actions/files";
 import { uploadDocumentationBinaryAction, uploadFile } from "@/app/actions/storage";
 import { formatDateStable } from "@/lib/format-date";
 
 type Scope = { projectId?: string | null; isGlobal?: boolean };
-type QuestionType = "text" | "textarea" | "select" | "checkbox";
+type QuestionType = "short_answer" | "paragraph" | "multiple_choice" | "checkbox";
 type FormQuestion = { id: string; label: string; type: QuestionType; required?: boolean; options?: string[] };
+type FormSettings = {
+  allowMultiple: boolean;
+  requireLogin: boolean;
+  collectEmail: boolean;
+  paymentEnabled: boolean;
+  amount: number;
+  notifyOnSubmit: boolean;
+  announcementEnabled: boolean;
+  emailEnabled: boolean;
+};
 
 type Props = {
   scope: Scope;
@@ -43,7 +54,23 @@ type Props = {
 };
 
 const docContent = (title: string) => ({ title, body: "", blocks: [] });
-const formContent = (title: string) => ({ title, description: "", questions: [] as FormQuestion[] });
+const formContent = (title: string): FormContent => ({
+  title,
+  description: "",
+  mode: "internal",
+  fields: [] as FormQuestion[],
+  questions: [] as FormQuestion[],
+  settings: {
+    allowMultiple: false,
+    requireLogin: false,
+    collectEmail: true,
+    paymentEnabled: false,
+    amount: 0,
+    notifyOnSubmit: true,
+    announcementEnabled: false,
+    emailEnabled: false,
+  },
+});
 
 export default function DocumentationHubClient({
   scope,
@@ -292,6 +319,11 @@ export default function DocumentationHubClient({
         return;
       }
       if (item.type === "form") {
+        const canEditForm = canManage || item.uploadedBy === userName;
+        if (!canEditForm) {
+          window.open(`/forms/${item.id}`, "_blank", "noopener,noreferrer");
+          return;
+        }
         setModalLoading(true);
         const [content, responses] = await Promise.all([
           getFormContentAction(item.id),
@@ -331,7 +363,7 @@ export default function DocumentationHubClient({
   };
 
   const saveForm = async () => {
-    if (!activeForm || !canManage) return;
+    if (!activeForm || !(canManage || activeForm.uploadedBy === userName)) return;
     setModalLoading(true);
     try {
       await updateFormContentAction(activeForm.id, formDraft);
@@ -348,10 +380,10 @@ export default function DocumentationHubClient({
   };
 
   const submitForm = async () => {
-    if (!activeForm || canManage) return;
+    if (!activeForm || (canManage || activeForm.uploadedBy === userName)) return;
     setModalLoading(true);
     try {
-      await submitFormResponseAction(activeForm.id, responseDraft);
+      await submitFormResponseAction(activeForm.id, { answers: responseDraft });
       setFeedback({ type: "success", message: "Form submitted." });
       setResponseDraft({});
     } catch (error: any) {
@@ -365,20 +397,20 @@ export default function DocumentationHubClient({
   const addQuestion = () => {
     const current = ((formDraft.questions as FormQuestion[]) || []).slice();
     const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}`;
-    current.push({ id, label: "Untitled question", type: "text", required: false, options: [] });
-    setFormDraft((value) => ({ ...value, questions: current }));
+    current.push({ id, label: "Untitled question", type: "short_answer", required: false, options: [] });
+    setFormDraft((value) => ({ ...value, questions: current, fields: current }));
   };
 
   const updateQuestion = (questionId: string, patch: Partial<FormQuestion>) => {
     const current = ((formDraft.questions as FormQuestion[]) || []).map((question) =>
       question.id === questionId ? { ...question, ...patch } : question
     );
-    setFormDraft((value) => ({ ...value, questions: current }));
+    setFormDraft((value) => ({ ...value, questions: current, fields: current }));
   };
 
   const removeQuestion = (questionId: string) => {
     const current = ((formDraft.questions as FormQuestion[]) || []).filter((question) => question.id !== questionId);
-    setFormDraft((value) => ({ ...value, questions: current }));
+    setFormDraft((value) => ({ ...value, questions: current, fields: current }));
   };
 
   const attachToTask = async (itemId: string, taskId: string) => {
@@ -532,57 +564,125 @@ export default function DocumentationHubClient({
               </>
             ) : activeForm ? (
               <>
-                <div style={{ display: "grid", gap: "0.9rem" }}>
-                  <input value={String(formDraft.title || activeForm.name)} onChange={(event) => setFormDraft((value) => ({ ...value, title: event.target.value }))} disabled={!canManage} placeholder="Form title" style={{ padding: "0.7rem 0.9rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontFamily: "inherit" }} />
-                  <textarea value={String(formDraft.description || "")} onChange={(event) => setFormDraft((value) => ({ ...value, description: event.target.value }))} disabled={!canManage} placeholder="Form description" style={{ minHeight: "80px", padding: "0.7rem 0.9rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontFamily: "inherit", resize: "vertical" }} />
-                  {((formDraft.questions as FormQuestion[]) || []).map((question, index) => (
-                    <div key={question.id} style={{ border: "1px solid var(--border-subtle)", borderRadius: "10px", padding: "0.9rem", background: "rgba(0,0,0,0.18)" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", marginBottom: "0.75rem", alignItems: "center" }}>
-                        <strong style={{ fontSize: "0.82rem" }}>Question {index + 1}</strong>
-                        {canManage ? <button onClick={() => removeQuestion(question.id)} style={{ background: "transparent", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", borderRadius: "6px", padding: "0.25rem 0.55rem", fontSize: "0.72rem", cursor: "pointer" }}>Remove</button> : null}
+                {(() => {
+                  const canEditForm = canManage || activeForm.uploadedBy === userName;
+                  const questions = ((formDraft.questions as FormQuestion[]) || []) as FormQuestion[];
+                  const settings = ((formDraft.settings as FormSettings | undefined) || formContent(activeForm.name).settings) as FormSettings;
+                  const selectedResponse = formResponses[0] as any;
+                  return (
+                    <>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+                          <span style={{ padding: "0.35rem 0.7rem", borderRadius: "999px", background: "rgba(201,168,76,0.12)", color: "var(--gold)", fontSize: "0.75rem", textTransform: "capitalize" }}>{String(formDraft.mode || "internal")}</span>
+                          {settings.paymentEnabled ? <span style={{ padding: "0.35rem 0.7rem", borderRadius: "999px", background: "rgba(34,197,94,0.12)", color: "#86efac", fontSize: "0.75rem" }}>Payment ready: Rs. {settings.amount}</span> : null}
+                        </div>
+                        <a href={`/forms/${activeForm.id}`} target="_blank" rel="noreferrer" style={{ color: "#93c5fd", textDecoration: "none", fontSize: "0.82rem" }}>Open fill page</a>
                       </div>
-                      <div style={{ display: "grid", gap: "0.6rem" }}>
-                        <input value={question.label} onChange={(event) => updateQuestion(question.id, { label: event.target.value })} disabled={!canManage} placeholder="Question label" style={{ padding: "0.7rem 0.9rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontFamily: "inherit" }} />
-                        {canManage ? (
-                          <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: "0.6rem" }}>
-                            <select value={question.type} onChange={(event) => updateQuestion(question.id, { type: event.target.value as QuestionType })} style={{ padding: "0.65rem 0.8rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontFamily: "inherit" }}>
-                              <option value="text">Text</option><option value="textarea">Textarea</option><option value="select">Select</option><option value="checkbox">Checkbox</option>
-                            </select>
-                            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8rem", color: "var(--text-secondary)" }}><input type="checkbox" checked={Boolean(question.required)} onChange={(event) => updateQuestion(question.id, { required: event.target.checked })} />Required</label>
+                      <div style={{ display: "grid", gridTemplateColumns: canEditForm ? "minmax(0, 1.7fr) minmax(280px, 1fr)" : "1fr", gap: "1rem" }}>
+                        <div style={{ display: "grid", gap: "0.9rem" }}>
+                          <input value={String(formDraft.title || activeForm.name)} onChange={(event) => setFormDraft((value) => ({ ...value, title: event.target.value }))} disabled={!canEditForm} placeholder="Form title" style={{ padding: "0.7rem 0.9rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontFamily: "inherit" }} />
+                          <textarea value={String(formDraft.description || "")} onChange={(event) => setFormDraft((value) => ({ ...value, description: event.target.value }))} disabled={!canEditForm} placeholder="Form description" style={{ minHeight: "90px", padding: "0.7rem 0.9rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontFamily: "inherit", resize: "vertical" }} />
+                          {questions.map((question, index) => (
+                            <div key={question.id} style={{ border: "1px solid var(--border-subtle)", borderRadius: "10px", padding: "0.9rem", background: "rgba(0,0,0,0.18)" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", marginBottom: "0.75rem", alignItems: "center" }}>
+                                <strong style={{ fontSize: "0.82rem" }}>Question {index + 1}</strong>
+                                {canEditForm ? <button onClick={() => removeQuestion(question.id)} style={{ background: "transparent", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", borderRadius: "6px", padding: "0.25rem 0.55rem", fontSize: "0.72rem", cursor: "pointer" }}>Delete</button> : null}
+                              </div>
+                              <div style={{ display: "grid", gap: "0.6rem" }}>
+                                <input value={question.label} onChange={(event) => updateQuestion(question.id, { label: event.target.value })} disabled={!canEditForm} placeholder="Question label" style={{ padding: "0.7rem 0.9rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontFamily: "inherit" }} />
+                                {canEditForm ? (
+                                  <div style={{ display: "grid", gridTemplateColumns: "170px 1fr", gap: "0.6rem" }}>
+                                    <select value={question.type} onChange={(event) => updateQuestion(question.id, { type: event.target.value as QuestionType })} style={{ padding: "0.65rem 0.8rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontFamily: "inherit" }}>
+                                      <option value="short_answer">Short answer</option>
+                                      <option value="paragraph">Paragraph</option>
+                                      <option value="multiple_choice">Multiple choice</option>
+                                      <option value="checkbox">Checkbox</option>
+                                    </select>
+                                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8rem", color: "var(--text-secondary)" }}><input type="checkbox" checked={Boolean(question.required)} onChange={(event) => updateQuestion(question.id, { required: event.target.checked })} />Required</label>
+                                  </div>
+                                ) : null}
+                                {question.type === "multiple_choice" ? (
+                                  <textarea value={(question.options || []).join("\n")} onChange={(event) => updateQuestion(question.id, { options: event.target.value.split("\n").map((option) => option.trim()).filter(Boolean) })} disabled={!canEditForm} placeholder="One option per line" style={{ minHeight: "80px", padding: "0.7rem 0.9rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontFamily: "inherit" }} />
+                                ) : null}
+                              </div>
+                            </div>
+                          ))}
+                          {canEditForm ? <button onClick={addQuestion} style={{ justifySelf: "start", background: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.3)", color: "var(--gold)", borderRadius: "6px", padding: "0.45rem 0.85rem", fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" }}>Add Question</button> : null}
+                          <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "1rem" }}>
+                            <h4 style={{ margin: "0 0 0.6rem", fontSize: "0.9rem", color: "var(--gold-light)" }}>Responses</h4>
+                            {formResponses.length === 0 ? <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>No submissions yet.</p> : (
+                              <div style={{ overflowX: "auto" }}>
+                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.78rem" }}>
+                                  <thead>
+                                    <tr style={{ color: "var(--text-muted)", textAlign: "left" }}>
+                                      <th style={{ padding: "0.5rem 0.4rem" }}>Name</th>
+                                      <th style={{ padding: "0.5rem 0.4rem" }}>Email</th>
+                                      <th style={{ padding: "0.5rem 0.4rem" }}>Date</th>
+                                      <th style={{ padding: "0.5rem 0.4rem" }}>Payment</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {formResponses.map((response: any) => (
+                                      <tr key={response.id} style={{ borderTop: "1px solid var(--border-subtle)" }}>
+                                        <td style={{ padding: "0.55rem 0.4rem" }}>{response.externalDetails?.name || "Member"}</td>
+                                        <td style={{ padding: "0.55rem 0.4rem" }}>{response.externalDetails?.email || "Internal"}</td>
+                                        <td style={{ padding: "0.55rem 0.4rem" }}>{formatDateStable(response.createdAt)}</td>
+                                        <td style={{ padding: "0.55rem 0.4rem", textTransform: "capitalize" }}>{response.paymentStatus}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {canEditForm ? (
+                          <div style={{ display: "grid", gap: "0.85rem", alignContent: "start" }}>
+                            <div style={{ border: "1px solid var(--border-subtle)", borderRadius: "12px", padding: "1rem", background: "rgba(0,0,0,0.18)" }}>
+                              <h4 style={{ margin: "0 0 0.75rem", fontSize: "0.9rem", color: "var(--gold-light)" }}>Settings</h4>
+                              <div style={{ display: "grid", gap: "0.75rem" }}>
+                                <label style={{ display: "grid", gap: "0.35rem", fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+                                  Mode
+                                  <select value={String(formDraft.mode || "internal")} onChange={(event) => setFormDraft((value) => ({ ...value, mode: event.target.value }))} style={{ padding: "0.7rem 0.8rem", background: "rgba(0,0,0,0.28)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "white" }}>
+                                    <option value="internal">Internal</option>
+                                    <option value="external">External</option>
+                                    <option value="hybrid">Hybrid</option>
+                                  </select>
+                                </label>
+                                {[
+                                  ["allowMultiple", "Allow multiple responses"],
+                                  ["requireLogin", "Require login"],
+                                  ["collectEmail", "Collect email"],
+                                  ["paymentEnabled", "Enable payment"],
+                                  ["notifyOnSubmit", "Enable notifications"],
+                                  ["announcementEnabled", "Send as announcement"],
+                                  ["emailEnabled", "Send email notification"],
+                                ].map(([key, label]) => (
+                                  <label key={key} style={{ display: "flex", alignItems: "center", gap: "0.55rem", fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+                                    <input type="checkbox" checked={Boolean(settings[key as keyof FormSettings])} onChange={(event) => setFormDraft((value) => ({ ...value, settings: { ...settings, [key]: event.target.checked } }))} />
+                                    {label}
+                                  </label>
+                                ))}
+                                <label style={{ display: "grid", gap: "0.35rem", fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+                                  Amount
+                                  <input type="number" min="0" value={settings.amount} onChange={(event) => setFormDraft((value) => ({ ...value, settings: { ...settings, amount: Number(event.target.value || 0) } }))} style={{ padding: "0.7rem 0.8rem", background: "rgba(0,0,0,0.28)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "white" }} />
+                                </label>
+                              </div>
+                            </div>
+                            <div style={{ border: "1px solid var(--border-subtle)", borderRadius: "12px", padding: "1rem", background: "rgba(0,0,0,0.18)" }}>
+                              <h4 style={{ margin: "0 0 0.75rem", fontSize: "0.9rem", color: "var(--gold-light)" }}>Response Detail</h4>
+                              {selectedResponse ? <pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word", fontSize: "0.76rem", color: "var(--text-secondary)" }}>{JSON.stringify(selectedResponse.answers, null, 2)}</pre> : <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)" }}>Submit responses will appear here.</p>}
+                            </div>
                           </div>
                         ) : null}
-                        {question.type === "select" ? (
-                          canManage ? (
-                            <textarea value={(question.options || []).join("\n")} onChange={(event) => updateQuestion(question.id, { options: event.target.value.split("\n").map((option) => option.trim()).filter(Boolean) })} placeholder="One option per line" style={{ minHeight: "80px", padding: "0.7rem 0.9rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontFamily: "inherit" }} />
-                          ) : (
-                            <select value={String(responseDraft[question.id] || "")} onChange={(event) => setResponseDraft((value) => ({ ...value, [question.id]: event.target.value }))} style={{ padding: "0.7rem 0.9rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontFamily: "inherit" }}>
-                              <option value="">Select an option</option>
-                              {(question.options || []).map((option) => <option key={option} value={option}>{option}</option>)}
-                            </select>
-                          )
-                        ) : null}
-                        {!canManage ? (
-                          question.type === "textarea" ? <textarea value={String(responseDraft[question.id] || "")} onChange={(event) => setResponseDraft((value) => ({ ...value, [question.id]: event.target.value }))} style={{ minHeight: "90px", padding: "0.7rem 0.9rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontFamily: "inherit" }} /> :
-                          question.type === "checkbox" ? <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", color: "var(--text-secondary)" }}><input type="checkbox" checked={Boolean(responseDraft[question.id])} onChange={(event) => setResponseDraft((value) => ({ ...value, [question.id]: event.target.checked }))} />{question.label}</label> :
-                          question.type !== "select" ? <input value={String(responseDraft[question.id] || "")} onChange={(event) => setResponseDraft((value) => ({ ...value, [question.id]: event.target.value }))} style={{ padding: "0.7rem 0.9rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontFamily: "inherit" }} /> : null
-                        ) : null}
                       </div>
-                    </div>
-                  ))}
-                  {canManage ? <button onClick={addQuestion} style={{ justifySelf: "start", background: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.3)", color: "var(--gold)", borderRadius: "6px", padding: "0.45rem 0.85rem", fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" }}>Add Question</button> : null}
-                  {!canManage && formResponses.length > 0 ? (
-                    <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "1rem" }}>
-                      <h4 style={{ margin: "0 0 0.6rem", fontSize: "0.9rem", color: "var(--gold-light)" }}>Existing Responses</h4>
-                      <div style={{ display: "grid", gap: "0.5rem" }}>
-                        {formResponses.map((response) => <div key={response.id} style={{ padding: "0.75rem", border: "1px solid var(--border-subtle)", borderRadius: "8px", background: "rgba(0,0,0,0.18)" }}><pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word", fontSize: "0.76rem", color: "var(--text-secondary)" }}>{JSON.stringify(response.responses, null, 2)}</pre></div>)}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem" }}>
+                        <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>{canEditForm ? "Forms live inside documentation and open publicly via the share link." : "Open the public form page to submit a response."}</span>
+                        {canEditForm ? <button onClick={() => void saveForm()} className="btn-primary" style={{ fontSize: "0.8rem" }}>Save Form</button> : <a href={`/forms/${activeForm.id}`} target="_blank" rel="noreferrer" className="btn-primary" style={{ fontSize: "0.8rem" }}>Open Form</a>}
                       </div>
-                    </div>
-                  ) : null}
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem" }}>
-                  <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>{canManage ? "Questions are stored in JSON content." : "Submit your answers once you're done."}</span>
-                  {canManage ? <button onClick={() => void saveForm()} className="btn-primary" style={{ fontSize: "0.8rem" }}>Save Form</button> : <button onClick={() => void submitForm()} className="btn-primary" style={{ fontSize: "0.8rem" }}>Submit Response</button>}
-                </div>
+                    </>
+                  );
+                })()}
               </>
             ) : null}
           </div>

@@ -2,7 +2,7 @@
 
 import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { db } from "@/db";
-import { files, form_responses, project_files, projects } from "@/db/schema";
+import { announcements, files, form_responses, project_files, project_members, projects, users } from "@/db/schema";
 import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { revalidatePath } from "next/cache";
@@ -12,6 +12,8 @@ import { headers } from "next/headers";
 import { assertProjectPermission } from "@/lib/project_permissions";
 import { getSystemAccess } from "@/lib/system-rbac";
 import { logActivity } from "@/lib/activity-logs";
+import { createNotificationsForUsers } from "./notifications";
+import { sendEmailNotification } from "@/lib/form-email";
 
 export type ProjectFileType = "file" | "folder" | "doc" | "form" | "sheet";
 
@@ -61,12 +63,53 @@ type StructuredItemInput = {
   uploadedBy?: string;
 };
 
+export type FormMode = "internal" | "external" | "hybrid";
+export type FormQuestionType = "short_answer" | "paragraph" | "multiple_choice" | "checkbox";
+
 type FormQuestion = {
   id: string;
   label: string;
-  type: "text" | "textarea" | "select" | "checkbox";
+  type: FormQuestionType;
   required?: boolean;
   options?: string[];
+};
+
+type FormSettings = {
+  allowMultiple: boolean;
+  requireLogin: boolean;
+  collectEmail: boolean;
+  paymentEnabled: boolean;
+  amount: number;
+  notifyOnSubmit: boolean;
+  announcementEnabled: boolean;
+  emailEnabled: boolean;
+};
+
+export type FormContent = {
+  title: string;
+  description: string;
+  mode: FormMode;
+  fields: FormQuestion[];
+  questions: FormQuestion[];
+  settings: FormSettings;
+};
+
+export type FormExternalDetails = {
+  name?: string;
+  email?: string;
+  phone?: string;
+};
+
+export type FormResponseRecord = {
+  id: string;
+  formId: string;
+  userId: string | null;
+  isExternal: boolean;
+  externalDetails: FormExternalDetails;
+  answers: Record<string, unknown>;
+  paymentStatus: "pending" | "success" | "failed";
+  paymentId: string | null;
+  createdAt: Date;
 };
 
 type ProjectFilesCapabilities = {
@@ -167,6 +210,72 @@ function isGlobalSelectSql(capabilities: ProjectFilesCapabilities) {
     : sql<boolean>`false`;
 }
 
+function normalizeQuestionType(type: unknown): FormQuestionType {
+  if (type === "paragraph" || type === "multiple_choice" || type === "checkbox" || type === "short_answer") {
+    return type;
+  }
+  if (type === "textarea") return "paragraph";
+  if (type === "select") return "multiple_choice";
+  return "short_answer";
+}
+
+function normalizeFormContent(content: Record<string, unknown> | null | undefined, fallbackTitle: string): FormContent {
+  const rawQuestions = Array.isArray(content?.fields)
+    ? content?.fields
+    : Array.isArray(content?.questions)
+      ? content?.questions
+      : [];
+
+  const fields = rawQuestions.map((field, index) => {
+    const record = (field && typeof field === "object" ? field : {}) as Record<string, unknown>;
+    return {
+      id: typeof record.id === "string" && record.id ? record.id : `${fallbackTitle}-${index + 1}`,
+      label: typeof record.label === "string" && record.label.trim() ? record.label : `Question ${index + 1}`,
+      type: normalizeQuestionType(record.type),
+      required: record.required === true,
+      options: Array.isArray(record.options) ? record.options.map((option) => String(option)).filter(Boolean) : [],
+    } satisfies FormQuestion;
+  });
+
+  const settingsInput = (content?.settings && typeof content.settings === "object" ? content.settings : {}) as Record<string, unknown>;
+  const amountInput = Number(settingsInput.amount ?? 0);
+
+  return {
+    title: typeof content?.title === "string" && content.title.trim() ? content.title : fallbackTitle,
+    description: typeof content?.description === "string" ? content.description : "",
+    mode: content?.mode === "external" || content?.mode === "hybrid" ? content.mode : "internal",
+    fields,
+    questions: fields,
+    settings: {
+      allowMultiple: settingsInput.allowMultiple === true,
+      requireLogin: settingsInput.requireLogin === true,
+      collectEmail: settingsInput.collectEmail !== false,
+      paymentEnabled: settingsInput.paymentEnabled === true,
+      amount: Number.isFinite(amountInput) ? Math.max(0, amountInput) : 0,
+      notifyOnSubmit: settingsInput.notifyOnSubmit !== false,
+      announcementEnabled: settingsInput.announcementEnabled === true,
+      emailEnabled: settingsInput.emailEnabled === true,
+    },
+  };
+}
+
+function serializeFormContent(content: Record<string, unknown> | null | undefined, fallbackTitle: string) {
+  const normalized = normalizeFormContent(content, fallbackTitle);
+  return {
+    title: normalized.title,
+    description: normalized.description,
+    mode: normalized.mode,
+    fields: normalized.fields,
+    questions: normalized.fields,
+    settings: normalized.settings,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function getSubmitterLabel(session: Awaited<ReturnType<typeof getCurrentSession>>, externalDetails: FormExternalDetails) {
+  return session?.user?.name || externalDetails.name || externalDetails.email || "External user";
+}
+
 function sortStructuredItems(rows: ProjectFile[]) {
   return [...rows].sort((a, b) => {
     if (a.type === "folder" && b.type !== "folder") return -1;
@@ -255,14 +364,88 @@ async function logDocumentationMutation(params: {
   });
 }
 
+async function getFormNotificationRecipients(form: ProjectFile) {
+  const approvedUsers = await db
+    .select({ id: users.id, role: users.role, status: users.status })
+    .from(users)
+    .where(eq(users.status, "approved"));
+
+  const privileged = approvedUsers
+    .filter((user) => {
+      const normalizedRole = String(user.role || "").toLowerCase();
+      return normalizedRole.includes("admin") || normalizedRole.includes("core");
+    })
+    .map((user) => user.id);
+
+  if (!form.projectId) {
+    return Array.from(new Set(privileged));
+  }
+
+  const members = await db
+    .select({ userId: project_members.userId })
+    .from(project_members)
+    .where(eq(project_members.projectId, form.projectId));
+
+  return Array.from(new Set([...privileged, ...members.map((member) => member.userId)]));
+}
+
+async function createFormSubmissionAnnouncement(form: ProjectFile, submitterName: string) {
+  const title = `New Form Submission`;
+  const message = `${submitterName} submitted ${form.name}.`;
+  await db.insert(announcements).values({
+    id: uuidv4(),
+    title,
+    message,
+    targetRoles: [],
+    sendEmail: false,
+    sendNotification: true,
+    createdBy: null,
+    createdAt: new Date(),
+  });
+}
+
 function revalidateDocumentationPaths(projectId?: string | null) {
   revalidatePath("/projects");
   revalidatePath("/documentation");
   revalidatePath("/portal");
   revalidatePath("/admin");
+  revalidatePath("/forms");
 
   if (projectId) {
     revalidatePath(`/projects/${projectId}`);
+  }
+}
+
+async function notifyFormSubmission(
+  form: ProjectFile,
+  formConfig: FormContent,
+  response: FormResponseRecord,
+  submitterName: string
+) {
+  if (!formConfig.settings.notifyOnSubmit) {
+    return;
+  }
+
+  const recipientIds = await getFormNotificationRecipients(form);
+  if (recipientIds.length) {
+    await createNotificationsForUsers(
+      recipientIds.map((userId) => ({
+        userId,
+        type: "form",
+        title: "New Form Submission",
+        message: `${form.name} received a submission from ${submitterName}.`,
+        referenceId: form.id,
+        link: `/forms/${form.id}?response=${response.id}`,
+      }))
+    );
+  }
+
+  if (formConfig.settings.announcementEnabled) {
+    await createFormSubmissionAnnouncement(form, submitterName);
+  }
+
+  if (formConfig.settings.emailEnabled) {
+    await sendEmailNotification(form.id, response);
   }
 }
 
@@ -812,12 +995,22 @@ export async function createFormAction(
     name,
     type: "form",
     parentId,
-    content: {
+    content: serializeFormContent({
       title: name,
       description: "",
-      questions: [] as FormQuestion[],
-      updatedAt: new Date().toISOString(),
-    },
+      mode: "internal",
+      fields: [] as FormQuestion[],
+      settings: {
+        allowMultiple: false,
+        requireLogin: false,
+        collectEmail: true,
+        paymentEnabled: false,
+        amount: 0,
+        notifyOnSubmit: true,
+        announcementEnabled: false,
+        emailEnabled: false,
+      },
+    }, name),
     isGlobal: options?.isGlobal ?? false,
     uploadedBy: options?.uploadedBy || session.user.name || "Unknown",
   });
@@ -836,7 +1029,7 @@ export async function getFormContentAction(itemId: string) {
     throw new Error("Requested item is not a form.");
   }
 
-  return item.content || { questions: [] };
+  return normalizeFormContent(item.content, item.name);
 }
 
 export async function updateFormContentAction(itemId: string, content: Record<string, unknown>) {
@@ -854,10 +1047,7 @@ export async function updateFormContentAction(itemId: string, content: Record<st
 
   await db.update(project_files)
     .set({
-      content: {
-        ...(content || {}),
-        updatedAt: new Date().toISOString(),
-      },
+      content: serializeFormContent(content, item.name),
       updatedAt: new Date(),
     })
     .where(eq(project_files.id, itemId));
@@ -874,46 +1064,153 @@ export async function updateFormContentAction(itemId: string, content: Record<st
   revalidateDocumentationPaths(item.projectId);
 }
 
-export async function submitFormResponseAction(
-  formId: string,
-  responses: Record<string, unknown>
-) {
+async function getExistingFormResponses(formId: string) {
+  return db.select().from(form_responses).where(eq(form_responses.formId, formId));
+}
+
+export async function getPublicFormAction(formId: string) {
   const capabilities = await getProjectFilesCapabilities();
-  const session = await getCurrentSession();
   const form = await getDocumentationItemOrThrow(formId);
-  await assertDocumentationPermission(form.projectId, form.isGlobal, session?.user?.id, "view");
 
   if (form.type !== "form") {
     throw new Error("Requested item is not a form.");
-  }
-
-  if (!session?.user?.id) {
-    throw new Error("You must be signed in to submit a form.");
   }
   if (!capabilities.hasFormResponses) {
     throw new Error("Documentation Hub migration has not been applied yet.");
   }
 
+  const config = normalizeFormContent(form.content, form.name);
+  return {
+    id: form.id,
+    title: form.name,
+    projectId: form.projectId,
+    isGlobal: form.isGlobal,
+    config,
+  };
+}
+
+export async function submitFormResponseAction(
+  formId: string,
+  payload: {
+    answers: Record<string, unknown>;
+    externalDetails?: FormExternalDetails;
+  }
+) {
+  const capabilities = await getProjectFilesCapabilities();
+  const session = await getCurrentSession();
+  const form = await getDocumentationItemOrThrow(formId);
+
+  if (form.type !== "form") {
+    throw new Error("Requested item is not a form.");
+  }
+  if (!capabilities.hasFormResponses) {
+    throw new Error("Documentation Hub migration has not been applied yet.");
+  }
+
+  const config = normalizeFormContent(form.content, form.name);
+  const externalDetails = payload.externalDetails || {};
+  const answers = payload.answers || {};
+  const isLoggedIn = Boolean(session?.user?.id);
+
+  if (config.mode === "internal" && !isLoggedIn) {
+    throw new Error("Please sign in to submit this form.");
+  }
+  if (config.settings.requireLogin && !isLoggedIn) {
+    throw new Error("Please sign in to submit this form.");
+  }
+  if (config.mode === "external") {
+    if (!externalDetails.name?.trim() || !externalDetails.email?.trim()) {
+      throw new Error("Name and email are required for external submissions.");
+    }
+  }
+  if (config.mode === "hybrid" && !isLoggedIn) {
+    if (!externalDetails.name?.trim() || !externalDetails.email?.trim()) {
+      throw new Error("Name and email are required for guest submissions.");
+    }
+  }
+
+  for (const field of config.fields) {
+    const value = answers[field.id];
+    if (!field.required) continue;
+    if (field.type === "checkbox") {
+      if (value !== true) {
+        throw new Error(`"${field.label}" is required.`);
+      }
+      continue;
+    }
+    if (typeof value !== "string" || !value.trim()) {
+      throw new Error(`"${field.label}" is required.`);
+    }
+  }
+
+  const existingResponses = await getExistingFormResponses(formId);
+  if (!config.settings.allowMultiple) {
+    const duplicate = existingResponses.find((response) => {
+      if (session?.user?.id && response.userId === session.user.id) {
+        return true;
+      }
+      const savedExternal = (response.externalDetails || {}) as Record<string, unknown>;
+      const savedEmail = typeof savedExternal.email === "string" ? savedExternal.email.toLowerCase() : "";
+      const currentEmail = externalDetails.email?.toLowerCase() || session?.user?.email?.toLowerCase() || "";
+      return Boolean(currentEmail) && savedEmail === currentEmail;
+    });
+    if (duplicate) {
+      throw new Error("Multiple submissions are disabled for this form.");
+    }
+  }
+
   const responseId = uuidv4();
-  await db.insert(form_responses).values({
+  const responseRecord: FormResponseRecord = {
     id: responseId,
     formId,
-    userId: session.user.id,
-    responses,
+    userId: session?.user?.id || null,
+    isExternal: !isLoggedIn,
+    externalDetails: isLoggedIn
+      ? {
+          name: session?.user?.name || undefined,
+          email: config.settings.collectEmail ? session?.user?.email || undefined : undefined,
+          phone: undefined,
+        }
+      : externalDetails,
+    answers,
+    paymentStatus: config.settings.paymentEnabled ? "pending" : "success",
+    paymentId: null,
     createdAt: new Date(),
+  };
+
+  await db.insert(form_responses).values({
+    id: responseRecord.id,
+    formId: responseRecord.formId,
+    userId: responseRecord.userId,
+    isExternal: responseRecord.isExternal,
+    externalDetails: responseRecord.externalDetails,
+    answers: responseRecord.answers,
+    responses: responseRecord.answers,
+    paymentStatus: responseRecord.paymentStatus,
+    paymentId: responseRecord.paymentId,
+    createdAt: responseRecord.createdAt,
   });
+
+  const submitterName = getSubmitterLabel(session, responseRecord.externalDetails);
 
   await logDocumentationMutation({
     projectId: form.projectId,
     isGlobal: form.isGlobal,
-    actorName: session.user.name || "Unknown",
-    actorUserId: session.user.id,
+    actorName: submitterName,
+    actorUserId: session?.user?.id || null,
     action: "submitted_form_response",
     entityId: responseId,
     entityTitle: form.name,
   });
+  await notifyFormSubmission(form, config, responseRecord, submitterName);
   revalidateDocumentationPaths(form.projectId);
-  return responseId;
+  revalidatePath(`/forms/${form.id}`);
+  return {
+    id: responseId,
+    paymentStatus: responseRecord.paymentStatus,
+    requiresPayment: config.settings.paymentEnabled,
+    amount: config.settings.amount,
+  };
 }
 
 export async function getFormResponsesAction(formId: string) {
@@ -925,10 +1222,21 @@ export async function getFormResponsesAction(formId: string) {
     return [];
   }
 
-  return db
+  const rows = await db
     .select()
     .from(form_responses)
     .where(eq(form_responses.formId, formId));
+  return rows.map((row) => ({
+    id: row.id,
+    formId: row.formId,
+    userId: row.userId,
+    isExternal: row.isExternal,
+    externalDetails: (row.externalDetails || {}) as FormExternalDetails,
+    answers: ((row.answers as Record<string, unknown> | null) || (row.responses as Record<string, unknown> | null) || {}),
+    paymentStatus: (row.paymentStatus as "pending" | "success" | "failed") || "success",
+    paymentId: row.paymentId,
+    createdAt: row.createdAt,
+  }));
 }
 
 export async function getDocumentationItemAction(itemId: string): Promise<ProjectFile> {

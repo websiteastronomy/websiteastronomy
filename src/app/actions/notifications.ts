@@ -9,9 +9,10 @@ import { v4 as uuidv4 } from "uuid";
 
 type NotificationInsert = {
   userId: string;
-  type?: "mention" | "task_assigned" | "approval_request" | "system";
+  type?: "mention" | "task_assigned" | "approval_request" | "system" | "form";
   title: string;
   message: string;
+  referenceId?: string | null;
   link?: string | null;
 };
 
@@ -20,6 +21,7 @@ export async function createNotificationForUser({
   type = "system",
   title,
   message,
+  referenceId = null,
   link = null,
 }: NotificationInsert) {
   await db.insert(notifications).values({
@@ -28,6 +30,7 @@ export async function createNotificationForUser({
     type,
     title,
     message,
+    referenceId,
     link,
   });
 }
@@ -46,6 +49,7 @@ export async function createNotificationsForUsers(
       type: insert.type ?? "system",
       title: insert.title,
       message: insert.message,
+      referenceId: insert.referenceId ?? null,
       link: insert.link ?? null,
     }))
   );
@@ -74,6 +78,7 @@ export async function getMyNotificationsAction() {
     title: n.title,
     message: n.message,
     isRead: n.isRead,
+    referenceId: n.referenceId,
     link: n.link,
     createdAt: n.createdAt?.toISOString() ?? new Date().toISOString(),
   }));
