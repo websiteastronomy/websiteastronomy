@@ -137,7 +137,13 @@ export default function AboutPageEditor() {
           {[mergedPreview.vision, mergedPreview.mission].map((section) => (
             <div key={section.title} style={{ border: "1px solid var(--border-subtle)", borderRadius: "14px", overflow: "hidden", background: "rgba(8,12,22,0.55)" }}>
               <div style={{ width: "100%", aspectRatio: "16 / 9", background: "rgba(0,0,0,0.2)" }}>
-                <img src={section.imageUrl} alt={section.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                {section.imageUrl ? (
+                  <img src={section.imageUrl} alt={section.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: "0.82rem" }}>
+                    No image selected yet
+                  </div>
+                )}
               </div>
               <div style={{ padding: "1rem" }}>
                 <h5 style={{ margin: "0 0 0.5rem", fontSize: "1rem" }}>{section.title}</h5>
