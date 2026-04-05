@@ -100,13 +100,17 @@ export default function Navbar({ initialIsRecruiting = false }: NavbarProps) {
           <span className="nav-link" style={{ cursor: 'default', color: isActive('/projects') || isActive('/observations') || isActive('/outreach') ? 'var(--gold-light)' : undefined }}>Explore ▾</span>
           <div className="dropdown-menu">
             <Link href="/projects" className="dropdown-item" style={isActive('/projects') ? { color: 'var(--gold-light)' } : {}}>Projects</Link>
-            {features.observationsEnabled && <Link href="/observations" className="dropdown-item" style={isActive('/observations') ? { color: 'var(--gold-light)' } : {}}>Observations</Link>}
+            <Link href="/observations" className="dropdown-item" style={isActive('/observations') ? { color: 'var(--gold-light)' } : {}}>Observation</Link>
+            <Link href="/events" className="dropdown-item" style={isActive('/events') ? { color: 'var(--gold-light)' } : {}}>Event</Link>
+            <Link href="/education/quizzes" className="dropdown-item" style={isActive('/education/quizzes') ? { color: 'var(--gold-light)' } : {}}>Quiz</Link>
+            <Link href="/documentation" className="dropdown-item" style={isActive('/documentation') ? { color: 'var(--gold-light)' } : {}}>Documentation</Link>
             <Link href="/outreach" className="dropdown-item" style={isActive('/outreach') ? { color: 'var(--gold-light)' } : {}}>Outreach</Link>
           </div>
         </div>
 
         {features.eventsEnabled && <Link href="/events" className="nav-link" style={navLinkStyle('/events')}>Events</Link>}
         <Link href="/education" className="nav-link" style={navLinkStyle('/education')}>Education</Link>
+        {features.observationsEnabled && <Link href="/observations" className="nav-link" style={navLinkStyle('/observations')}>Observations</Link>}
         {features.quizzesEnabled && <Link href="/education/quizzes" className="nav-link" style={navLinkStyle('/education/quizzes')}>Quizzes</Link>}
         <Link href="/night-sky" className="nav-link" style={navLinkStyle('/night-sky')}>Night Sky</Link>
 

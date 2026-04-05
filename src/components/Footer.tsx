@@ -47,8 +47,10 @@ export default function Footer() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               <Link href="/about" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>About Us</Link>
               {features.eventsEnabled && <Link href="/events" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Events</Link>}
+              <Link href="/events" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Event</Link>
               <Link href="/projects" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Projects</Link>
               {features.observationsEnabled && <Link href="/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Observations</Link>}
+              <Link href="/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Observation</Link>
             </div>
           </div>
 
@@ -59,6 +61,7 @@ export default function Footer() {
               <Link href="/education" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Education Base</Link>
               <Link href="/night-sky" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Night Sky Dashboard</Link>
               {features.observationsEnabled && <Link href="/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Observations</Link>}
+              <Link href="/education/quizzes" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Quiz</Link>
             </div>
           </div>
 

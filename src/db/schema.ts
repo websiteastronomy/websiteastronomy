@@ -185,13 +185,16 @@ export const project_task_attachments = pgTable("project_task_attachments", {
 
 export const project_files = pgTable("project_files", {
   id: text("id").primaryKey(),
-  projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  projectId: text("project_id").references(() => projects.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
-  type: text("type").notNull().default("file"),           // "file" | "folder"
+  type: text("type").notNull().default("file"),           // "file" | "folder" | "doc" | "form" | "sheet"
   parentId: text("parent_id"),                            // null = root, else folder id
+  fileId: text("file_id").references(() => files.id, { onDelete: "set null" }),
   fileSize: text("file_size"),                            // e.g. "2.4 MB"
   mimeType: text("mime_type"),
   url: text("url"),                                       // R2 URL when available
+  content: jsonb("content"),
+  isGlobal: boolean("is_global").default(false).notNull(),
   uploadedBy: text("uploaded_by").notNull().default("Unknown"),
   ...timestamps,
 });
@@ -489,6 +492,14 @@ export const files = pgTable("files", {
   version: integer("version").default(1).notNull(),
   isPublic: boolean("is_public").default(false).notNull(),
   status: text("status").default("active").notNull(), // "active" or "deleted"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const form_responses = pgTable("form_responses", {
+  id: text("id").primaryKey(),
+  formId: text("form_id").notNull().references(() => project_files.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  responses: jsonb("responses").notNull().default('{}'),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
