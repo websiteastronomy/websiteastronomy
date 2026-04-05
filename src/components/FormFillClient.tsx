@@ -59,6 +59,14 @@ export default function FormFillClient({ formId }: Props) {
     return form.config.mode === "internal" || form.config.settings.requireLogin;
   }, [form]);
 
+  const isClosed = useMemo(() => {
+    const deadline = form?.config.settings.deadline;
+    if (!deadline) return false;
+    const parsed = new Date(deadline);
+    if (Number.isNaN(parsed.getTime())) return false;
+    return Date.now() > parsed.getTime();
+  }, [form]);
+
   const handleSubmit = async () => {
     if (!form) return;
     setSubmitting(true);
@@ -104,8 +112,10 @@ export default function FormFillClient({ formId }: Props) {
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem", marginTop: "1rem" }}>
             <span style={{ padding: "0.35rem 0.7rem", borderRadius: "999px", background: "rgba(201,168,76,0.12)", color: "var(--gold)", fontSize: "0.75rem", textTransform: "capitalize" }}>{form.config.mode}</span>
+            <span style={{ padding: "0.35rem 0.7rem", borderRadius: "999px", background: form.config.status === "published" ? "rgba(34,197,94,0.12)" : "rgba(251,191,36,0.12)", color: form.config.status === "published" ? "#86efac" : "#fbbf24", fontSize: "0.75rem", textTransform: "capitalize" }}>{form.config.status}</span>
             {form.config.settings.paymentEnabled ? <span style={{ padding: "0.35rem 0.7rem", borderRadius: "999px", background: "rgba(34,197,94,0.12)", color: "#86efac", fontSize: "0.75rem" }}>Payment placeholder: Rs. {form.config.settings.amount}</span> : null}
             {requiresLogin ? <span style={{ padding: "0.35rem 0.7rem", borderRadius: "999px", background: "rgba(59,130,246,0.12)", color: "#93c5fd", fontSize: "0.75rem" }}>Login required</span> : null}
+            {form.config.settings.deadline ? <span style={{ padding: "0.35rem 0.7rem", borderRadius: "999px", background: "rgba(255,255,255,0.08)", color: "var(--text-secondary)", fontSize: "0.75rem" }}>Deadline: {new Date(form.config.settings.deadline).toLocaleString()}</span> : null}
           </div>
         </div>
       </div>
@@ -163,12 +173,13 @@ export default function FormFillClient({ formId }: Props) {
 
           {error ? <div style={{ border: "1px solid rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.1)", color: "#fca5a5", borderRadius: "12px", padding: "0.9rem 1rem" }}>{error}</div> : null}
           {success ? <div style={{ border: "1px solid rgba(34,197,94,0.35)", background: "rgba(34,197,94,0.1)", color: "#86efac", borderRadius: "12px", padding: "0.9rem 1rem" }}>{success}</div> : null}
+          {isClosed ? <div style={{ border: "1px solid rgba(251,191,36,0.35)", background: "rgba(251,191,36,0.08)", color: "#fcd34d", borderRadius: "12px", padding: "0.9rem 1rem" }}>This form is no longer accepting responses</div> : null}
 
           <div style={{ position: "sticky", bottom: "1rem", display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "center", padding: "1rem 1.25rem", background: "rgba(8,12,22,0.92)", border: "1px solid var(--border-subtle)", borderRadius: "16px", backdropFilter: "blur(8px)" }}>
             <div style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
-              {form.config.settings.paymentEnabled ? `Submitting will create a pending payment placeholder for Rs. ${form.config.settings.amount}.` : "Review your answers before submitting."}
+              {isClosed ? "Responses are closed, but you can still review the form." : form.config.settings.paymentEnabled ? `Submitting will create a pending payment placeholder for Rs. ${form.config.settings.amount}.` : "Review your answers before submitting."}
             </div>
-            <button onClick={() => void handleSubmit()} className="btn-primary" disabled={submitting} style={{ opacity: submitting ? 0.7 : 1 }}>
+            <button onClick={() => void handleSubmit()} className="btn-primary" disabled={submitting || isClosed} style={{ opacity: submitting || isClosed ? 0.7 : 1 }}>
               {submitting ? "Submitting..." : form.config.settings.paymentEnabled ? "Continue to Payment" : "Submit"}
             </button>
           </div>

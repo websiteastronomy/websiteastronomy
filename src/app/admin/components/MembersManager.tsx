@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { rowStyle } from "./shared";
-import { approveUserAction, rejectUserAction, getAllUsersAction, updateUserRoleAction, deleteUserAction, updateUserMetadataAction, getRolePermissionsCatalogAction, updateRolePermissionsAction } from "@/app/actions/members";
+import { approveUserAction, rejectUserAction, getAllUsersAction, updateUserRoleAction, deleteUserAction, updateUserMetadataAction, getRolePermissionsCatalogAction, getUserPermissionOverridesAction, updateRolePermissionsAction, updateUserPermissionOverridesAction } from "@/app/actions/members";
 import { useAuth } from "@/context/AuthContext";
 import { canApproveMembers, canDeleteUser, canEditResponsibility, canEditRole, canTogglePublic } from "@/lib/member-ui-permissions";
 
@@ -34,6 +34,8 @@ export default function MembersManager() {
   const [permissionCatalog, setPermissionCatalog] = useState<{ key: string; description: string | null }[]>([]);
   const [rolePermissionsMap, setRolePermissionsMap] = useState<Record<string, string[]>>({});
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [overrideModes, setOverrideModes] = useState<Record<string, "default" | "allow" | "deny">>({});
+  const [loadingOverrides, setLoadingOverrides] = useState(false);
   const access = { isAdmin, hasPermission };
   const mayApproveMembers = canApproveMembers(access);
   const mayEditRole = canEditRole(access);
@@ -96,8 +98,30 @@ export default function MembersManager() {
     setApprovingUser(targetUser);
     setSelectedRole(fallbackRole);
     setSelectedPermissions(rolePermissionsMap[fallbackRole] || []);
+    setOverrideModes({});
     window.scrollTo(0, 0);
   };
+
+  useEffect(() => {
+    if (!approvingUser || !mayEditRole) {
+      return;
+    }
+
+    setLoadingOverrides(true);
+    getUserPermissionOverridesAction(approvingUser.id)
+      .then((data) => {
+        setOverrideModes(
+          Object.fromEntries(
+            data.overrides.map((override) => [override.permissionKey, override.mode])
+          ) as Record<string, "default" | "allow" | "deny">
+        );
+      })
+      .catch((error) => {
+        console.error(error);
+        setOverrideModes({});
+      })
+      .finally(() => setLoadingOverrides(false));
+  }, [approvingUser, mayEditRole]);
 
   const handleApprove = async () => {
     if (!approvingUser) return;
@@ -111,6 +135,13 @@ export default function MembersManager() {
       }
       if (mayEditRole) {
         await updateRolePermissionsAction(selectedRole, selectedPermissions);
+        await updateUserPermissionOverridesAction(
+          approvingUser.id,
+          permissionCatalog.map((permission) => ({
+            permissionKey: permission.key,
+            mode: overrideModes[permission.key] || "default",
+          }))
+        );
         const refreshedCatalog = await getRolePermissionsCatalogAction();
         setRolePermissionsMap(
           Object.fromEntries(refreshedCatalog.roles.map((role) => [role.name, role.permissions]))
@@ -323,6 +354,79 @@ export default function MembersManager() {
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {mayEditRole && permissionCatalog.length > 0 && (
+            <div style={{ marginBottom: "1.5rem" }}>
+              <div style={{ marginBottom: "0.9rem" }}>
+                <h4 style={{ fontSize: "0.95rem", color: "var(--text-primary)", marginBottom: "0.25rem" }}>Custom Overrides (Optional)</h4>
+                <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                  Overrides role permissions for this user only.
+                </p>
+              </div>
+
+              {loadingOverrides ? (
+                <div style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>Loading custom overrides...</div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "0.75rem" }}>
+                  {permissionCatalog.map((permission) => {
+                    const mode = overrideModes[permission.key] || "default";
+                    const isOverridden = mode !== "default";
+                    const isEffective = mode === "allow" ? true : mode === "deny" ? false : selectedPermissions.includes(permission.key);
+                    return (
+                      <div
+                        key={`override-${permission.key}`}
+                        style={{
+                          padding: "0.85rem",
+                          borderRadius: "10px",
+                          border: `1px solid ${isOverridden ? "rgba(201,168,76,0.35)" : "var(--border-subtle)"}`,
+                          background: isOverridden ? "rgba(201,168,76,0.08)" : "rgba(15, 22, 40, 0.22)",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: "0.6rem", alignItems: "center", marginBottom: "0.55rem" }}>
+                          <div>
+                            <div style={{ fontSize: "0.82rem", color: "var(--text-primary)", fontWeight: 600 }}>{permission.key}</div>
+                            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{permission.description || "Permission override"}</div>
+                          </div>
+                          <span style={{ fontSize: "0.68rem", padding: "0.2rem 0.45rem", borderRadius: "999px", background: isOverridden ? "rgba(201,168,76,0.16)" : "rgba(255,255,255,0.06)", color: isOverridden ? "var(--gold-light)" : "var(--text-muted)" }}>
+                            {isOverridden ? "Overridden" : "Inherited"}
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", gap: "0.35rem", marginBottom: "0.55rem" }}>
+                          {(["default", "allow", "deny"] as const).map((option) => {
+                            const active = mode === option;
+                            const tone = option === "allow" ? "#22c55e" : option === "deny" ? "#ef4444" : "var(--text-muted)";
+                            return (
+                              <button
+                                key={option}
+                                onClick={() => setOverrideModes((current) => ({ ...current, [permission.key]: option }))}
+                                style={{
+                                  flex: 1,
+                                  padding: "0.45rem 0.5rem",
+                                  borderRadius: "8px",
+                                  border: `1px solid ${active ? tone : "var(--border-subtle)"}`,
+                                  background: active ? `${tone}18` : "transparent",
+                                  color: active ? tone : "var(--text-secondary)",
+                                  cursor: "pointer",
+                                  fontFamily: "inherit",
+                                  fontSize: "0.74rem",
+                                  textTransform: "capitalize",
+                                }}
+                              >
+                                {option}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div style={{ fontSize: "0.72rem", color: isEffective ? "#86efac" : "var(--text-muted)" }}>
+                          Effective access: {isEffective ? "Enabled" : "Disabled"}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

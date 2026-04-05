@@ -7,6 +7,7 @@ import {
   type DocumentationManagerItem,
 } from "@/app/actions/files";
 import FormsManagement from "./FormsManagement";
+import BackupExportManager from "./BackupExportManager";
 
 export default function DocumentationManager() {
   const [rows, setRows] = useState<DocumentationManagerItem[]>([]);
@@ -83,6 +84,13 @@ export default function DocumentationManager() {
                   <span style={{ color: "var(--text-secondary)", fontSize: "0.85rem" }}>
                     {row.isGlobal ? "Global Hub" : row.projectTitle || row.projectId || "Project"} · {row.type} · {row.uploadedBy}
                   </span>
+                  <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginTop: "0.35rem" }}>
+                    <span style={{ fontSize: "0.7rem", padding: "0.15rem 0.45rem", borderRadius: "999px", background: row.hasCustomAccess ? "rgba(239,68,68,0.12)" : "rgba(59,130,246,0.12)", color: row.hasCustomAccess ? "#fca5a5" : "#93c5fd" }}>
+                      {row.hasCustomAccess ? "Restricted" : "Inherited"}
+                    </span>
+                    {row.visibleTo?.length ? <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>Visible to: {row.visibleTo.join(", ")}</span> : null}
+                    {row.editableBy?.length ? <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>Editable by: {row.editableBy.join(", ")}</span> : null}
+                  </div>
                 </div>
                 <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                   <span style={{ color: "var(--text-muted)", fontSize: "0.78rem" }}>{new Date(row.updatedAt).toISOString().slice(0, 10)}</span>
@@ -103,6 +111,7 @@ export default function DocumentationManager() {
 
       <div style={{ height: "1px", background: "var(--border-subtle)", margin: "2rem 0" }} />
       <FormsManagement />
+      <BackupExportManager />
     </>
   );
 }

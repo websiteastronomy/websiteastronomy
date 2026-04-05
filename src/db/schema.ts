@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, jsonb, integer, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, jsonb, integer, pgEnum, uniqueIndex } from "drizzle-orm/pg-core";
 
 // --- BETTER AUTH TABLES ---
 
@@ -507,6 +507,28 @@ export const form_responses = pgTable("form_responses", {
   paymentId: text("payment_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const user_permissions = pgTable("user_permissions", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  permissionKey: text("permission_key").notNull(),
+  allowed: boolean("allowed").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  userPermissionUnique: uniqueIndex("user_permissions_user_permission_unique").on(table.userId, table.permissionKey),
+}));
+
+export const resource_permissions = pgTable("resource_permissions", {
+  id: text("id").primaryKey(),
+  resourceId: text("resource_id").notNull().references(() => project_files.id, { onDelete: "cascade" }),
+  resourceType: text("resource_type").notNull(),
+  role: text("role").notNull(),
+  canView: boolean("can_view").notNull().default(true),
+  canEdit: boolean("can_edit").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  resourceRoleUnique: uniqueIndex("resource_permissions_resource_role_unique").on(table.resourceId, table.role),
+}));
 
 // --- RBAC TABLES ---
 

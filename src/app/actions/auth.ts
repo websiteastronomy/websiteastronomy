@@ -1,10 +1,11 @@
 "use server";
 
 import { db } from "@/db";
-import { users, roles, permissions, role_permissions } from "@/db/schema";
+import { users, roles } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { getUserPermissions } from "@/lib/permissions";
 
 export interface RBACProfile {
   status: string;
@@ -49,20 +50,12 @@ export async function getMyRBACProfile(): Promise<RBACProfile | null> {
       .limit(1);
     const roleName = roleRes[0]?.name || "none";
 
-    // Fetch all permission keys for this role
-    const permRes = await db
-      .select({ key: permissions.key })
-      .from(permissions)
-      .innerJoin(
-        role_permissions,
-        eq(role_permissions.permissionId, permissions.id)
-      )
-      .where(eq(role_permissions.roleId, user.roleId));
+    const effectivePermissions = await getUserPermissions(userId);
 
     return {
       status: user.status,
       roleName,
-      permissions: permRes.map((p) => p.key),
+      permissions: effectivePermissions,
     };
   } catch (err) {
     console.error("[getMyRBACProfile] Error:", err);

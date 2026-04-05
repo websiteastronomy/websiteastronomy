@@ -16,6 +16,10 @@ type NotificationInsert = {
   link?: string | null;
 };
 
+export async function createNotification(input: NotificationInsert) {
+  return createNotificationForUser(input);
+}
+
 export async function createNotificationForUser({
   userId,
   type = "system",
@@ -59,7 +63,7 @@ export async function createNotificationsForUsers(
 
 /**
  * Fetch the current user's notifications, most recent first.
- * Returns up to 50.
+ * Returns up to 20.
  */
 export async function getMyNotificationsAction() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -70,7 +74,7 @@ export async function getMyNotificationsAction() {
     .from(notifications)
     .where(eq(notifications.userId, session.user.id))
     .orderBy(desc(notifications.createdAt))
-    .limit(50);
+    .limit(20);
 
   return rows.map((n) => ({
     id: n.id,

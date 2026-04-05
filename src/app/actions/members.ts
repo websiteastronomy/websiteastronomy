@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { users, roles, permissions, role_permissions } from "@/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { users, roles, permissions, role_permissions, user_permissions } from "@/db/schema";
+import { eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -12,6 +12,35 @@ import {
   requireApprovalAccess,
 } from "@/lib/member-access";
 import { logActivity } from "@/lib/activity-logs";
+import { getUserPermissions } from "@/lib/permissions";
+import { createNotification } from "./notifications";
+
+let membersPermissionCapabilityPromise: Promise<boolean> | null = null;
+
+function extractRows(result: unknown): Array<Record<string, unknown>> {
+  if (Array.isArray(result)) return result as Array<Record<string, unknown>>;
+  if (result && typeof result === "object" && "rows" in result && Array.isArray((result as any).rows)) {
+    return (result as any).rows as Array<Record<string, unknown>>;
+  }
+  return [];
+}
+
+async function hasUserPermissionsTable() {
+  if (!membersPermissionCapabilityPromise) {
+    membersPermissionCapabilityPromise = (async () => {
+      const result = await db.execute(sql`
+        select table_name
+        from information_schema.tables
+        where table_schema = 'public'
+          and table_name = 'user_permissions'
+      `);
+      const tableNames = new Set(extractRows(result).map((row) => String(row.table_name)));
+      return tableNames.has("user_permissions");
+    })();
+  }
+
+  return membersPermissionCapabilityPromise;
+}
 
 /**
  * RBAC-aware user approval action.
@@ -169,6 +198,94 @@ export async function getRolePermissionsCatalogAction() {
         .filter(Boolean) as string[],
     })),
   };
+}
+
+export async function getUserPermissionOverridesAction(targetUserId: string) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) throw new Error("Unauthorized");
+  await requireAdminAccess(session.user.id);
+
+  const overrides = await hasUserPermissionsTable()
+    ? await db
+        .select({
+          permissionKey: user_permissions.permissionKey,
+          allowed: user_permissions.allowed,
+        })
+        .from(user_permissions)
+        .where(eq(user_permissions.userId, targetUserId))
+    : [];
+
+  const effectivePermissions = await getUserPermissions(targetUserId);
+
+  return {
+    overrides: overrides.map((override) => ({
+      permissionKey: override.permissionKey,
+      mode: override.allowed ? "allow" : "deny",
+    })),
+    effectivePermissions,
+  };
+}
+
+export async function updateUserPermissionOverridesAction(
+  targetUserId: string,
+  overrides: Array<{ permissionKey: string; mode: "default" | "allow" | "deny" }>
+) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) throw new Error("Unauthorized");
+  const access = await requireAdminAccess(session.user.id);
+
+  if (!(await hasUserPermissionsTable())) {
+    throw new Error("Permission override migration has not been applied yet.");
+  }
+
+  const permissionKeys = overrides.map((override) => override.permissionKey);
+  const validPermissions = permissionKeys.length
+    ? await db.select({ key: permissions.key }).from(permissions).where(inArray(permissions.key, permissionKeys))
+    : [];
+
+  if (validPermissions.length !== permissionKeys.length) {
+    throw new Error("One or more permission overrides are invalid.");
+  }
+
+  await db.delete(user_permissions).where(eq(user_permissions.userId, targetUserId));
+
+  const entries = overrides.filter((override) => override.mode !== "default");
+  if (entries.length > 0) {
+    await db.insert(user_permissions).values(
+      entries.map((override) => ({
+        id: crypto.randomUUID(),
+        userId: targetUserId,
+        permissionKey: override.permissionKey,
+        allowed: override.mode === "allow",
+        createdAt: new Date(),
+      }))
+    );
+  }
+
+  await logActivity({
+    userId: session.user.id,
+    action: "update_user_permission_overrides",
+    entityType: "user",
+    entityId: targetUserId,
+    role: access.roleName,
+    details: {
+      overrides: entries,
+    },
+  });
+
+  if (targetUserId !== session.user.id) {
+    await createNotification({
+      userId: targetUserId,
+      type: "system",
+      title: "Permissions Updated",
+      message: "Your custom permission overrides were updated by an administrator.",
+      referenceId: targetUserId,
+      link: "/portal",
+    });
+  }
+
+  revalidatePath("/admin");
+  return { success: true };
 }
 
 /**

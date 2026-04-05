@@ -1,6 +1,6 @@
 "use server";
 
-import { and, desc, eq, gte, ilike, lte, or } from "drizzle-orm";
+import { and, count, desc, eq, gte, ilike, lte, or } from "drizzle-orm";
 import { db } from "@/db";
 import { activity_logs, users } from "@/db/schema";
 import { getSessionUser, getSystemAccess, requireAuthenticatedUser } from "@/lib/system-rbac";
@@ -262,6 +262,68 @@ export async function getMyRecentActivityAction() {
     if (isMissingActivityLogTableError(error)) {
       console.warn("[activity-logs] table not available yet; returning empty personal activity.");
       return [];
+    }
+    throw error;
+  }
+}
+
+export async function getMyActivityFeedAction(page: number = 1, pageSize: number = 20) {
+  const user = await requireAuthenticatedUser();
+  const safePage = Number.isFinite(page) ? Math.max(1, Math.floor(page)) : 1;
+  const safePageSize = Number.isFinite(pageSize) ? Math.min(50, Math.max(5, Math.floor(pageSize))) : 20;
+  const offset = (safePage - 1) * safePageSize;
+
+  try {
+    const [rows, totalResult] = await Promise.all([
+      db
+        .select({
+          id: activity_logs.id,
+          userId: activity_logs.userId,
+          userName: users.name,
+          userEmail: users.email,
+          action: activity_logs.action,
+          entityType: activity_logs.entityType,
+          entityId: activity_logs.entityId,
+          details: activity_logs.details,
+          timestamp: activity_logs.timestamp,
+          ipAddress: activity_logs.ipAddress,
+          role: activity_logs.role,
+        })
+        .from(activity_logs)
+        .leftJoin(users, eq(activity_logs.userId, users.id))
+        .where(eq(activity_logs.userId, user.id))
+        .orderBy(desc(activity_logs.timestamp))
+        .limit(safePageSize)
+        .offset(offset),
+      db
+        .select({ value: count() })
+        .from(activity_logs)
+        .where(eq(activity_logs.userId, user.id)),
+    ]);
+
+    const total = totalResult[0]?.value ?? 0;
+    return {
+      rows: rows.map((row) =>
+        mapActivityLogRow({
+          ...row,
+          details: toLogDetails(row.details),
+        })
+      ),
+      page: safePage,
+      pageSize: safePageSize,
+      total,
+      hasMore: offset + rows.length < total,
+    };
+  } catch (error) {
+    if (isMissingActivityLogTableError(error)) {
+      console.warn("[activity-logs] table not available yet; returning empty activity feed.");
+      return {
+        rows: [],
+        page: safePage,
+        pageSize: safePageSize,
+        total: 0,
+        hasMore: false,
+      };
     }
     throw error;
   }

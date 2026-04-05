@@ -14,17 +14,21 @@ import {
   getFormResponsesAction,
   getGlobalDocumentationItemsAction,
   getProjectFilesAction,
+  getResourcePermissionsAction,
   renameDocumentationItemAction,
-  submitFormResponseAction,
+  searchResourcesAction,
+  updateResourcePermissionsAction,
   updateDocContentAction,
   updateFormContentAction,
   uploadDocumentationFileEntryAction,
   uploadProjectFileAction,
   type FormContent,
   type ProjectFile,
+  type ResourceRole,
 } from "@/app/actions/files";
 import { uploadDocumentationBinaryAction, uploadFile } from "@/app/actions/storage";
 import { formatDateStable } from "@/lib/format-date";
+import { FormQuestionsEditor, FormResponsesPanel, FormSettingsPanel } from "@/components/FormBuilderPanels";
 
 type Scope = { projectId?: string | null; isGlobal?: boolean };
 type QuestionType = "short_answer" | "paragraph" | "multiple_choice" | "checkbox";
@@ -35,6 +39,7 @@ type FormSettings = {
   collectEmail: boolean;
   paymentEnabled: boolean;
   amount: number;
+  deadline: string | null;
   notifyOnSubmit: boolean;
   announcementEnabled: boolean;
   emailEnabled: boolean;
@@ -58,6 +63,7 @@ const formContent = (title: string): FormContent => ({
   title,
   description: "",
   mode: "internal",
+  status: "draft",
   fields: [] as FormQuestion[],
   questions: [] as FormQuestion[],
   settings: {
@@ -66,6 +72,7 @@ const formContent = (title: string): FormContent => ({
     collectEmail: true,
     paymentEnabled: false,
     amount: 0,
+    deadline: null,
     notifyOnSubmit: true,
     announcementEnabled: false,
     emailEnabled: false,
@@ -93,6 +100,13 @@ export default function DocumentationHubClient({
   const [dragActive, setDragActive] = useState(false);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"all" | ProjectFile["type"]>("all");
+  const [projectFilter, setProjectFilter] = useState("");
+  const [fromDateFilter, setFromDateFilter] = useState("");
+  const [toDateFilter, setToDateFilter] = useState("");
+  const [searchResults, setSearchResults] = useState<ProjectFile[] | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchVersion, setSearchVersion] = useState(0);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -103,14 +117,32 @@ export default function DocumentationHubClient({
   const [activeForm, setActiveForm] = useState<ProjectFile | null>(null);
   const [formDraft, setFormDraft] = useState<Record<string, unknown>>(formContent(""));
   const [formResponses, setFormResponses] = useState<Array<{ id: string; responses: Record<string, unknown> }>>([]);
-  const [responseDraft, setResponseDraft] = useState<Record<string, unknown>>({});
   const [modalLoading, setModalLoading] = useState(false);
+  const [accessItem, setAccessItem] = useState<ProjectFile | null>(null);
+  const [accessDraft, setAccessDraft] = useState<Array<{ role: ResourceRole; canView: boolean; canEdit: boolean }>>([
+    { role: "admin", canView: true, canEdit: true },
+    { role: "core", canView: true, canEdit: false },
+    { role: "crew", canView: false, canEdit: false },
+  ]);
+  const [accessInheritedFromId, setAccessInheritedFromId] = useState<string | null>(null);
 
   const canDeleteItem = useCallback((item: ProjectFile) => {
     if (canDeleteAny) return true;
     if (canDeleteOwn) return canDeleteOwn(item.uploadedBy);
     return false;
   }, [canDeleteAny, canDeleteOwn]);
+
+  const roleLabel = (role: ResourceRole) => role.charAt(0).toUpperCase() + role.slice(1);
+
+  const accessSummary = (item: ProjectFile) => {
+    const visibleTo = (item.visibleTo || []).map((role) => roleLabel(role as ResourceRole));
+    const editableBy = (item.editableBy || []).map((role) => roleLabel(role as ResourceRole));
+    return {
+      label: item.hasCustomAccess ? "Restricted" : "Inherited",
+      visible: visibleTo.length ? `Visible to: ${visibleTo.join(", ")}` : "Visible to: default access",
+      editable: editableBy.length ? `Editable by: ${editableBy.join(", ")}` : "Editable by: default access",
+    };
+  };
 
   const loadItems = useCallback(async () => {
     setLoading(true);
@@ -119,6 +151,7 @@ export default function DocumentationHubClient({
         ? await getGlobalDocumentationItemsAction()
         : await getProjectFilesAction(projectId as string);
       setItems(data);
+      setSearchVersion((current) => current + 1);
     } catch (error) {
       console.error(error);
       setFeedback({ type: "error", message: "Failed to load documentation items." });
@@ -131,6 +164,42 @@ export default function DocumentationHubClient({
     void loadItems();
   }, [loadItems]);
 
+  const hasActiveSearchFilters = Boolean(
+    search.trim() ||
+    typeFilter !== "all" ||
+    (isGlobal && projectFilter.trim()) ||
+    fromDateFilter ||
+    toDateFilter
+  );
+
+  useEffect(() => {
+    if (!hasActiveSearchFilters) {
+      setSearchResults(null);
+      setSearchLoading(false);
+      return;
+    }
+
+    const timeout = window.setTimeout(async () => {
+      try {
+        setSearchLoading(true);
+        const rows = await searchResourcesAction(search, {
+          type: typeFilter,
+          projectId: isGlobal ? (projectFilter.trim() || null) : projectId,
+          fromDate: fromDateFilter || null,
+          toDate: toDateFilter || null,
+        });
+        setSearchResults(rows);
+      } catch (error: any) {
+        console.error(error);
+        setFeedback({ type: "error", message: error?.message || "Search failed." });
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 400);
+
+    return () => window.clearTimeout(timeout);
+  }, [fromDateFilter, hasActiveSearchFilters, isGlobal, projectFilter, projectId, search, searchVersion, toDateFilter, typeFilter]);
+
   const breadcrumbs = useMemo(() => {
     const out: ProjectFile[] = [];
     let cursor = items.find((entry) => entry.id === currentFolderId) || null;
@@ -142,10 +211,11 @@ export default function DocumentationHubClient({
   }, [currentFolderId, items]);
 
   const displayItems = useMemo(() => {
-    return items
-      .filter((entry) => entry.parentId === currentFolderId)
-      .filter((entry) => entry.name.toLowerCase().includes(search.toLowerCase()));
-  }, [currentFolderId, items, search]);
+    const source = searchResults ?? items;
+    return searchResults
+      ? source
+      : source.filter((entry) => entry.parentId === currentFolderId);
+  }, [currentFolderId, items, searchResults]);
 
   const untitledFolderName = () => {
     const siblingNames = new Set(
@@ -332,12 +402,53 @@ export default function DocumentationHubClient({
         setActiveForm(item);
         setFormDraft((content as Record<string, unknown>) || formContent(item.name));
         setFormResponses((responses as any[]) || []);
-        setResponseDraft({});
         setModalLoading(false);
       }
     } catch (error: any) {
       console.error(error);
       setFeedback({ type: "error", message: error?.message || "Failed to open item." });
+      setModalLoading(false);
+    }
+  };
+
+  const openAccessManager = async (item: ProjectFile) => {
+    setModalLoading(true);
+    try {
+      const config = await getResourcePermissionsAction(item.id);
+      const baseRoles: ResourceRole[] = ["admin", "core", "crew"];
+      setAccessDraft(
+        baseRoles.map((role) => {
+          const match = config.roles.find((entry) => entry.role === role);
+          return {
+            role,
+            canView: match?.canView ?? false,
+            canEdit: match?.canEdit ?? false,
+          };
+        })
+      );
+      setAccessInheritedFromId(config.inheritedFromId);
+      setAccessItem(item);
+    } catch (error: any) {
+      console.error(error);
+      setFeedback({ type: "error", message: error?.message || "Failed to load access rules." });
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const saveAccessManager = async () => {
+    if (!accessItem) return;
+    setModalLoading(true);
+    try {
+      await updateResourcePermissionsAction(accessItem.id, accessDraft);
+      setFeedback({ type: "success", message: "Access rules updated." });
+      setAccessItem(null);
+      setAccessInheritedFromId(null);
+      await loadItems();
+    } catch (error: any) {
+      console.error(error);
+      setFeedback({ type: "error", message: error?.message || "Failed to update access rules." });
+    } finally {
       setModalLoading(false);
     }
   };
@@ -379,40 +490,6 @@ export default function DocumentationHubClient({
     }
   };
 
-  const submitForm = async () => {
-    if (!activeForm || (canManage || activeForm.uploadedBy === userName)) return;
-    setModalLoading(true);
-    try {
-      await submitFormResponseAction(activeForm.id, { answers: responseDraft });
-      setFeedback({ type: "success", message: "Form submitted." });
-      setResponseDraft({});
-    } catch (error: any) {
-      console.error(error);
-      setFeedback({ type: "error", message: error?.message || "Failed to submit form." });
-    } finally {
-      setModalLoading(false);
-    }
-  };
-
-  const addQuestion = () => {
-    const current = ((formDraft.questions as FormQuestion[]) || []).slice();
-    const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}`;
-    current.push({ id, label: "Untitled question", type: "short_answer", required: false, options: [] });
-    setFormDraft((value) => ({ ...value, questions: current, fields: current }));
-  };
-
-  const updateQuestion = (questionId: string, patch: Partial<FormQuestion>) => {
-    const current = ((formDraft.questions as FormQuestion[]) || []).map((question) =>
-      question.id === questionId ? { ...question, ...patch } : question
-    );
-    setFormDraft((value) => ({ ...value, questions: current, fields: current }));
-  };
-
-  const removeQuestion = (questionId: string) => {
-    const current = ((formDraft.questions as FormQuestion[]) || []).filter((question) => question.id !== questionId);
-    setFormDraft((value) => ({ ...value, questions: current, fields: current }));
-  };
-
   const attachToTask = async (itemId: string, taskId: string) => {
     setAttachId(null);
     try {
@@ -450,7 +527,25 @@ export default function DocumentationHubClient({
           <p style={{ margin: "0.45rem 0 0", color: "var(--text-muted)", fontSize: "0.82rem" }}>{subtitle}</p>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", justifyContent: "flex-end" }}>
-          <input placeholder="Search..." value={search} onChange={(event) => setSearch(event.target.value)} style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "6px", padding: "0.35rem 0.6rem", color: "white", fontSize: "0.75rem", outline: "none", minWidth: "140px" }} />
+          <input placeholder="Search docs, files, uploader, project..." value={search} onChange={(event) => setSearch(event.target.value)} style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "6px", padding: "0.35rem 0.6rem", color: "white", fontSize: "0.75rem", outline: "none", minWidth: "220px" }} />
+          <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as "all" | ProjectFile["type"])} style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "6px", padding: "0.35rem 0.6rem", color: "white", fontSize: "0.75rem", outline: "none" }}>
+            <option value="all">All Types</option>
+            <option value="file">Files</option>
+            <option value="folder">Folders</option>
+            <option value="doc">Docs</option>
+            <option value="form">Forms</option>
+            <option value="sheet">Sheets</option>
+          </select>
+          {isGlobal ? (
+            <input placeholder="Project ID" value={projectFilter} onChange={(event) => setProjectFilter(event.target.value)} style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "6px", padding: "0.35rem 0.6rem", color: "white", fontSize: "0.75rem", outline: "none", minWidth: "120px" }} />
+          ) : null}
+          <input type="date" value={fromDateFilter} onChange={(event) => setFromDateFilter(event.target.value)} style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "6px", padding: "0.35rem 0.6rem", color: "white", fontSize: "0.75rem", outline: "none" }} />
+          <input type="date" value={toDateFilter} onChange={(event) => setToDateFilter(event.target.value)} style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "6px", padding: "0.35rem 0.6rem", color: "white", fontSize: "0.75rem", outline: "none" }} />
+          {hasActiveSearchFilters ? (
+            <button onClick={() => { setSearch(""); setTypeFilter("all"); setProjectFilter(""); setFromDateFilter(""); setToDateFilter(""); setSearchResults(null); }} style={{ background: "transparent", border: "1px solid var(--border-subtle)", color: "var(--text-muted)", borderRadius: "6px", padding: "0.4rem 0.8rem", fontSize: "0.75rem", cursor: "pointer", fontFamily: "inherit" }}>
+              Clear
+            </button>
+          ) : null}
           <input ref={fileInputRef} type="file" multiple style={{ display: "none" }} onChange={handleFileInputChange} />
           {canUpload ? <button onClick={() => fileInputRef.current?.click()} style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)", color: "#22c55e", borderRadius: "6px", padding: "0.4rem 0.8rem", fontSize: "0.75rem", cursor: "pointer", fontFamily: "inherit" }}>Upload File</button> : null}
           {canManage ? (
@@ -464,16 +559,23 @@ export default function DocumentationHubClient({
       </div>
       {feedback ? <div style={{ marginBottom: "1rem", padding: "0.8rem 0.95rem", borderRadius: "8px", border: feedback.type === "success" ? "1px solid rgba(34,197,94,0.35)" : "1px solid rgba(239,68,68,0.35)", background: feedback.type === "success" ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color: feedback.type === "success" ? "#86efac" : "#fca5a5", fontSize: "0.8rem" }}>{feedback.message}</div> : null}
 
-      {loading ? (
+      {searchLoading ? (
+        <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)" }}>Searching resources...</div>
+      ) : loading ? (
         <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)" }}>Loading items...</div>
       ) : displayItems.length === 0 ? (
         <div style={{ textAlign: "center", padding: "3rem 1rem", color: "var(--text-muted)", background: "rgba(0,0,0,0.15)", borderRadius: "8px", border: "1px dashed var(--border-subtle)" }}>
           <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📚</div>
-          <p style={{ margin: 0, fontSize: "0.85rem" }}>Nothing in this folder yet.</p>
-          <p style={{ margin: "0.35rem 0 0", fontSize: "0.75rem", opacity: 0.7 }}>Use the actions above to add files, docs, forms, or folders.</p>
+          <p style={{ margin: 0, fontSize: "0.85rem" }}>{hasActiveSearchFilters ? "No matching resources found." : "Nothing in this folder yet."}</p>
+          <p style={{ margin: "0.35rem 0 0", fontSize: "0.75rem", opacity: 0.7 }}>{hasActiveSearchFilters ? "Try adjusting the search query or filters." : "Use the actions above to add files, docs, forms, or folders."}</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column" }}>
+          {hasActiveSearchFilters ? (
+            <div style={{ marginBottom: "0.75rem", color: "var(--text-muted)", fontSize: "0.76rem" }}>
+              Showing {displayItems.length} matching resource{displayItems.length === 1 ? "" : "s"} across accessible documentation.
+            </div>
+          ) : null}
           <div style={{ display: "flex", padding: "0.5rem 0.75rem", borderBottom: "1px solid var(--border-subtle)", marginBottom: "0.4rem", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", fontWeight: 600 }}>
             <div style={{ flex: 2 }}>Name</div>
             <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>Type</div>
@@ -495,7 +597,17 @@ export default function DocumentationHubClient({
                     ) : (
                       <>
                         <p style={{ fontSize: "0.85rem", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: item.type === "folder" ? "var(--gold-light)" : "var(--text-primary)" }}>{item.name}</p>
-                        <p style={{ fontSize: "0.65rem", color: "var(--text-muted)", margin: 0 }}>{item.uploadedBy || "Unknown"}</p>
+                        <div style={{ display: "flex", gap: "0.45rem", alignItems: "center", flexWrap: "wrap" }}>
+                          <p style={{ fontSize: "0.65rem", color: "var(--text-muted)", margin: 0 }}>{item.uploadedBy || "Unknown"}</p>
+                          <span style={{ fontSize: "0.62rem", padding: "0.14rem 0.4rem", borderRadius: "999px", background: item.hasCustomAccess ? "rgba(239,68,68,0.14)" : "rgba(59,130,246,0.12)", color: item.hasCustomAccess ? "#fca5a5" : "#93c5fd" }}>{accessSummary(item).label}</span>
+                          {item.projectId || item.isGlobal ? (
+                            <span style={{ fontSize: "0.62rem", color: "var(--text-muted)" }}>
+                              {item.isGlobal ? "Global Hub" : item.projectTitle || item.projectId}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p style={{ fontSize: "0.62rem", color: "var(--text-muted)", margin: "0.15rem 0 0" }}>{accessSummary(item).visible}</p>
+                        <p style={{ fontSize: "0.62rem", color: "var(--text-muted)", margin: "0.1rem 0 0" }}>{accessSummary(item).editable}</p>
                       </>
                     )}
                   </div>
@@ -525,6 +637,7 @@ export default function DocumentationHubClient({
                     </>
                   ) : (
                     <>
+                      {canManage ? <button onClick={(event) => { event.stopPropagation(); void openAccessManager(item); }} style={{ background: "transparent", border: "1px solid rgba(59,130,246,0.3)", color: "#93c5fd", borderRadius: "4px", padding: "0.2rem 0.5rem", fontSize: "0.65rem", cursor: "pointer" }}>Access</button> : null}
                       {canManage ? <button onClick={(event) => { event.stopPropagation(); setRenamingId(item.id); setRenameValue(item.name); }} style={{ background: "transparent", border: "1px solid rgba(201,168,76,0.3)", color: "var(--gold)", borderRadius: "4px", padding: "0.2rem 0.5rem", fontSize: "0.65rem", cursor: "pointer" }}>Rename</button> : null}
                       {canDeleteItem(item) ? (
                         deleteId === item.id ? (
@@ -566,114 +679,27 @@ export default function DocumentationHubClient({
               <>
                 {(() => {
                   const canEditForm = canManage || activeForm.uploadedBy === userName;
-                  const questions = ((formDraft.questions as FormQuestion[]) || []) as FormQuestion[];
                   const settings = ((formDraft.settings as FormSettings | undefined) || formContent(activeForm.name).settings) as FormSettings;
-                  const selectedResponse = formResponses[0] as any;
                   return (
                     <>
                       <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginBottom: "1rem", flexWrap: "wrap" }}>
                         <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
                           <span style={{ padding: "0.35rem 0.7rem", borderRadius: "999px", background: "rgba(201,168,76,0.12)", color: "var(--gold)", fontSize: "0.75rem", textTransform: "capitalize" }}>{String(formDraft.mode || "internal")}</span>
+                          <span style={{ padding: "0.35rem 0.7rem", borderRadius: "999px", background: formDraft.status === "published" ? "rgba(34,197,94,0.12)" : "rgba(251,191,36,0.12)", color: formDraft.status === "published" ? "#86efac" : "#fbbf24", fontSize: "0.75rem", textTransform: "capitalize" }}>{String(formDraft.status || "draft")}</span>
                           {settings.paymentEnabled ? <span style={{ padding: "0.35rem 0.7rem", borderRadius: "999px", background: "rgba(34,197,94,0.12)", color: "#86efac", fontSize: "0.75rem" }}>Payment ready: Rs. {settings.amount}</span> : null}
                         </div>
                         <a href={`/forms/${activeForm.id}`} target="_blank" rel="noreferrer" style={{ color: "#93c5fd", textDecoration: "none", fontSize: "0.82rem" }}>Open fill page</a>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: canEditForm ? "minmax(0, 1.7fr) minmax(280px, 1fr)" : "1fr", gap: "1rem" }}>
                         <div style={{ display: "grid", gap: "0.9rem" }}>
-                          <input value={String(formDraft.title || activeForm.name)} onChange={(event) => setFormDraft((value) => ({ ...value, title: event.target.value }))} disabled={!canEditForm} placeholder="Form title" style={{ padding: "0.7rem 0.9rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontFamily: "inherit" }} />
-                          <textarea value={String(formDraft.description || "")} onChange={(event) => setFormDraft((value) => ({ ...value, description: event.target.value }))} disabled={!canEditForm} placeholder="Form description" style={{ minHeight: "90px", padding: "0.7rem 0.9rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontFamily: "inherit", resize: "vertical" }} />
-                          {questions.map((question, index) => (
-                            <div key={question.id} style={{ border: "1px solid var(--border-subtle)", borderRadius: "10px", padding: "0.9rem", background: "rgba(0,0,0,0.18)" }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", marginBottom: "0.75rem", alignItems: "center" }}>
-                                <strong style={{ fontSize: "0.82rem" }}>Question {index + 1}</strong>
-                                {canEditForm ? <button onClick={() => removeQuestion(question.id)} style={{ background: "transparent", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", borderRadius: "6px", padding: "0.25rem 0.55rem", fontSize: "0.72rem", cursor: "pointer" }}>Delete</button> : null}
-                              </div>
-                              <div style={{ display: "grid", gap: "0.6rem" }}>
-                                <input value={question.label} onChange={(event) => updateQuestion(question.id, { label: event.target.value })} disabled={!canEditForm} placeholder="Question label" style={{ padding: "0.7rem 0.9rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontFamily: "inherit" }} />
-                                {canEditForm ? (
-                                  <div style={{ display: "grid", gridTemplateColumns: "170px 1fr", gap: "0.6rem" }}>
-                                    <select value={question.type} onChange={(event) => updateQuestion(question.id, { type: event.target.value as QuestionType })} style={{ padding: "0.65rem 0.8rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontFamily: "inherit" }}>
-                                      <option value="short_answer">Short answer</option>
-                                      <option value="paragraph">Paragraph</option>
-                                      <option value="multiple_choice">Multiple choice</option>
-                                      <option value="checkbox">Checkbox</option>
-                                    </select>
-                                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8rem", color: "var(--text-secondary)" }}><input type="checkbox" checked={Boolean(question.required)} onChange={(event) => updateQuestion(question.id, { required: event.target.checked })} />Required</label>
-                                  </div>
-                                ) : null}
-                                {question.type === "multiple_choice" ? (
-                                  <textarea value={(question.options || []).join("\n")} onChange={(event) => updateQuestion(question.id, { options: event.target.value.split("\n").map((option) => option.trim()).filter(Boolean) })} disabled={!canEditForm} placeholder="One option per line" style={{ minHeight: "80px", padding: "0.7rem 0.9rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "var(--text-primary)", fontFamily: "inherit" }} />
-                                ) : null}
-                              </div>
-                            </div>
-                          ))}
-                          {canEditForm ? <button onClick={addQuestion} style={{ justifySelf: "start", background: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.3)", color: "var(--gold)", borderRadius: "6px", padding: "0.45rem 0.85rem", fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit" }}>Add Question</button> : null}
+                          <FormQuestionsEditor formName={activeForm.name} formDraft={formDraft} canEdit={canEditForm} onChange={setFormDraft} />
                           <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "1rem" }}>
                             <h4 style={{ margin: "0 0 0.6rem", fontSize: "0.9rem", color: "var(--gold-light)" }}>Responses</h4>
-                            {formResponses.length === 0 ? <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>No submissions yet.</p> : (
-                              <div style={{ overflowX: "auto" }}>
-                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.78rem" }}>
-                                  <thead>
-                                    <tr style={{ color: "var(--text-muted)", textAlign: "left" }}>
-                                      <th style={{ padding: "0.5rem 0.4rem" }}>Name</th>
-                                      <th style={{ padding: "0.5rem 0.4rem" }}>Email</th>
-                                      <th style={{ padding: "0.5rem 0.4rem" }}>Date</th>
-                                      <th style={{ padding: "0.5rem 0.4rem" }}>Payment</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {formResponses.map((response: any) => (
-                                      <tr key={response.id} style={{ borderTop: "1px solid var(--border-subtle)" }}>
-                                        <td style={{ padding: "0.55rem 0.4rem" }}>{response.externalDetails?.name || "Member"}</td>
-                                        <td style={{ padding: "0.55rem 0.4rem" }}>{response.externalDetails?.email || "Internal"}</td>
-                                        <td style={{ padding: "0.55rem 0.4rem" }}>{formatDateStable(response.createdAt)}</td>
-                                        <td style={{ padding: "0.55rem 0.4rem", textTransform: "capitalize" }}>{response.paymentStatus}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            )}
+                            <FormResponsesPanel responses={formResponses as any} />
                           </div>
                         </div>
                         {canEditForm ? (
-                          <div style={{ display: "grid", gap: "0.85rem", alignContent: "start" }}>
-                            <div style={{ border: "1px solid var(--border-subtle)", borderRadius: "12px", padding: "1rem", background: "rgba(0,0,0,0.18)" }}>
-                              <h4 style={{ margin: "0 0 0.75rem", fontSize: "0.9rem", color: "var(--gold-light)" }}>Settings</h4>
-                              <div style={{ display: "grid", gap: "0.75rem" }}>
-                                <label style={{ display: "grid", gap: "0.35rem", fontSize: "0.78rem", color: "var(--text-secondary)" }}>
-                                  Mode
-                                  <select value={String(formDraft.mode || "internal")} onChange={(event) => setFormDraft((value) => ({ ...value, mode: event.target.value }))} style={{ padding: "0.7rem 0.8rem", background: "rgba(0,0,0,0.28)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "white" }}>
-                                    <option value="internal">Internal</option>
-                                    <option value="external">External</option>
-                                    <option value="hybrid">Hybrid</option>
-                                  </select>
-                                </label>
-                                {[
-                                  ["allowMultiple", "Allow multiple responses"],
-                                  ["requireLogin", "Require login"],
-                                  ["collectEmail", "Collect email"],
-                                  ["paymentEnabled", "Enable payment"],
-                                  ["notifyOnSubmit", "Enable notifications"],
-                                  ["announcementEnabled", "Send as announcement"],
-                                  ["emailEnabled", "Send email notification"],
-                                ].map(([key, label]) => (
-                                  <label key={key} style={{ display: "flex", alignItems: "center", gap: "0.55rem", fontSize: "0.78rem", color: "var(--text-secondary)" }}>
-                                    <input type="checkbox" checked={Boolean(settings[key as keyof FormSettings])} onChange={(event) => setFormDraft((value) => ({ ...value, settings: { ...settings, [key]: event.target.checked } }))} />
-                                    {label}
-                                  </label>
-                                ))}
-                                <label style={{ display: "grid", gap: "0.35rem", fontSize: "0.78rem", color: "var(--text-secondary)" }}>
-                                  Amount
-                                  <input type="number" min="0" value={settings.amount} onChange={(event) => setFormDraft((value) => ({ ...value, settings: { ...settings, amount: Number(event.target.value || 0) } }))} style={{ padding: "0.7rem 0.8rem", background: "rgba(0,0,0,0.28)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "white" }} />
-                                </label>
-                              </div>
-                            </div>
-                            <div style={{ border: "1px solid var(--border-subtle)", borderRadius: "12px", padding: "1rem", background: "rgba(0,0,0,0.18)" }}>
-                              <h4 style={{ margin: "0 0 0.75rem", fontSize: "0.9rem", color: "var(--gold-light)" }}>Response Detail</h4>
-                              {selectedResponse ? <pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word", fontSize: "0.76rem", color: "var(--text-secondary)" }}>{JSON.stringify(selectedResponse.answers, null, 2)}</pre> : <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)" }}>Submit responses will appear here.</p>}
-                            </div>
-                          </div>
+                          <FormSettingsPanel formId={activeForm.id} formDraft={formDraft} canEdit={canEditForm} onChange={setFormDraft} />
                         ) : null}
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem" }}>
@@ -685,6 +711,66 @@ export default function DocumentationHubClient({
                 })()}
               </>
             ) : null}
+          </div>
+        </div>
+      ) : null}
+      {accessItem ? (
+        <div onClick={() => { setAccessItem(null); setAccessInheritedFromId(null); }} style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
+          <div onClick={(event) => event.stopPropagation()} style={{ background: "linear-gradient(145deg, rgba(15,22,40,0.98), rgba(8,12,22,0.99))", border: "1px solid var(--border-subtle)", borderRadius: "16px", width: "100%", maxWidth: "780px", maxHeight: "85vh", overflowY: "auto", padding: "1.75rem", color: "var(--text-primary)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "1.2rem", color: "var(--gold-light)" }}>{accessItem.name}</h3>
+                <p style={{ margin: "0.35rem 0 0", color: "var(--text-muted)", fontSize: "0.78rem" }}>Manage Access</p>
+              </div>
+              <button onClick={() => { setAccessItem(null); setAccessInheritedFromId(null); }} style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "1.3rem" }}>x</button>
+            </div>
+            {modalLoading ? (
+              <div style={{ padding: "2rem 0", textAlign: "center", color: "var(--text-muted)" }}>Loading...</div>
+            ) : (
+              <div style={{ display: "grid", gap: "1rem" }}>
+                <div style={{ padding: "0.95rem 1rem", borderRadius: "12px", border: "1px solid var(--border-subtle)", background: "rgba(15,22,40,0.35)" }}>
+                  <div style={{ fontSize: "0.84rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>If not set, access is inherited from parent folder.</div>
+                  <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                    {accessInheritedFromId ? "Inherited from parent folder until you save custom rules here." : "No parent rule found. Role-based access remains the fallback."}
+                  </div>
+                </div>
+                <div style={{ border: "1px solid var(--border-subtle)", borderRadius: "12px", padding: "1rem", background: "rgba(0,0,0,0.18)" }}>
+                  <h4 style={{ margin: "0 0 0.75rem", fontSize: "0.9rem", color: "var(--gold-light)" }}>Roles</h4>
+                  <div style={{ display: "grid", gap: "0.75rem" }}>
+                    {accessDraft.map((entry) => (
+                      <div key={entry.role} style={{ display: "grid", gridTemplateColumns: "140px 1fr 1fr", gap: "0.75rem", alignItems: "center", padding: "0.75rem", borderRadius: "10px", border: "1px solid var(--border-subtle)", background: "rgba(255,255,255,0.03)" }}>
+                        <div>
+                          <div style={{ color: "var(--text-primary)", fontWeight: 600 }}>{roleLabel(entry.role)}</div>
+                          <div style={{ color: "var(--text-muted)", fontSize: "0.72rem" }}>{entry.role === "admin" ? "Full-control role" : entry.role === "core" ? "Core committee role" : "Crew/member role"}</div>
+                        </div>
+                        <label style={{ display: "flex", alignItems: "center", gap: "0.55rem", color: "var(--text-secondary)", fontSize: "0.82rem" }}>
+                          <input type="checkbox" checked={entry.canView} onChange={(event) => setAccessDraft((current) => current.map((item) => item.role === entry.role ? { ...item, canView: event.target.checked, canEdit: !event.target.checked ? false : item.canEdit } : item))} />
+                          View
+                        </label>
+                        <label style={{ display: "flex", alignItems: "center", gap: "0.55rem", color: "var(--text-secondary)", fontSize: "0.82rem" }}>
+                          <input type="checkbox" checked={entry.canEdit} onChange={(event) => setAccessDraft((current) => current.map((item) => item.role === entry.role ? { ...item, canEdit: event.target.checked, canView: event.target.checked ? true : item.canView } : item))} />
+                          Edit
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ border: "1px solid var(--border-subtle)", borderRadius: "12px", padding: "1rem", background: "rgba(0,0,0,0.18)" }}>
+                  <h4 style={{ margin: "0 0 0.75rem", fontSize: "0.9rem", color: "var(--gold-light)" }}>Summary</h4>
+                  <div style={{ fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: 1.8 }}>
+                    <div>Visible to: {accessDraft.filter((entry) => entry.canView).map((entry) => roleLabel(entry.role)).join(", ") || "Inherited / default"}</div>
+                    <div>Editable by: {accessDraft.filter((entry) => entry.canEdit).map((entry) => roleLabel(entry.role)).join(", ") || "Inherited / default"}</div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem" }}>
+                  <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>Use this modal for advanced access control without cluttering the main file view.</span>
+                  <div style={{ display: "flex", gap: "0.6rem" }}>
+                    <button onClick={() => { setAccessItem(null); setAccessInheritedFromId(null); }} style={{ background: "transparent", border: "1px solid var(--border-subtle)", color: "var(--text-muted)", borderRadius: "8px", padding: "0.55rem 0.85rem", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+                    <button onClick={() => void saveAccessManager()} className="btn-primary" style={{ fontSize: "0.8rem" }}>Save Access</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       ) : null}

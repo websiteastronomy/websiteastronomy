@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 import DocumentationHubClient from "@/components/DocumentationHubClient";
 import AnimatedSection from "@/components/AnimatedSection";
 import { useAuth } from "@/context/AuthContext";
