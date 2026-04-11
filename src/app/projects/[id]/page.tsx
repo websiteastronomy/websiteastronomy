@@ -8,6 +8,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import AnimatedSection from "@/components/AnimatedSection";
 import TaskModal from "@/components/TaskModal";
 import DocumentationHubClient from "@/components/DocumentationHubClient";
+import ProjectDiscussion from "@/components/project/ProjectDiscussion";
+import ProjectDocumentation from "@/components/project/ProjectDocumentation";
+import ProjectFiles from "@/components/project/ProjectFiles";
+import ProjectOverview from "@/components/project/ProjectOverview";
+import ProjectTasks from "@/components/project/ProjectTasks";
+import ProjectTimeline from "@/components/project/ProjectTimeline";
 import { getDocument } from "@/lib/db";
 import {
   getProjectTasksAction,
@@ -202,7 +208,15 @@ function KanbanCard({
   );
 }
 
-export default function ProjectDetail() {
+export type ProjectRouteSection =
+  | "overview"
+  | "tasks"
+  | "files"
+  | "documentation"
+  | "timeline"
+  | "discussion";
+
+export function ProjectDetailClient({ routeSection }: { routeSection?: ProjectRouteSection } = {}) {
   const params = useParams();
   const router = useRouter();
   const id = typeof params?.id === "string" ? params.id : "";
@@ -810,17 +824,12 @@ export default function ProjectDetail() {
         <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
 
           {/* Mission Objective */}
-          <AnimatedSection>
-            <div style={{ background: "rgba(15,22,40,0.4)", border: "1px solid var(--border-subtle)", borderRadius: "12px", padding: "1.5rem" }}>
-              <p style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--gold)", marginBottom: "0.5rem" }}>Mission Objective</p>
-              <p style={{ fontSize: "0.95rem", lineHeight: 1.7, color: "var(--text-secondary)", borderLeft: "3px solid var(--gold)", paddingLeft: "1rem" }}>
-                {proj.objective || proj.fullDescription || proj.description}
-              </p>
-            </div>
-          </AnimatedSection>
+          {(!routeSection || routeSection === "overview") && (
+            <ProjectOverview proj={proj} projectId={id} showFullPageLink={routeSection === "overview"} />
+          )}
 
           {/* Tab Nav */}
-          <AnimatedSection delay={0.05}>
+          {!routeSection && <AnimatedSection delay={0.05}>
             <div style={{ display: "flex", gap: "0.25rem", background: "rgba(8,12,22,0.6)", border: "1px solid var(--border-subtle)", borderRadius: "10px", padding: "0.3rem" }}>
               {(["tasks", "files", "documentation", "timeline", "discussion"] as const).map((tab: any) => (
                 <button key={tab} onClick={() => setActiveTab(tab)} style={{
@@ -836,13 +845,38 @@ export default function ProjectDetail() {
                 </button>
               ))}
             </div>
-          </AnimatedSection>
+          </AnimatedSection>}
 
           {/* Tab Content */}
           <AnimatePresence mode="wait">
 
             {/* KANBAN TASK BOARD */}
-            {activeTab === "tasks" && (
+            {!routeSection && activeTab === "tasks" && (
+              <motion.div key="tasks" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                <ProjectTasks
+                  projectId={id}
+                  isViewer={isViewer}
+                  myTasksFilter={myTasksFilter}
+                  setMyTasksFilter={setMyTasksFilter}
+                  isReadOnly={isReadOnly}
+                  tasksLoading={tasksLoading}
+                  KANBAN_COLS={KANBAN_COLS}
+                  handleDragOver={handleDragOver}
+                  handleDrop={handleDrop}
+                  tasksInCol={tasksInCol}
+                  KanbanCard={KanbanCard}
+                  setSelectedTask={setSelectedTask}
+                  handleDragStart={handleDragStart}
+                  addingInCol={addingInCol}
+                  setAddingInCol={setAddingInCol}
+                  newTaskTitle={newTaskTitle}
+                  setNewTaskTitle={setNewTaskTitle}
+                  handleAddTask={handleAddTask}
+                  canCreateTask={canCreateTask}
+                />
+              </motion.div>
+            )}
+            {false && activeTab === "tasks" && (
               <motion.div key="tasks" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <div style={{ background: "rgba(15,22,40,0.4)", border: "1px solid var(--border-subtle)", borderRadius: "12px", padding: "1.5rem" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "1rem" }}>
@@ -927,7 +961,46 @@ export default function ProjectDetail() {
             )}
 
             {/* FILE MANAGER */}
-            {activeTab === "files" && (
+            {!routeSection && activeTab === "files" && (
+              <motion.div key="files" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                <ProjectFiles
+                  projectId={id}
+                  handleDrag={handleDrag}
+                  dragActive={dragActive}
+                  handleDropFiles={handleDropFiles}
+                  currentFolderId={currentFolderId}
+                  setCurrentFolderId={setCurrentFolderId}
+                  fileSearch={fileSearch}
+                  setFileSearch={setFileSearch}
+                  fileInputRef={fileInputRef}
+                  handleFileInputChange={handleFileInputChange}
+                  isViewer={isViewer}
+                  canUploadFiles={canUploadFiles}
+                  isReadOnly={isReadOnly}
+                  handleCreateFolder={handleCreateFolder}
+                  filesLoading={filesLoading}
+                  displayFiles={displayFiles}
+                  getBreadcrumbs={getBreadcrumbs}
+                  tasks={tasks}
+                  attachingFileId={attachingFileId}
+                  setAttachingFileId={setAttachingFileId}
+                  handleAttachToTask={handleAttachToTask}
+                  renamingFileId={renamingFileId}
+                  renameValue={renameValue}
+                  setRenameValue={setRenameValue}
+                  handleRenameFile={handleRenameFile}
+                  renameSaving={renameSaving}
+                  setRenamingFileId={setRenamingFileId}
+                  setFileToDeleteId={setFileToDeleteId}
+                  fileToDeleteId={fileToDeleteId}
+                  handleDeleteFile={handleDeleteFile}
+                  canDeleteAnyFile={canDeleteAnyFile}
+                  startRenamingFile={startRenamingFile}
+                  canDeleteOwnFile={canDeleteOwnFile}
+                />
+              </motion.div>
+            )}
+            {false && activeTab === "files" && (
               <motion.div key="files" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <div 
                   onDragEnter={handleDrag}
@@ -1180,7 +1253,19 @@ export default function ProjectDetail() {
               </motion.div>
             )}
 
-            {activeTab === "documentation" && (
+            {!routeSection && activeTab === "documentation" && (
+              <motion.div key="documentation" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                <ProjectDocumentation
+                  projectId={id}
+                  userName={userName}
+                  projectPerms={projectPerms}
+                  canDeleteAnyFile={canDeleteAnyFile}
+                  tasks={tasks}
+                  loadTasks={loadTasks}
+                />
+              </motion.div>
+            )}
+            {false && activeTab === "documentation" && (
               <motion.div key="documentation" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <DocumentationHubClient
                   scope={{ projectId: id, isGlobal: false }}
@@ -1198,7 +1283,29 @@ export default function ProjectDetail() {
             )}
 
             {/* TIMELINE */}
-            {activeTab === "timeline" && (
+            {!routeSection && activeTab === "timeline" && (
+              <motion.div key="timeline" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                <ProjectTimeline
+                  projectId={id}
+                  SectionHeading={SectionHeading}
+                  canAddTimeline={canAddTimeline}
+                  addingTimelineEvent={addingTimelineEvent}
+                  setAddingTimelineEvent={setAddingTimelineEvent}
+                  newTimelineForm={newTimelineForm}
+                  setNewTimelineForm={setNewTimelineForm}
+                  handleAddTimelineEvent={handleAddTimelineEvent}
+                  timelineFilter={timelineFilter}
+                  setTimelineFilter={setTimelineFilter}
+                  timelineLoading={timelineLoading}
+                  timelineEvents={timelineEvents}
+                  canDeleteTimeline={canDeleteTimeline}
+                  timelineEventToDelete={timelineEventToDelete}
+                  setTimelineEventToDelete={setTimelineEventToDelete}
+                  handleDeleteTimelineEvent={handleDeleteTimelineEvent}
+                />
+              </motion.div>
+            )}
+            {false && activeTab === "timeline" && (
               <motion.div key="timeline" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <div style={{ background: "rgba(15,22,40,0.4)", border: "1px solid var(--border-subtle)", borderRadius: "12px", padding: "1.5rem" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
@@ -1290,7 +1397,28 @@ export default function ProjectDetail() {
             )}
 
             {/* DISCUSSION */}
-            {activeTab === "discussion" && (
+            {!routeSection && activeTab === "discussion" && (
+              <motion.div key="discussion" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                <ProjectDiscussion
+                  projectId={id}
+                  SectionHeading={SectionHeading}
+                  discMessages={discMessages}
+                  canPinMessage={canPinMessage}
+                  handleTogglePin={handleTogglePin}
+                  renderDiscussionText={renderDiscussionText}
+                  discLoading={discLoading}
+                  canDeleteAnyMsg={canDeleteAnyMsg}
+                  setReplyingTo={setReplyingTo}
+                  formatTimeAgo={formatTimeAgo}
+                  handleDeleteDiscussion={handleDeleteDiscussion}
+                  replyingTo={replyingTo}
+                  discInput={discInput}
+                  setDiscInput={setDiscInput}
+                  handleSendDiscussion={handleSendDiscussion}
+                />
+              </motion.div>
+            )}
+            {false && activeTab === "discussion" && (
               <motion.div key="discussion" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <div style={{ background: "rgba(15,22,40,0.4)", border: "1px solid var(--border-subtle)", borderRadius: "12px", padding: "1.5rem" }}>
                   <SectionHeading icon="💬" title="Discussion Panel" />
@@ -1400,6 +1528,121 @@ export default function ProjectDetail() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {routeSection === "tasks" && (
+            <ProjectTasks
+              projectId={id}
+              isViewer={isViewer}
+              myTasksFilter={myTasksFilter}
+              setMyTasksFilter={setMyTasksFilter}
+              isReadOnly={isReadOnly}
+              tasksLoading={tasksLoading}
+              KANBAN_COLS={KANBAN_COLS}
+              handleDragOver={handleDragOver}
+              handleDrop={handleDrop}
+              tasksInCol={tasksInCol}
+              KanbanCard={KanbanCard}
+              setSelectedTask={setSelectedTask}
+              handleDragStart={handleDragStart}
+              addingInCol={addingInCol}
+              setAddingInCol={setAddingInCol}
+              newTaskTitle={newTaskTitle}
+              setNewTaskTitle={setNewTaskTitle}
+              handleAddTask={handleAddTask}
+              canCreateTask={canCreateTask}
+              showFullPageLink
+            />
+          )}
+          {routeSection === "files" && (
+            <ProjectFiles
+              projectId={id}
+              handleDrag={handleDrag}
+              dragActive={dragActive}
+              handleDropFiles={handleDropFiles}
+              currentFolderId={currentFolderId}
+              setCurrentFolderId={setCurrentFolderId}
+              fileSearch={fileSearch}
+              setFileSearch={setFileSearch}
+              fileInputRef={fileInputRef}
+              handleFileInputChange={handleFileInputChange}
+              isViewer={isViewer}
+              canUploadFiles={canUploadFiles}
+              isReadOnly={isReadOnly}
+              handleCreateFolder={handleCreateFolder}
+              filesLoading={filesLoading}
+              displayFiles={displayFiles}
+              getBreadcrumbs={getBreadcrumbs}
+              tasks={tasks}
+              attachingFileId={attachingFileId}
+              setAttachingFileId={setAttachingFileId}
+              handleAttachToTask={handleAttachToTask}
+              renamingFileId={renamingFileId}
+              renameValue={renameValue}
+              setRenameValue={setRenameValue}
+              handleRenameFile={handleRenameFile}
+              renameSaving={renameSaving}
+              setRenamingFileId={setRenamingFileId}
+              setFileToDeleteId={setFileToDeleteId}
+              fileToDeleteId={fileToDeleteId}
+              handleDeleteFile={handleDeleteFile}
+              canDeleteAnyFile={canDeleteAnyFile}
+              startRenamingFile={startRenamingFile}
+              canDeleteOwnFile={canDeleteOwnFile}
+              showFullPageLink
+            />
+          )}
+          {routeSection === "documentation" && (
+            <ProjectDocumentation
+              projectId={id}
+              userName={userName}
+              projectPerms={projectPerms}
+              canDeleteAnyFile={canDeleteAnyFile}
+              tasks={tasks}
+              loadTasks={loadTasks}
+              showFullPageLink
+            />
+          )}
+          {routeSection === "timeline" && (
+            <ProjectTimeline
+              projectId={id}
+              SectionHeading={SectionHeading}
+              canAddTimeline={canAddTimeline}
+              addingTimelineEvent={addingTimelineEvent}
+              setAddingTimelineEvent={setAddingTimelineEvent}
+              newTimelineForm={newTimelineForm}
+              setNewTimelineForm={setNewTimelineForm}
+              handleAddTimelineEvent={handleAddTimelineEvent}
+              timelineFilter={timelineFilter}
+              setTimelineFilter={setTimelineFilter}
+              timelineLoading={timelineLoading}
+              timelineEvents={timelineEvents}
+              canDeleteTimeline={canDeleteTimeline}
+              timelineEventToDelete={timelineEventToDelete}
+              setTimelineEventToDelete={setTimelineEventToDelete}
+              handleDeleteTimelineEvent={handleDeleteTimelineEvent}
+              showFullPageLink
+            />
+          )}
+          {routeSection === "discussion" && (
+            <ProjectDiscussion
+              projectId={id}
+              SectionHeading={SectionHeading}
+              discMessages={discMessages}
+              canPinMessage={canPinMessage}
+              handleTogglePin={handleTogglePin}
+              renderDiscussionText={renderDiscussionText}
+              discLoading={discLoading}
+              canDeleteAnyMsg={canDeleteAnyMsg}
+              setReplyingTo={setReplyingTo}
+              formatTimeAgo={formatTimeAgo}
+              handleDeleteDiscussion={handleDeleteDiscussion}
+              replyingTo={replyingTo}
+              discInput={discInput}
+              setDiscInput={setDiscInput}
+              handleSendDiscussion={handleSendDiscussion}
+              showFullPageLink
+            />
+          )}
         </div>
 
         {/* ── RIGHT SIDEBAR ── */}
@@ -1584,4 +1827,8 @@ export default function ProjectDetail() {
       )}
     </div>
   );
+}
+
+export default function ProjectDetailPage() {
+  return <ProjectDetailClient />;
 }
