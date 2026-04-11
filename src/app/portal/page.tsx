@@ -20,6 +20,9 @@ type QuizLeaderboardGroups = { daily: LeaderboardRow[]; weekly: LeaderboardRow[]
 export default function Portal() {
   const { user, loading, authError, signInWithGoogle, signInWithEmail, signUpWithEmail, logout, hasPermission, isAdmin } = useAuth();
   const canAccessAdminPage = canAccessAdminDashboard({ isAdmin, hasPermission });
+  const userId = user?.id ?? null;
+  const userImage = user?.image ?? null;
+  const userProfileImageKey = (user as any)?.profileImageKey ?? null;
 
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
@@ -57,7 +60,7 @@ export default function Portal() {
   } as const;
 
   const fetchPortalData = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
     setNotificationsLoading(true);
     setPortalMetaLoading(true);
     setProjectsLoading(true);
@@ -94,10 +97,10 @@ export default function Portal() {
       setPortalMetaLoading(false);
       setProjectsLoading(false);
     }
-  }, [user]);
+  }, [userId]);
 
   const loadLeaderboards = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
     try {
       const { getQuizLeaderboardAction } = await import('@/app/actions/quizzes');
       const [daily, weekly, monthly] = await Promise.all([
@@ -109,17 +112,17 @@ export default function Portal() {
     } catch (err) {
       console.error('[Portal] loadLeaderboards error:', err);
     }
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
-    if (user) {
+    if (userId) {
       fetchPortalData();
       loadLeaderboards();
     }
-  }, [user, fetchPortalData, loadLeaderboards]);
+  }, [userId, fetchPortalData, loadLeaderboards]);
 
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
       setProfileImageUrl(null);
       setImgError(false);
       setSystemControl(null);
@@ -127,14 +130,14 @@ export default function Portal() {
     }
 
     const nextProfileSrc =
-      user.image ||
-      ((user as any).profileImageKey
-        ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL || ""}/${(user as any).profileImageKey}`
+      userImage ||
+      (userProfileImageKey
+        ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL || ""}/${userProfileImageKey}`
         : null);
 
     setProfileImageUrl(nextProfileSrc);
     setImgError(false);
-  }, [user]);
+  }, [userId, userImage, userProfileImageKey]);
 
   const disabledFeatures = systemControl ? getDisabledFeatureKeys(systemControl) : [];
   const maintenanceActive = systemControl ? isMaintenanceActive(systemControl) : false;
@@ -622,6 +625,10 @@ export default function Portal() {
                 <Link href="/documentation" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
                   Documentation Hub
+                </Link>
+                <Link href="/finance" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1v22"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14.5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                  Finance Workspace
                 </Link>
                 {hasPermission('manage_projects') && (
                   <Link href="/core/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

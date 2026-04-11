@@ -15,6 +15,30 @@ type ExternalDetails = {
   phone: string;
 };
 
+function loadRazorpayCheckout() {
+  return new Promise<boolean>((resolve) => {
+    if (typeof window !== "undefined" && (window as any).Razorpay) {
+      resolve(true);
+      return;
+    }
+
+    const existing = document.querySelector('script[data-razorpay-checkout="true"]') as HTMLScriptElement | null;
+    if (existing) {
+      existing.addEventListener("load", () => resolve(true), { once: true });
+      existing.addEventListener("error", () => resolve(false), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.dataset.razorpayCheckout = "true";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
 export default function FormFillClient({ formId }: Props) {
   const { user, loading: authLoading, signInWithGoogle } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -78,7 +102,66 @@ export default function FormFillClient({ formId }: Props) {
         externalDetails: showDetails ? details : undefined,
       });
       if (result.requiresPayment) {
-        setSuccess(`Response saved. Payment is marked pending for Rs. ${result.amount}.`);
+        const scriptReady = await loadRazorpayCheckout();
+        if (!scriptReady) {
+          throw new Error("Failed to load Razorpay checkout.");
+        }
+
+        const orderResponse = await fetch("/create-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: result.amount,
+            type: "form",
+            reference_id: form.id,
+            metadata: {
+              formResponseId: result.responseId,
+            },
+          }),
+        });
+
+        if (!orderResponse.ok) {
+          const orderError = await orderResponse.text();
+          throw new Error(orderError || "Failed to create payment order.");
+        }
+
+        const orderPayload = await orderResponse.json();
+        const RazorpayCtor = (window as any).Razorpay;
+        const razorpay = new RazorpayCtor({
+          key: orderPayload.key,
+          amount: orderPayload.amount * 100,
+          currency: orderPayload.currency,
+          name: "MVJCE Astronomy Club",
+          description: form.title,
+          order_id: orderPayload.orderId,
+          handler: async (paymentResponse: { razorpay_payment_id?: string; razorpay_order_id?: string }) => {
+            try {
+              const { recordPaymentAttemptAction } = await import("@/app/actions/finance");
+              await recordPaymentAttemptAction({
+                razorpayOrderId: paymentResponse.razorpay_order_id || orderPayload.orderId,
+                razorpayPaymentId: paymentResponse.razorpay_payment_id || null,
+              });
+              setSuccess("Payment initiated successfully. Final confirmation will appear after webhook verification.");
+            } catch (attemptError: any) {
+              console.error(attemptError);
+              setSuccess("Payment submitted. Confirmation is pending secure verification.");
+            }
+          },
+          prefill: {
+            name: user?.name || details.name,
+            email: user?.email || details.email,
+            contact: details.phone,
+          },
+          theme: {
+            color: "#c9a84c",
+          },
+        });
+
+        razorpay.on("payment.failed", (failure: any) => {
+          setError(failure?.error?.description || "Payment failed. You can retry from the form.");
+        });
+        razorpay.open();
+        setSuccess(`Response saved. Continue payment for Rs. ${result.amount}.`);
       } else {
         setSuccess("Response submitted successfully.");
       }

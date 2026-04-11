@@ -11,6 +11,7 @@ import { hasPermission } from "@/lib/permissions";
 import { getSystemAccess } from "@/lib/system-rbac";
 import { logActivity } from "@/lib/activity-logs";
 import { assertProjectPermission } from "@/lib/project_permissions";
+import { getFinanceAccess } from "@/lib/finance";
 
 // Configure R2 Client
 const r2 = new S3Client({
@@ -234,6 +235,26 @@ export async function uploadDocumentationBinaryAction(
     userId: session.user.id,
     basePath,
     projectId,
+    isPublic: false,
+  });
+}
+
+export async function uploadExpenseReceiptAction(formData: FormData) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) throw new Error("Unauthorized");
+
+  const file = formData.get("file") as File;
+  if (!file) throw new Error("No file provided");
+
+  const access = await getFinanceAccess(session.user.id);
+  if (!access.canSubmitExpenses) {
+    throw new Error("Unauthorized: Finance receipt upload access required");
+  }
+
+  return storeBinaryFile({
+    file,
+    userId: session.user.id,
+    basePath: `finance/receipts/${session.user.id}`,
     isPublic: false,
   });
 }

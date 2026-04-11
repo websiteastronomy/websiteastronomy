@@ -6,6 +6,8 @@ type AccessLike = {
 export const ADMIN_PAGE_PERMISSIONS = {
   overview: (access: AccessLike) =>
     access.isAdmin ||
+    access.hasPermission("manage_finance") ||
+    access.hasPermission("export_finance") ||
     access.hasPermission("manage_projects") ||
     access.hasPermission("approve_actions"),
   events: (access: AccessLike) =>
@@ -28,6 +30,10 @@ export const ADMIN_PAGE_PERMISSIONS = {
     access.isAdmin || access.hasPermission("approve_actions"),
   announcements: (access: AccessLike) =>
     access.isAdmin || access.hasPermission("approve_actions"),
+  finance: (access: AccessLike) =>
+    access.isAdmin ||
+    access.hasPermission("manage_finance") ||
+    access.hasPermission("export_finance"),
   settings: (access: AccessLike) => access.isAdmin,
   system: (access: AccessLike) => access.isAdmin,
 } as const;
@@ -35,6 +41,8 @@ export const ADMIN_PAGE_PERMISSIONS = {
 export function canAccessAdminPage(access: AccessLike) {
   return (
     access.isAdmin ||
+    access.hasPermission("manage_finance") ||
+    access.hasPermission("export_finance") ||
     access.hasPermission("manage_projects") ||
     access.hasPermission("approve_actions")
   );

@@ -1896,6 +1896,7 @@ export async function submitFormResponseAction(
   revalidatePath(`/forms/${form.id}`);
   return {
     id: responseId,
+    responseId,
     paymentStatus: responseRecord.paymentStatus,
     requiresPayment: config.settings.paymentEnabled,
     amount: config.settings.amount,

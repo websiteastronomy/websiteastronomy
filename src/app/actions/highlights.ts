@@ -10,6 +10,7 @@ export type HighlightItem = {
   title: string;
   image: string | null;
   type: "article" | "observation" | "event" | "project";
+  description: string;
   link: string;
   priority: number;
   dateValue: number;
@@ -32,6 +33,7 @@ function mapArticle(row: any): HighlightItem {
     title: row.title,
     image: row.coverImageUrl || row.coverImage || null,
     type: "article",
+    description: row.excerpt || row.metaDescription || "Read the latest article from the club knowledge base.",
     link: `/education/${row.slug || row.id}`,
     priority: Number(row.highlightPriority || 0),
     dateValue: toEpoch(row.publishedAt || row.updatedAt || row.createdAt),
@@ -45,6 +47,7 @@ function mapObservation(row: any): HighlightItem {
     title: row.title,
     image: row.imageThumbnailUrl || row.imageCompressedUrl || row.imageOriginalUrl || null,
     type: "observation",
+    description: row.description || `Observation of ${row.celestialTarget || "the night sky"}.`,
     link: `/observations/${row.id}`,
     priority: Number(row.highlightPriority || 0),
     dateValue: toEpoch(row.capturedAt || row.updatedAt || row.createdAt),
@@ -58,6 +61,7 @@ function mapEvent(row: any): HighlightItem {
     title: row.title,
     image: row.bannerImage || null,
     type: "event",
+    description: row.description || row.location || "Explore the next club event.",
     link: `/events/${row.id}`,
     priority: Number(row.highlightPriority || 0),
     dateValue: toEpoch(row.date || row.updatedAt || row.createdAt),
@@ -71,6 +75,7 @@ function mapProject(row: any): HighlightItem {
     title: row.title,
     image: row.coverImage || null,
     type: "project",
+    description: row.description || row.objective || "Discover a live astronomy club project.",
     link: `/projects/${row.id}`,
     priority: Number(row.highlightPriority || 0),
     dateValue: toEpoch(row.updatedAt || row.createdAt),

@@ -26,6 +26,7 @@ import SystemControlManager from "./components/SystemControlManager";
 import SystemSettingsManager from "./components/SystemSettingsManager";
 import ActivityLogsManager from "./components/ActivityLogsManager";
 import AnnouncementsManager from "./components/AnnouncementsManager";
+import FinanceControlManager from "./components/FinanceControlManager";
 import GlobalSearch from "./components/GlobalSearch";
 import ApprovalsPanel from "./components/ApprovalsPanel";
 import PublicMembersManager from "./components/PublicMembersManager";
@@ -86,6 +87,7 @@ export default function Admin() {
     { id: "night-sky", label: "Night Sky", icon: "🌙", visible: ADMIN_PAGE_PERMISSIONS.nightSky(access) },
     { id: "system-control", label: "System Control", icon: "🛠️", visible: ADMIN_PAGE_PERMISSIONS.systemControl(access) },
     { id: "announcements", label: "Announcements", icon: "📣", visible: ADMIN_PAGE_PERMISSIONS.announcements(access) },
+    { id: "finance", label: "Finance", icon: "💰", visible: ADMIN_PAGE_PERMISSIONS.finance(access) },
     { id: "logs", label: "Activity Logs", icon: "🧾", visible: ADMIN_PAGE_PERMISSIONS.logs(access) },
     { id: "settings", label: "Site Settings", icon: "⚙️", visible: ADMIN_PAGE_PERMISSIONS.settings(access) },
     { id: "system", label: "System Storage", icon: "💾", visible: ADMIN_PAGE_PERMISSIONS.system(access) },
@@ -232,6 +234,7 @@ export default function Admin() {
         {currentTab === "night-sky" ? <div style={{ animation: "fadeIn 0.3s ease" }}><NightSkyManager /></div> : null}
         {currentTab === "system-control" ? <div style={{ animation: "fadeIn 0.3s ease" }}><SystemControlManager /></div> : null}
         {currentTab === "announcements" ? <div style={{ animation: "fadeIn 0.3s ease" }}><AnnouncementsManager /></div> : null}
+        {currentTab === "finance" ? <div style={{ animation: "fadeIn 0.3s ease" }}><FinanceControlManager /></div> : null}
         {currentTab === "logs" ? <div style={{ animation: "fadeIn 0.3s ease" }}><ActivityLogsManager /></div> : null}
         {currentTab === "settings" ? <div style={{ animation: "fadeIn 0.3s ease" }}><SettingsManager /></div> : null}
         {currentTab === "system" ? <div style={{ animation: "fadeIn 0.3s ease" }}><SystemSettingsManager /></div> : null}

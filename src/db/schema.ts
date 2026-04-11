@@ -472,6 +472,19 @@ export const settingsTable = pgTable("settings", {
   ...timestamps
 });
 
+export const highlight_items = pgTable("highlight_items", {
+  id: text("id").primaryKey(),
+  resourceId: text("resource_id").notNull(),
+  resourceType: text("resource_type").notNull(),
+  title: text("title").notNull(),
+  image: text("image"),
+  priority: integer("priority").default(0).notNull(),
+  createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  resourceUnique: uniqueIndex("highlight_items_resource_unique").on(table.resourceId, table.resourceType),
+}));
+
 export const system_settings = pgTable("system_settings", {
   id: text("id").primaryKey(),
   key: text("key").notNull().unique(),
@@ -505,6 +518,40 @@ export const form_responses = pgTable("form_responses", {
   responses: jsonb("responses").notNull().default('{}'),
   paymentStatus: text("payment_status").default("success").notNull(),
   paymentId: text("payment_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const paymentTypeEnum = pgEnum("payment_type", ["event", "form", "membership", "project"]);
+export const paymentStatusEnum = pgEnum("payment_status_v2", ["pending", "success", "failed"]);
+export const expenseStatusEnum = pgEnum("expense_status", ["pending", "approved", "rejected"]);
+
+export const payments = pgTable("payments", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  email: text("email").notNull(),
+  amount: integer("amount").notNull(),
+  currency: text("currency").notNull().default("INR"),
+  razorpayOrderId: text("razorpay_order_id").notNull().unique(),
+  razorpayPaymentId: text("razorpay_payment_id").unique(),
+  status: paymentStatusEnum("status").notNull().default("pending"),
+  type: paymentTypeEnum("type").notNull(),
+  referenceId: text("reference_id"),
+  paymentMethod: text("payment_method"),
+  details: jsonb("details").notNull().default('{}'),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const expenses = pgTable("expenses", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  amount: integer("amount").notNull(),
+  category: text("category").notNull(),
+  projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
+  paidTo: text("paid_to").notNull(),
+  receiptUrl: text("receipt_url").notNull(),
+  status: expenseStatusEnum("status").notNull().default("pending"),
+  createdBy: text("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  approvedBy: text("approved_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

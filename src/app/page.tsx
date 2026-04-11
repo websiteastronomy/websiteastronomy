@@ -7,6 +7,7 @@ import WeatherWidget from "@/components/WeatherWidget";
 import AnimatedSection from "@/components/AnimatedSection";
 import AnimatedCard from "@/components/AnimatedCard";
 import AnimatedCounter from "@/components/AnimatedCounter";
+import HighlightCard from "@/components/HighlightCard";
 import { getHighlights } from "@/app/actions/highlights";
 import { loadSiteSettingsClient } from "@/data/siteSettingsStatic";
 import { 
@@ -24,6 +25,7 @@ export default function Home() {
   const [highlights, setHighlights] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [liveStats, setLiveStats] = useState({ members: 0, projects: 0, events: 0, observations: 0 });
+  const [compactHighlightsLayout, setCompactHighlightsLayout] = useState(false);
 
   useEffect(() => {
     const syncSettings = () => {
@@ -116,10 +118,20 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    const syncLayout = () => setCompactHighlightsLayout(window.innerWidth < 920);
+    syncLayout();
+    window.addEventListener("resize", syncLayout);
+    return () => window.removeEventListener("resize", syncLayout);
+  }, []);
+
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 150]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const highlightDeck = highlights.slice(0, 5);
+  const featuredHighlight = highlightDeck[0] || null;
+  const secondaryHighlights = highlightDeck.slice(1, 5);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "2rem" }}>
@@ -284,31 +296,26 @@ export default function Home() {
         <AnimatedSection style={{ marginBottom: "1.5rem" }}>
           <p className="section-title">Visual Highlights</p>
         </AnimatedSection>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
-          {highlights.slice(0, 8).map((item: any, i: number) => (
-            <AnimatedCard key={`${item.type}-${item.id}`} index={i} style={{ textAlign: "left", padding: 0, overflow: "hidden" }}>
-              <Link href={item.link} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
-                <div style={{ width: "100%", height: "165px", background: "rgba(12,18,34,0.9)" }}>
-                  {item.image ? (
-                    <img src={item.image} alt={item.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  ) : (
-                    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: "0.85rem" }}>
-                      No image
-                    </div>
-                  )}
-                </div>
-                <div style={{ padding: "1rem" }}>
-                  <span style={{ fontSize: "0.66rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--gold)", fontWeight: 700 }}>
-                    {item.type}
-                  </span>
-                  <h3 style={{ margin: "0.45rem 0 0", fontSize: "1rem", lineHeight: 1.35 }}>{item.title}</h3>
-                </div>
-              </Link>
-            </AnimatedCard>
-          ))}
-          {highlights.length === 0 && !loading && (
-            <div style={{ gridColumn: "1 / -1", padding: "1.5rem", border: "1px solid var(--border-subtle)", borderRadius: "10px", color: "var(--text-muted)", textAlign: "center" }}>
-              No highlights yet. Latest content will appear here once published.
+        <div style={{ display: "grid", gridTemplateColumns: featuredHighlight && !compactHighlightsLayout ? "minmax(0, 1.25fr) minmax(340px, 0.95fr)" : "1fr", gap: "1rem", alignItems: "stretch" }}>
+          {loading ? (
+            <>
+              <HighlightCard loading variant="featured" />
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
+                {[0, 1, 2, 3].map((index) => <HighlightCard key={index} loading index={index} />)}
+              </div>
+            </>
+          ) : featuredHighlight ? (
+            <>
+              <HighlightCard item={featuredHighlight} variant="featured" />
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
+                {secondaryHighlights.map((item: any, index: number) => (
+                  <HighlightCard key={`${item.type}-${item.id}`} item={item} index={index + 1} />
+                ))}
+              </div>
+            </>
+          ) : (
+            <div style={{ gridColumn: "1 / -1", padding: "2rem", border: "1px solid var(--border-subtle)", borderRadius: "16px", color: "var(--text-muted)", textAlign: "center", background: "rgba(15,22,40,0.35)" }}>
+              No highlights available.
             </div>
           )}
         </div>

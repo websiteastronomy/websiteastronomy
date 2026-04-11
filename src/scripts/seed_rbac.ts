@@ -14,6 +14,7 @@ async function runSeederAndMigration() {
     // 1. Roles Definition
     const predefinedRoles = [
       { name: "Admin", description: "Full system administration and override authority." },
+      { name: "Finance Head", description: "Finance oversight, approvals, and reporting authority." },
       { name: "Core Committee", description: "Internal management with event and project control." },
       { name: "Lead", description: "Project/Team lead authority." },
       { name: "Member", description: "General community participant." }
@@ -37,7 +38,8 @@ async function runSeederAndMigration() {
     // 2. Permissions Definition
     const permissionsList = [
       "manage_projects", "manage_events", "manage_members", "assign_roles",
-      "approve_actions", "upload_files", "delete_files", "view_analytics"
+      "approve_actions", "upload_files", "delete_files", "view_analytics",
+      "manage_finance", "export_finance"
     ];
 
     const permMap: Record<string, string> = {};
@@ -55,7 +57,8 @@ async function runSeederAndMigration() {
 
     // 3. Mapping logical permissions to Roles
     const rolePermissionMapping: Record<string, string[]> = {
-      "Admin": ["manage_projects", "manage_events", "manage_members", "assign_roles", "approve_actions", "upload_files", "delete_files", "view_analytics"],
+      "Admin": ["manage_projects", "manage_events", "manage_members", "assign_roles", "approve_actions", "upload_files", "delete_files", "view_analytics", "manage_finance", "export_finance"],
+      "Finance Head": ["manage_finance", "export_finance", "view_analytics"],
       "Core Committee": ["manage_projects", "manage_events", "approve_actions", "upload_files", "view_analytics"],
       "Lead": ["manage_projects", "upload_files"],
       "Member": []
@@ -98,6 +101,7 @@ async function runSeederAndMigration() {
       
       // Map legacy "role" string to new normalized Role Model
       if (u.role === "admin" || u.email === "shashanknm9535@gmail.com") targetRoleName = "Admin";
+      else if (u.role === "finance_head") targetRoleName = "Finance Head";
       else if (u.role === "core") targetRoleName = "Core Committee";
       else if (u.role === "lead") targetRoleName = "Lead";
       else targetRoleName = "Member"; 
