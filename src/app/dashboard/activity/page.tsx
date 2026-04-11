@@ -1,31 +1,5 @@
-"use client";
-
-import PortalActivity from "@/components/portal/PortalActivity";
-import { usePortalData } from "@/components/portal/usePortalData";
-import { useAuth } from "@/context/AuthContext";
+import { redirect } from "next/navigation";
 
 export default function DashboardActivityPage() {
-  const { user } = useAuth();
-  const portalData = usePortalData(
-    user
-      ? {
-          id: user.id,
-          image: user.image ?? null,
-          name: user.name ?? null,
-          email: user.email ?? null,
-          profileImageKey: (user as { profileImageKey?: string | null }).profileImageKey ?? null,
-          quote: (user as { quote?: string | null }).quote ?? null,
-        }
-      : null,
-  );
-
-  return (
-    <div style={{ maxWidth: "980px" }}>
-      <PortalActivity
-        recentActivity={portalData.recentActivity}
-        loading={portalData.portalMetaLoading}
-        formatTimestamp={portalData.formatTimestamp}
-      />
-    </div>
-  );
+  redirect("/dashboard/activity-logs");
 }

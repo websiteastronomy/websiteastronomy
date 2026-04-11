@@ -1,22 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import {
+  canAccessDashboardModule,
+  deriveDashboardRole,
+  getAccessibleDashboardModules,
+  getDashboardRouteModule,
+  getDefaultDashboardHref,
+} from "@/lib/module-access";
 
-const SIDEBAR_ITEMS = [
-  { label: "Overview", href: "/dashboard/overview", icon: "📊" },
-  { label: "Projects", href: "/dashboard/projects", icon: "🚀" },
-  { label: "Activity", href: "/dashboard/activity", icon: "🧾" },
-  { label: "Notifications", href: "/dashboard/notifications", icon: "🔔" },
-  { label: "Profile", href: "/dashboard/profile", icon: "👤" },
-];
+function SidebarBadge({ label }: { label: string }) {
+  return (
+    <span
+      style={{
+        width: "28px",
+        minWidth: "28px",
+        height: "20px",
+        borderRadius: "999px",
+        border: "1px solid var(--border-subtle)",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "0.6rem",
+        letterSpacing: "0.08em",
+      }}
+    >
+      {label}
+    </span>
+  );
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const {
     user,
+    isAdmin,
+    roleName,
+    permissions,
     loading,
     authError,
     signInWithGoogle,
@@ -24,6 +48,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     signUpWithEmail,
     logout,
   } = useAuth();
+
+  const dashboardRole = deriveDashboardRole({ roleName, isAdmin, permissions });
+  const sidebarModules = getAccessibleDashboardModules(dashboardRole);
+  const currentRouteModule = getDashboardRouteModule(pathname);
+  const isAllowedRoute = currentRouteModule
+    ? canAccessDashboardModule(currentRouteModule, dashboardRole)
+    : true;
+  const fallbackHref = getDefaultDashboardHref(dashboardRole);
+
+  useEffect(() => {
+    if (!user || !currentRouteModule || isAllowedRoute) {
+      return;
+    }
+
+    router.replace(fallbackHref);
+  }, [currentRouteModule, fallbackHref, isAllowedRoute, router, user]);
 
   if (loading) {
     return (
@@ -55,6 +95,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         signInWithEmail={signInWithEmail}
         signUpWithEmail={signUpWithEmail}
       />
+    );
+  }
+
+  if (!isAllowedRoute) {
+    return (
+      <div style={{ minHeight: "60vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
+        <div style={{ textAlign: "center" }}>
+          <div
+            style={{
+              width: "36px",
+              height: "36px",
+              border: "2px solid var(--border-subtle)",
+              borderTopColor: "var(--gold)",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+              margin: "0 auto 1rem",
+            }}
+          />
+          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>Redirecting to your accessible workspace...</p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
     );
   }
 
@@ -127,13 +189,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   whiteSpace: "nowrap",
                 }}
               >
-                {user.email}
+                {roleName || user.email}
               </div>
             </div>
           </div>
         </div>
 
-        {SIDEBAR_ITEMS.map((item) => (
+        {sidebarModules.map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -151,10 +213,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               fontWeight: isActive(item.href) ? 600 : 400,
             }}
           >
-            <span style={{ fontSize: "1rem", width: "20px", textAlign: "center" }}>{item.icon}</span>
+            <SidebarBadge label={item.shortLabel} />
             {item.label}
           </Link>
         ))}
+
+        <div style={{ marginTop: "0.5rem", borderTop: "1px solid var(--border-subtle)", paddingTop: "0.75rem" }}>
+          <Link
+            href="/dashboard/profile"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
+              padding: "0.7rem 1.25rem",
+              fontSize: "0.85rem",
+              color: isActive("/dashboard/profile") ? "var(--gold-light)" : "var(--text-secondary)",
+              background: isActive("/dashboard/profile") ? "rgba(201, 168, 76, 0.08)" : "transparent",
+              borderLeft: isActive("/dashboard/profile") ? "3px solid var(--gold)" : "3px solid transparent",
+              transition: "all 0.2s ease",
+              textDecoration: "none",
+              fontWeight: isActive("/dashboard/profile") ? 600 : 400,
+            }}
+          >
+            <SidebarBadge label="PF" />
+            Profile
+          </Link>
+        </div>
 
         <div style={{ marginTop: "auto", padding: "1rem 1.25rem", borderTop: "1px solid var(--border-subtle)" }}>
           <Link
@@ -169,7 +253,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               textDecoration: "none",
             }}
           >
-            ← Back to Portal
+            Back to Portal
           </Link>
           <button
             onClick={() => void logout()}
