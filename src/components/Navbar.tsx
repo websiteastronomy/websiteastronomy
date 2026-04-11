@@ -121,6 +121,11 @@ export default function Navbar({ initialIsRecruiting = false }: NavbarProps) {
         {/* Notification Bell — only for authenticated users */}
         {user && <NotificationBell />}
 
+        {/* Dashboard — only for authenticated users */}
+        {user && (
+          <Link href="/dashboard" className="nav-link" style={navLinkStyle('/dashboard')}>Dashboard</Link>
+        )}
+
         <Link href="/portal" className="btn-primary" style={{ padding: '0.5rem 1.2rem', fontSize: '0.75rem', marginLeft: '0.5rem' }}>Member Portal</Link>
       </div>
     </motion.nav>

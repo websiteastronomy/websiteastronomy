@@ -642,6 +642,11 @@ export default function Portal() {
                     Admin Dashboard
                   </Link>
                 )}
+                <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.8rem', marginTop: '0.4rem' }}>
+                  <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.6rem 1rem', borderRadius: '8px', background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.25)', color: 'var(--gold-light)', fontSize: '0.82rem', fontWeight: 500, textDecoration: 'none' }}>
+                    ✨ Try New Dashboard
+                  </Link>
+                </div>
               </div>
             </div>
           </AnimatedSection>
