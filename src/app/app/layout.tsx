@@ -54,7 +54,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!loading && !user && pathname.startsWith("/app")) {
-      router.replace(`/?login=true&redirect=${encodeURIComponent(pathname)}`);
+      router.replace(`/portal?redirect=${encodeURIComponent(pathname)}`);
     }
   }, [user, loading, router, pathname]);
 
@@ -200,6 +200,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <Link
             key={item.href}
             href={item.href}
+            prefetch={false}
             className={`sidebar-link${isActive(item.href) ? " sidebar-link-active" : ""}`}
             style={{
               color: isActive(item.href) ? undefined : "var(--text-secondary)",
@@ -215,6 +216,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div style={{ marginTop: "1rem", padding: "0 1.25rem" }}>
             <Link
               href="/admin"
+              prefetch={false}
               className="btn-primary"
               style={{
                 display: "flex",
@@ -234,6 +236,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div style={{ marginTop: "0.5rem", borderTop: "1px solid var(--border-subtle)", paddingTop: "0.75rem" }}>
           <Link
             href="/app/settings"
+            prefetch={false}
             className={`sidebar-link${isActive("/app/settings") ? " sidebar-link-active" : ""}`}
             style={{
               color: isActive("/app/settings") ? undefined : "var(--text-secondary)",
@@ -248,6 +251,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div style={{ marginTop: "auto", padding: "1rem 1.25rem", borderTop: "1px solid var(--border-subtle)" }}>
           <Link
             href="/"
+            prefetch={false}
             style={{
               display: "flex",
               alignItems: "center",

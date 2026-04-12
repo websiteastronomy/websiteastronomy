@@ -69,7 +69,7 @@ export default function Navbar({ initialIsRecruiting = false }: NavbarProps) {
         transition: 'padding 0.3s ease, background 0.3s ease',
       }}
     >
-      <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', textDecoration: 'none' }}>
+      <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', textDecoration: 'none' }} prefetch={false}>
         <motion.img
           src="/logo.png"
           alt="Logo"
@@ -93,29 +93,29 @@ export default function Navbar({ initialIsRecruiting = false }: NavbarProps) {
 
       {/* Desktop Nav */}
       <div style={{ display: 'flex', gap: '1.8rem', alignItems: 'center' }}>
-        <Link href="/" className="nav-link" style={navLinkStyle('/')}>Home</Link>
-        <Link href="/about" className="nav-link" style={navLinkStyle('/about')}>About</Link>
+        <Link href="/" className="nav-link" style={navLinkStyle('/')} prefetch={false}>Home</Link>
+        <Link href="/about" className="nav-link" style={navLinkStyle('/about')} prefetch={false}>About</Link>
 
         <div className="nav-dropdown">
           <span className="nav-link" style={{ cursor: 'default', color: isActive('/projects') || isActive('/observations') || isActive('/outreach') ? 'var(--gold-light)' : undefined }}>Explore ▾</span>
           <div className="dropdown-menu">
-            <Link href="/projects" className="dropdown-item" style={isActive('/projects') ? { color: 'var(--gold-light)' } : {}}>Projects</Link>
-            <Link href="/observations" className="dropdown-item" style={isActive('/observations') ? { color: 'var(--gold-light)' } : {}}>Observation</Link>
-            <Link href="/events" className="dropdown-item" style={isActive('/events') ? { color: 'var(--gold-light)' } : {}}>Event</Link>
-            <Link href="/education/quizzes" className="dropdown-item" style={isActive('/education/quizzes') ? { color: 'var(--gold-light)' } : {}}>Quiz</Link>
-            <Link href="/documentation" className="dropdown-item" style={isActive('/documentation') ? { color: 'var(--gold-light)' } : {}}>Documentation</Link>
-            <Link href="/outreach" className="dropdown-item" style={isActive('/outreach') ? { color: 'var(--gold-light)' } : {}}>Outreach</Link>
+            <Link href="/projects" className="dropdown-item" style={isActive('/projects') ? { color: 'var(--gold-light)' } : {}} prefetch={false}>Projects</Link>
+            <Link href="/observations" className="dropdown-item" style={isActive('/observations') ? { color: 'var(--gold-light)' } : {}} prefetch={false}>Observation</Link>
+            <Link href="/events" className="dropdown-item" style={isActive('/events') ? { color: 'var(--gold-light)' } : {}} prefetch={false}>Event</Link>
+            <Link href="/education/quizzes" className="dropdown-item" style={isActive('/education/quizzes') ? { color: 'var(--gold-light)' } : {}} prefetch={false}>Quiz</Link>
+            <Link href="/documentation" className="dropdown-item" style={isActive('/documentation') ? { color: 'var(--gold-light)' } : {}} prefetch={false}>Documentation</Link>
+            <Link href="/outreach" className="dropdown-item" style={isActive('/outreach') ? { color: 'var(--gold-light)' } : {}} prefetch={false}>Outreach</Link>
           </div>
         </div>
 
-        {features.eventsEnabled && <Link href="/events" className="nav-link" style={navLinkStyle('/events')}>Events</Link>}
-        <Link href="/education" className="nav-link" style={navLinkStyle('/education')}>Education</Link>
-        {features.observationsEnabled && <Link href="/observations" className="nav-link" style={navLinkStyle('/observations')}>Observations</Link>}
-        {features.quizzesEnabled && <Link href="/education/quizzes" className="nav-link" style={navLinkStyle('/education/quizzes')}>Quizzes</Link>}
-        <Link href="/night-sky" className="nav-link" style={navLinkStyle('/night-sky')}>Night Sky</Link>
+        {features.eventsEnabled && <Link href="/events" className="nav-link" style={navLinkStyle('/events')} prefetch={false}>Events</Link>}
+        <Link href="/education" className="nav-link" style={navLinkStyle('/education')} prefetch={false}>Education</Link>
+        {features.observationsEnabled && <Link href="/observations" className="nav-link" style={navLinkStyle('/observations')} prefetch={false}>Observations</Link>}
+        {features.quizzesEnabled && <Link href="/education/quizzes" className="nav-link" style={navLinkStyle('/education/quizzes')} prefetch={false}>Quizzes</Link>}
+        <Link href="/night-sky" className="nav-link" style={navLinkStyle('/night-sky')} prefetch={false}>Night Sky</Link>
 
         {isRecruiting && (
-          <Link href="/join" className="nav-link" style={navLinkStyle('/join')}>Join</Link>
+          <Link href="/join" className="nav-link" style={navLinkStyle('/join')} prefetch={false}>Join</Link>
         )}
 
         {/* Notification Bell — only for authenticated users */}
@@ -123,10 +123,10 @@ export default function Navbar({ initialIsRecruiting = false }: NavbarProps) {
 
         {/* Dashboard — only for authenticated users */}
         {user && (
-          <Link href="/app" className="nav-link" style={navLinkStyle('/app')}>Dashboard</Link>
+          <Link href="/app" className="nav-link" style={navLinkStyle('/app')} prefetch={false}>Dashboard</Link>
         )}
         {!user && (
-          <Link href="/?login=true" className="btn-primary" style={{ padding: '0.5rem 1.2rem', fontSize: '0.75rem', marginLeft: '0.5rem' }}>Login</Link>
+          <Link href="/portal" className="btn-primary" style={{ padding: '0.5rem 1.2rem', fontSize: '0.75rem', marginLeft: '0.5rem' }} prefetch={false}>Login</Link>
         )}
       </div>
     </motion.nav>

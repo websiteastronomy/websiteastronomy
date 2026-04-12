@@ -1,8 +1,15 @@
 "use client";
 
-import DocumentationHubClient from "@/components/DocumentationHubClient";
 import AnimatedSection from "@/components/AnimatedSection";
 import { useAuth } from "@/context/AuthContext";
+import dynamic from "next/dynamic";
+
+const DocumentationHubClient = dynamic(
+  () => import("@/components/DocumentationHubClient"),
+  {
+    loading: () => <div style={{ color: "var(--text-muted)" }}>Loading documentation hub...</div>,
+  },
+);
 
 export default function DocumentationPage() {
   const { user, loading, isAdmin, hasPermission } = useAuth();

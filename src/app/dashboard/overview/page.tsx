@@ -2,6 +2,8 @@ import DashboardOverviewClient from "@/components/dashboard/DashboardOverviewCli
 import { deriveDashboardRole } from "@/lib/module-access";
 import { getMyRBACProfile } from "@/app/actions/auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardOverviewPage() {
   const profile = await getMyRBACProfile();
   const role = deriveDashboardRole({

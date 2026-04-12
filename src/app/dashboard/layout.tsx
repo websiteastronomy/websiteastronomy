@@ -91,6 +91,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!user) {
     return (
       <DashboardLoginGate
+        callbackURL={pathname}
         authError={authError}
         signInWithGoogle={signInWithGoogle}
         signInWithEmail={signInWithEmail}
@@ -202,6 +203,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Link
             key={item.href}
             href={item.href}
+            prefetch={false}
             className={`sidebar-link${isActive(item.href) ? " sidebar-link-active" : ""}`}
             style={{
               color: isActive(item.href) ? undefined : "var(--text-secondary)",
@@ -216,6 +218,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div style={{ marginTop: "0.5rem", borderTop: "1px solid var(--border-subtle)", paddingTop: "0.75rem" }}>
           <Link
             href="/dashboard/profile"
+            prefetch={false}
             className={`sidebar-link${isActive("/dashboard/profile") ? " sidebar-link-active" : ""}`}
             style={{
               color: isActive("/dashboard/profile") ? undefined : "var(--text-secondary)",
@@ -230,6 +233,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div style={{ marginTop: "auto", padding: "1rem 1.25rem", borderTop: "1px solid var(--border-subtle)" }}>
           <Link
             href="/portal"
+            prefetch={false}
             style={{
               display: "flex",
               alignItems: "center",
@@ -269,13 +273,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 }
 
 function DashboardLoginGate({
+  callbackURL,
   authError,
   signInWithGoogle,
   signInWithEmail,
   signUpWithEmail,
 }: {
+  callbackURL: string;
   authError?: string | null;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (callbackURL?: string) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, name: string) => Promise<void>;
 }) {
@@ -325,7 +331,7 @@ function DashboardLoginGate({
 
       <div style={{ width: "100%", maxWidth: "380px", display: "grid", gap: "0.8rem" }}>
         <button
-          onClick={signInWithGoogle}
+          onClick={() => void signInWithGoogle(callbackURL)}
           className="btn-secondary"
           style={{
             width: "100%",

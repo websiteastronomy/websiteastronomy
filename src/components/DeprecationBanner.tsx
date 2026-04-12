@@ -1,9 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-export default function DeprecationBanner({ currentPath }: { currentPath: string }) {
+type DeprecationBannerProps = {
+  currentPath: string;
+  newPath?: string;
+};
+
+export default function DeprecationBanner({
+  currentPath,
+  newPath = "/app",
+}: DeprecationBannerProps) {
   const [show, setShow] = useState(true);
 
   if (!show) return null;
@@ -28,10 +36,11 @@ export default function DeprecationBanner({ currentPath }: { currentPath: string
       </div>
       <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
         <Link 
-          href="/app" 
+          href={newPath}
           onClick={() => setShow(false)}
           className="btn-primary" 
           style={{ padding: "0.4rem 1rem", fontSize: "0.8rem", textDecoration: "none" }}
+          prefetch={false}
         >
           Go to new Dashboard
         </Link>

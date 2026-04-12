@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 import Link from 'next/link';
 import AnimatedSection from './AnimatedSection';
 import { useEffect, useState } from 'react';
@@ -45,12 +43,10 @@ export default function Footer() {
           <div>
             <h4 style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--gold)', marginBottom: '1rem' }}>Quick Links</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-              <Link href="/about" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>About Us</Link>
-              {features.eventsEnabled && <Link href="/events" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Events</Link>}
-              <Link href="/events" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Event</Link>
-              <Link href="/projects" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Projects</Link>
-              {features.observationsEnabled && <Link href="/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Observations</Link>}
-              <Link href="/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Observation</Link>
+              <Link href="/about" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }} prefetch={false}>About Us</Link>
+              {features.eventsEnabled && <Link href="/events" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }} prefetch={false}>Events</Link>}
+              <Link href="/projects" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }} prefetch={false}>Projects</Link>
+              {features.observationsEnabled && <Link href="/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }} prefetch={false}>Observations</Link>}
             </div>
           </div>
 
@@ -58,10 +54,10 @@ export default function Footer() {
           <div>
             <h4 style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--gold)', marginBottom: '1rem' }}>Resources</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-              <Link href="/education" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Education Base</Link>
-              <Link href="/night-sky" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Night Sky Dashboard</Link>
-              {features.observationsEnabled && <Link href="/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Observations</Link>}
-              <Link href="/education/quizzes" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }}>Quiz</Link>
+              <Link href="/education" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }} prefetch={false}>Education Base</Link>
+              <Link href="/night-sky" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }} prefetch={false}>Night Sky Dashboard</Link>
+              {features.observationsEnabled && <Link href="/observations" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }} prefetch={false}>Observations</Link>}
+              <Link href="/education/quizzes" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 300 }} prefetch={false}>Quiz</Link>
             </div>
           </div>
 
@@ -90,7 +86,7 @@ export default function Footer() {
             © 2026 MVJCE Astronomy Club. All rights reserved.
           </p>
           <div style={{ display: 'flex', gap: '1.5rem' }}>
-            <Link href="/admin" style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 300 }}>Admin</Link>
+            <Link href="/admin" style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontWeight: 300 }} prefetch={false}>Admin</Link>
           </div>
         </div>
       </footer>

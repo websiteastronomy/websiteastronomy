@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import DocumentationHubClient from "@/components/DocumentationHubClient";
+import dynamic from "next/dynamic";
+
+const DocumentationHubClient = dynamic(
+  () => import("@/components/DocumentationHubClient"),
+  {
+    loading: () => <div style={{ color: "var(--text-muted)" }}>Loading project documentation...</div>,
+  },
+);
 
 export default function ProjectDocumentation({
   projectId,

@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
@@ -9,27 +10,27 @@ import {
   canAccessAdminPage as canAccessAdminDashboard,
 } from "@/lib/admin-access";
 
-import OverviewManager from "./components/OverviewManager";
-import CoreObservationsManager from "./components/CoreObservationsManager";
-import EventsManager from "./components/EventsManager";
-import ObservationsManager from "./components/ObservationsManager";
-import OutreachManager from "./components/OutreachManager";
-import ArticlesManager from "./components/ArticlesManager";
-import ProjectsManager from "./components/ProjectsManager";
-import DocumentationManager from "./components/DocumentationManager";
-import QuizzesManager from "./components/QuizzesManager";
-import AchievementsManager from "./components/AchievementsManager";
-import SettingsManager from "./components/SettingsManager";
-import MembersManager from "./components/MembersManager";
-import NightSkyManager from "./components/NightSkyManager";
-import SystemControlManager from "./components/SystemControlManager";
-import SystemSettingsManager from "./components/SystemSettingsManager";
-import ActivityLogsManager from "./components/ActivityLogsManager";
-import AnnouncementsManager from "./components/AnnouncementsManager";
-import FinanceControlManager from "./components/FinanceControlManager";
-import GlobalSearch from "./components/GlobalSearch";
-import ApprovalsPanel from "./components/ApprovalsPanel";
-import PublicMembersManager from "./components/PublicMembersManager";
+const OverviewManager = dynamic(() => import("./components/OverviewManager"));
+const CoreObservationsManager = dynamic(() => import("./components/CoreObservationsManager"));
+const EventsManager = dynamic(() => import("./components/EventsManager"));
+const ObservationsManager = dynamic(() => import("./components/ObservationsManager"));
+const OutreachManager = dynamic(() => import("./components/OutreachManager"));
+const ArticlesManager = dynamic(() => import("./components/ArticlesManager"));
+const ProjectsManager = dynamic(() => import("./components/ProjectsManager"));
+const DocumentationManager = dynamic(() => import("./components/DocumentationManager"));
+const QuizzesManager = dynamic(() => import("./components/QuizzesManager"));
+const AchievementsManager = dynamic(() => import("./components/AchievementsManager"));
+const SettingsManager = dynamic(() => import("./components/SettingsManager"));
+const MembersManager = dynamic(() => import("./components/MembersManager"));
+const NightSkyManager = dynamic(() => import("./components/NightSkyManager"));
+const SystemControlManager = dynamic(() => import("./components/SystemControlManager"));
+const SystemSettingsManager = dynamic(() => import("./components/SystemSettingsManager"));
+const ActivityLogsManager = dynamic(() => import("./components/ActivityLogsManager"));
+const AnnouncementsManager = dynamic(() => import("./components/AnnouncementsManager"));
+const FinanceControlManager = dynamic(() => import("./components/FinanceControlManager"));
+const GlobalSearch = dynamic(() => import("./components/GlobalSearch"));
+const ApprovalsPanel = dynamic(() => import("./components/ApprovalsPanel"));
+const PublicMembersManager = dynamic(() => import("./components/PublicMembersManager"));
 
 type AdminTab = {
   id: string;
@@ -147,7 +148,7 @@ export default function Admin() {
             </span>
           </div>
 
-          <button onClick={signInWithGoogle} className="btn-secondary" style={{ width: "100%", padding: "0.8rem", fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit", background: "transparent" }}>
+          <button onClick={() => void signInWithGoogle("/admin")} className="btn-secondary" style={{ width: "100%", padding: "0.8rem", fontSize: "0.9rem", cursor: "pointer", fontFamily: "inherit", background: "transparent" }}>
             Continue with Google
           </button>
         </motion.div>

@@ -296,6 +296,13 @@ export function ProjectDetailClient({ routeSection }: { routeSection?: ProjectRo
   const [tasks, setTasks] = useState<ProjectTask[]>([]);
   const [tasksLoading, setTasksLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"tasks" | "files" | "documentation" | "timeline" | "discussion">("tasks");
+  const projectTabLabels: Record<typeof activeTab, string> = {
+    tasks: "Task Board",
+    files: "Files",
+    documentation: "Documentation",
+    timeline: "Timeline",
+    discussion: "Discussion",
+  };
   // Member defaults to "My Tasks" filter; others see all tasks
   const [myTasksFilter, setMyTasksFilter] = useState(false);
   const [selectedTask, setSelectedTask] = useState<ProjectTask | null>(null);
@@ -830,7 +837,7 @@ export function ProjectDetailClient({ routeSection }: { routeSection?: ProjectRo
           {/* Tab Nav */}
           {!routeSection && <AnimatedSection delay={0.05}>
             <div style={{ display: "flex", gap: "0.25rem", background: "rgba(8,12,22,0.6)", border: "1px solid var(--border-subtle)", borderRadius: "10px", padding: "0.3rem" }}>
-              {(["tasks", "files", "documentation", "timeline", "discussion"] as const).map((tab: any) => (
+              {(["tasks", "files", "documentation", "timeline", "discussion"] as const).map((tab) => (
                 <button key={tab} onClick={() => setActiveTab(tab)} style={{
                   flex: 1, padding: "0.6rem 0.5rem", borderRadius: "7px", border: "none", cursor: "pointer",
                   fontSize: "0.78rem", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500,
@@ -839,8 +846,7 @@ export function ProjectDetailClient({ routeSection }: { routeSection?: ProjectRo
                   color: activeTab === tab ? "var(--gold-light)" : "var(--text-muted)",
                   borderBottom: activeTab === tab ? "2px solid var(--gold)" : "2px solid transparent",
                 }}>
-                  {{ tasks: "📋 Task Board", files: "📁 Files", timeline: "📍 Timeline", discussion: "💬 Discussion" }[tab]}
-                  {tab === "documentation" ? "Documentation" : null}
+                  {projectTabLabels[tab]}
                 </button>
               ))}
             </div>
@@ -1510,7 +1516,7 @@ export function ProjectDetailClient({ routeSection }: { routeSection?: ProjectRo
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                     {replyingTo && (
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(201,168,76,0.1)", border: "1px solid var(--border-subtle)", borderRadius: "6px", padding: "0.4rem 0.8rem" }}>
-                        <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Replying to <strong style={{ color: "var(--gold-light)" }}>{replyingTo.name}</strong></span>
+                        <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Replying to <strong style={{ color: "var(--gold-light)" }}>{replyingTo?.name}</strong></span>
                         <button onClick={() => setReplyingTo(null)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "0.7rem", padding: "0" }}>✕ Cancel</button>
                       </div>
                     )}
@@ -1831,3 +1837,4 @@ export function ProjectDetailClient({ routeSection }: { routeSection?: ProjectRo
 export default function ProjectDetailPage() {
   return <ProjectDetailClient />;
 }
+

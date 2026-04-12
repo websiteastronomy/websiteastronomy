@@ -20,7 +20,7 @@ interface AuthContextType {
   loading: boolean;
   authError: string | null;
   refreshRBAC: () => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (callbackURL?: string) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -164,11 +164,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
   }, [user?.id]);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (callbackURL?: string) => {
     setAuthError(null);
     const { error } = await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/admin",
+      callbackURL: callbackURL || "/portal",
     });
     if (error) {
       console.error("Google Sign-in Error:", error);

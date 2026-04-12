@@ -3,6 +3,8 @@ import { getMyRBACProfile } from "@/app/actions/auth";
 import DashboardOverviewClient from "@/components/dashboard/DashboardOverviewClient";
 import AppAdminOverview from "./AppAdminOverview";
 
+export const dynamic = "force-dynamic";
+
 export default async function AppOverviewPage() {
   const profile = await getMyRBACProfile();
   const role = deriveDashboardRole({

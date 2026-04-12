@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { useRouter, useSearchParams } from "next/navigation";
 import AnimatedSection from "@/components/AnimatedSection";
 import AvatarCropperModal from "@/components/AvatarCropperModal";
 import PortalActivity from "@/components/portal/PortalActivity";
@@ -17,6 +18,8 @@ import { useAuth } from "@/context/AuthContext";
 import { canAccessAdminPage as canAccessAdminDashboard } from "@/lib/admin-access";
 
 export default function Portal() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     user,
     loading,
@@ -37,6 +40,8 @@ export default function Portal() {
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [quoteFeedback, setQuoteFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [contactFeedback, setContactFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const redirectTarget = searchParams.get("redirect");
+  const safeRedirectTarget = redirectTarget?.startsWith("/") ? redirectTarget : null;
 
   const inputStyle = {
     padding: "0.7rem 1rem",
@@ -61,6 +66,14 @@ export default function Portal() {
         }
       : null,
   );
+
+  useEffect(() => {
+    if (!user || !safeRedirectTarget) {
+      return;
+    }
+
+    router.replace(safeRedirectTarget);
+  }, [router, safeRedirectTarget, user]);
 
   return (
     <div className="page-container">
@@ -213,7 +226,7 @@ export default function Portal() {
               </div>
 
               <button
-                onClick={signInWithGoogle}
+                onClick={() => void signInWithGoogle(safeRedirectTarget || "/portal")}
                 className="btn-secondary"
                 style={{
                   fontFamily: "inherit",

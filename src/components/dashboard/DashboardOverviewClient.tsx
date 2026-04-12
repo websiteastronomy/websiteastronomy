@@ -39,6 +39,7 @@ function QuickLinkCard({
   return (
     <Link
       href={href}
+      prefetch={false}
       className="dash-card dash-fade-in"
       style={{
         display: "block",
