@@ -6,6 +6,7 @@ import { subscribeToCollection, updateDocument, deleteDocument } from "@/lib/db"
 import { useAuth } from "@/context/AuthContext";
 import { deriveDashboardRole } from "@/lib/module-access";
 import { useToast } from "@/components/ToastProvider";
+import { SectionHeader, TableContainer, EmptyState } from "@/components/ui";
 
 export default function DashboardProjectsPage() {
   const { user, roleName, isAdmin, permissions } = useAuth();
@@ -80,15 +81,11 @@ export default function DashboardProjectsPage() {
 
   return (
     <div style={{ maxWidth: "1100px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
-        <div>
-          <h1 style={{ fontSize: "1.6rem", fontWeight: 700, margin: 0 }}>Projects</h1>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: "0.3rem 0 0" }}>
-            {filtered.length} project{filtered.length !== 1 ? "s" : ""} · <Link href="/projects" style={{ color: "var(--gold)", textDecoration: "none" }}>View Public Page →</Link>
-          </p>
-        </div>
-      </div>
+      <SectionHeader
+        title="Projects"
+        subtitle={`${filtered.length} project${filtered.length !== 1 ? "s" : ""}`}
+        action={<Link href="/projects" style={{ color: "var(--gold)", textDecoration: "none", fontSize: "0.85rem" }}>View Public Page →</Link>}
+      />
 
       {/* Filters */}
       <div className="dash-filter-bar">
@@ -119,7 +116,7 @@ export default function DashboardProjectsPage() {
           ))}
         </div>
       ) : (
-        <div style={{ background: "rgba(15,22,40,0.35)", border: "1px solid var(--border-subtle)", borderRadius: "12px", overflow: "hidden" }}>
+        <TableContainer>
           <div style={{
             display: "grid", gridTemplateColumns: "2fr 0.8fr 1fr 0.8fr 0.7fr 1fr", gap: "0.8rem", padding: "0.8rem 1.2rem",
             borderBottom: "1px solid var(--border-subtle)", fontSize: "0.7rem", textTransform: "uppercase",
@@ -134,11 +131,7 @@ export default function DashboardProjectsPage() {
           </div>
 
           {filtered.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">🚀</div>
-              <div className="empty-state-title">No projects found</div>
-              <div className="empty-state-desc">Try adjusting your filters or search terms.</div>
-            </div>
+            <EmptyState icon="🚀" title="No projects found" description="Try adjusting your filters or search terms." />
           ) : (
             <div className="dash-stagger">
               {filtered.map((proj) => {
@@ -222,7 +215,7 @@ export default function DashboardProjectsPage() {
               })}
             </div>
           )}
-        </div>
+        </TableContainer>
       )}
     </div>
   );

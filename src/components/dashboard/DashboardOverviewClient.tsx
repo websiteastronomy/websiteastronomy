@@ -7,6 +7,7 @@ import PortalAnnouncements from "@/components/portal/PortalAnnouncements";
 import PortalNotifications from "@/components/portal/PortalNotifications";
 import PortalOverview from "@/components/portal/PortalOverview";
 import PortalProjects from "@/components/portal/PortalProjects";
+import { StatsCard, SectionHeader } from "@/components/ui";
 import type { Notification } from "@/components/portal/types";
 import { usePortalData } from "@/components/portal/usePortalData";
 import { useAuth } from "@/context/AuthContext";
@@ -41,13 +42,13 @@ function QuickLinkCard({
       className="dash-card dash-fade-in"
       style={{
         display: "block",
-        padding: "1rem 1.1rem",
-        borderRadius: "12px",
-        background: "rgba(12,18,34,0.55)",
+        padding: "1.3rem",
+        borderRadius: "8px",
+        background: "rgba(15, 22, 40, 0.4)",
         textDecoration: "none",
       }}
     >
-      <strong style={{ display: "block", color: "var(--text-primary)", marginBottom: "0.35rem" }}>
+      <strong style={{ display: "block", color: "var(--text-primary)", marginBottom: "0.35rem", fontSize: "0.95rem" }}>
         {title}
       </strong>
       <span style={{ color: "var(--text-muted)", fontSize: "0.82rem", lineHeight: 1.6 }}>
@@ -136,6 +137,10 @@ export default function DashboardOverviewClient({
 
   return (
     <div style={{ maxWidth: "980px", display: "grid", gap: "1.5rem" }}>
+      <SectionHeader
+        title="Overview"
+        subtitle={`Welcome back. Here${"\u2019"}s your workspace.`}
+      />
       <PortalOverview
         maintenanceActive={portalData.maintenanceActive}
         systemControl={portalData.systemControl}
@@ -145,9 +150,9 @@ export default function DashboardOverviewClient({
       {role === "member" ? (
         <>
           <div className="dash-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
-            <QuickLinkCard title="Projects" description="Track your assigned work and project progress." href="/dashboard/projects" />
-            <QuickLinkCard title="Announcements" description="Read the latest club updates and internal notices." href="/dashboard/announcements" />
-            <QuickLinkCard title="Activity" description="Review your recent actions and member activity timeline." href="/dashboard/activity-logs" />
+            <QuickLinkCard title="Projects" description="Track your assigned work and project progress." href="/app/projects" />
+            <QuickLinkCard title="Announcements" description="Read the latest club updates and internal notices." href="/app/announcements" />
+            <QuickLinkCard title="Activity" description="Review your recent actions and member activity timeline." href="/app/activity-logs" />
           </div>
           <PortalProjects myProjects={portalData.myProjects} projectsLoading={portalData.projectsLoading} />
           <PortalNotifications
@@ -171,9 +176,9 @@ export default function DashboardOverviewClient({
       {role === "core" ? (
         <>
           <div className="dash-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
-            <QuickLinkCard title="Projects" description="Open project workspaces and track execution progress." href="/dashboard/projects" />
-            <QuickLinkCard title="Approvals" description={`You currently have ${approvalNotifications} approval items waiting in notifications.`} href="/dashboard/members" />
-            <QuickLinkCard title="Tasks" description={`You are attached to ${portalData.myProjects.length} active project workspace(s).`} href="/dashboard/projects" />
+            <QuickLinkCard title="Projects" description="Open project workspaces and track execution progress." href="/app/projects" />
+            <QuickLinkCard title="Approvals" description={`You currently have ${approvalNotifications} approval items waiting in notifications.`} href="/app/members" />
+            <QuickLinkCard title="Tasks" description={`You are attached to ${portalData.myProjects.length} active project workspace(s).`} href="/app/projects" />
           </div>
           <PortalProjects myProjects={portalData.myProjects} projectsLoading={portalData.projectsLoading} />
           <PortalNotifications
@@ -196,26 +201,15 @@ export default function DashboardOverviewClient({
 
       {role === "finance_head" ? (
         <>
-          <div className="dash-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
-            {[
-              { label: "Payments", value: financeLoading ? "Loading..." : formatMoney(financeSummary?.totalIncome || 0) },
-              { label: "Expenses", value: financeLoading ? "Loading..." : formatMoney(financeSummary?.totalExpenses || 0) },
-              { label: "Balance", value: financeLoading ? "Loading..." : formatMoney(financeSummary?.balance || 0) },
-            ].map((card) => (
-              <div key={card.label} style={{ padding: "1rem 1.1rem", borderRadius: "12px", border: "1px solid var(--border-subtle)", background: "rgba(12,18,34,0.55)" }}>
-                <div style={{ color: "var(--text-muted)", fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  {card.label}
-                </div>
-                <div style={{ marginTop: "0.45rem", fontSize: "1.45rem", fontWeight: 700, color: "var(--text-primary)" }}>
-                  {card.value}
-                </div>
-              </div>
-            ))}
+          <div className="dash-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}>
+            <StatsCard label="Payments" value={financeLoading ? "..." : formatMoney(financeSummary?.totalIncome || 0)} detail="Total income" />
+            <StatsCard label="Expenses" value={financeLoading ? "..." : formatMoney(financeSummary?.totalExpenses || 0)} detail="Total expenditure" />
+            <StatsCard label="Balance" value={financeLoading ? "..." : formatMoney(financeSummary?.balance || 0)} detail="Net balance" />
           </div>
           <div className="dash-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
-            <QuickLinkCard title="Finance Workspace" description="Review the payment ledger, expense queue, and exports." href="/dashboard/finance" />
-            <QuickLinkCard title="Announcements" description="Keep finance communications in sync with member-facing updates." href="/dashboard/announcements" />
-            <QuickLinkCard title="Projects" description="Coordinate with project owners before approving expenses." href="/dashboard/projects" />
+            <QuickLinkCard title="Finance Workspace" description="Review the payment ledger, expense queue, and exports." href="/app/finance" />
+            <QuickLinkCard title="Announcements" description="Keep finance communications in sync with member-facing updates." href="/app/announcements" />
+            <QuickLinkCard title="Projects" description="Coordinate with project owners before approving expenses." href="/app/projects" />
           </div>
           <PortalAnnouncements
             announcements={portalData.portalAnnouncements}
@@ -235,9 +229,9 @@ export default function DashboardOverviewClient({
       {role === "admin" ? (
         <>
           <div className="dash-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
-            <QuickLinkCard title="Full Overview" description="Open the master admin overview with the full control surface." href="/admin?tab=overview" />
-            <QuickLinkCard title="System Control" description="Review maintenance mode, restrictions, and critical system alerts." href="/admin?tab=system-control" />
-            <QuickLinkCard title="Activity Logs" description="Inspect audit trails and operational activity from the admin system." href="/admin?tab=logs" />
+            <QuickLinkCard title="Full Overview" description="Open the master admin overview with the full control surface." href="/app/overview" />
+            <QuickLinkCard title="System Control" description="Review maintenance mode, restrictions, and critical system alerts." href="/app/system-control" />
+            <QuickLinkCard title="Activity Logs" description="Inspect audit trails and operational activity from the admin system." href="/app/activity-logs" />
           </div>
           <PortalAnnouncements
             announcements={portalData.portalAnnouncements}

@@ -1,7 +1,7 @@
 import { deriveDashboardRole } from "@/lib/module-access";
 import { getMyRBACProfile } from "@/app/actions/auth";
 import DashboardOverviewClient from "@/components/dashboard/DashboardOverviewClient";
-import OverviewManager from "@/app/admin/components/OverviewManager";
+import AppAdminOverview from "./AppAdminOverview";
 
 export default async function AppOverviewPage() {
   const profile = await getMyRBACProfile();
@@ -12,9 +12,7 @@ export default async function AppOverviewPage() {
   });
 
   if (role === "admin") {
-    // We pass a dummy onNavigate since we are now unified with proper URLs
-    // Some admin components might try to setActiveTab from the old system.
-    return <OverviewManager onNavigate={() => {}} />;
+    return <AppAdminOverview />;
   }
 
   return <DashboardOverviewClient role={role} />;

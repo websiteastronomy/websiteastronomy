@@ -8,6 +8,7 @@ import { formatDateStable } from "@/lib/format-date";
 import { getPublishedArticlesAction } from "@/app/actions/articles";
 import { getCollection, updateDocument, deleteDocument } from "@/lib/db";
 import { useToast } from "@/components/ToastProvider";
+import { SectionHeader, TableContainer, EmptyState, StatusBadge } from "@/components/ui";
 
 export default function DashboardEducationPage() {
   const { user, roleName, isAdmin, permissions } = useAuth();
@@ -93,15 +94,11 @@ export default function DashboardEducationPage() {
 
   return (
     <div style={{ maxWidth: "1100px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
-        <div>
-          <h1 style={{ fontSize: "1.6rem", fontWeight: 700, margin: 0 }}>Articles & Facts</h1>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: "0.3rem 0 0" }}>
-            {filtered.length} item{filtered.length !== 1 ? "s" : ""} · <Link href="/education" style={{ color: "var(--gold)", textDecoration: "none" }}>View Public Page →</Link>
-          </p>
-        </div>
-      </div>
+      <SectionHeader
+        title="Articles & Facts"
+        subtitle={`${filtered.length} item${filtered.length !== 1 ? "s" : ""}`}
+        action={<Link href="/education" style={{ color: "var(--gold)", textDecoration: "none", fontSize: "0.85rem" }}>View Public Page →</Link>}
+      />
 
       {/* Filters */}
       <div className="dash-filter-bar">
@@ -137,7 +134,7 @@ export default function DashboardEducationPage() {
           ))}
         </div>
       ) : (
-        <div style={{ background: "rgba(15,22,40,0.35)", border: "1px solid var(--border-subtle)", borderRadius: "12px", overflow: "hidden" }}>
+        <TableContainer>
           <div style={{
             display: "grid", gridTemplateColumns: "2.5fr 0.8fr 1fr 0.8fr 1fr", gap: "1rem", padding: "0.8rem 1.2rem",
             borderBottom: "1px solid var(--border-subtle)", fontSize: "0.7rem", textTransform: "uppercase",
@@ -151,11 +148,7 @@ export default function DashboardEducationPage() {
           </div>
 
           {filtered.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">📚</div>
-              <div className="empty-state-title">No articles found</div>
-              <div className="empty-state-desc">Try adjusting your filters or search terms.</div>
-            </div>
+            <EmptyState icon="📚" title="No articles found" description="Try adjusting your filters or search terms." />
           ) : (
             <div className="dash-stagger">
               {filtered.map((article) => {
@@ -210,7 +203,7 @@ export default function DashboardEducationPage() {
               })}
             </div>
           )}
-        </div>
+        </TableContainer>
       )}
     </div>
   );

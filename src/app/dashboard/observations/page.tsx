@@ -8,6 +8,7 @@ import { formatDateStable } from "@/lib/format-date";
 import { getPublishedObservationsAction } from "@/app/actions/observations-engine";
 import { getCollection, updateDocument } from "@/lib/db";
 import { useToast } from "@/components/ToastProvider";
+import { SectionHeader, TableContainer, EmptyState } from "@/components/ui";
 
 export default function DashboardObservationsPage() {
   const { user, roleName, isAdmin, permissions } = useAuth();
@@ -96,21 +97,16 @@ export default function DashboardObservationsPage() {
 
   return (
     <div style={{ maxWidth: "1100px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
-        <div>
-          <h1 style={{ fontSize: "1.6rem", fontWeight: 700, margin: 0 }}>Observations</h1>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: "0.3rem 0 0" }}>
-            {filtered.length} observation{filtered.length !== 1 ? "s" : ""} · <Link href="/observations" style={{ color: "var(--gold)", textDecoration: "none" }}>View Public Page →</Link>
-          </p>
-        </div>
-        <Link href="/portal/observations" style={{
-          padding: "0.6rem 1rem", borderRadius: "8px", background: "var(--gold)", color: "#0c1222",
-          textDecoration: "none", fontSize: "0.85rem", fontWeight: 600
-        }}>
-          + Submit Observation
-        </Link>
-      </div>
+      <SectionHeader
+        title="Observations"
+        subtitle={`${filtered.length} observation${filtered.length !== 1 ? "s" : ""}`}
+        action={
+          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+            <Link href="/observations" style={{ color: "var(--gold)", textDecoration: "none", fontSize: "0.85rem" }}>View Public Page →</Link>
+            <Link href="/portal/observations" className="btn-primary" style={{ textDecoration: "none", fontSize: "0.85rem", padding: "0.4rem 1rem" }}>+ Submit</Link>
+          </div>
+        }
+      />
 
       {/* Filters */}
       <div className="dash-filter-bar">

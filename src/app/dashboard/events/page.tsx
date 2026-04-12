@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { deriveDashboardRole } from "@/lib/module-access";
 import { formatDateStable } from "@/lib/format-date";
 import { useToast } from "@/components/ToastProvider";
+import { SectionHeader, TableContainer, EmptyState, StatusBadge } from "@/components/ui";
 
 export default function DashboardEventsPage() {
   const { user, roleName, isAdmin, permissions } = useAuth();
@@ -90,14 +91,11 @@ export default function DashboardEventsPage() {
   return (
     <div style={{ maxWidth: "1100px" }}>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
-        <div>
-          <h1 style={{ fontSize: "1.6rem", fontWeight: 700, margin: 0 }}>Events</h1>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: "0.3rem 0 0" }}>
-            {filteredEvents.length} event{filteredEvents.length !== 1 ? "s" : ""} · <Link href="/events" style={{ color: "var(--gold)", textDecoration: "none" }}>View Public Page →</Link>
-          </p>
-        </div>
-      </div>
+      <SectionHeader
+        title="Events"
+        subtitle={`${filteredEvents.length} event${filteredEvents.length !== 1 ? "s" : ""}`}
+        action={<Link href="/events" style={{ color: "var(--gold)", textDecoration: "none", fontSize: "0.85rem" }}>View Public Page →</Link>}
+      />
 
       {/* Filters */}
       <div className="dash-filter-bar">
@@ -119,7 +117,7 @@ export default function DashboardEventsPage() {
       </div>
 
       {/* Table */}
-      <div style={{ background: "rgba(15,22,40,0.35)", border: "1px solid var(--border-subtle)", borderRadius: "12px", overflow: "hidden" }}>
+      <TableContainer>
         {/* Table Header */}
         <div style={{
           display: "grid", gridTemplateColumns: "2fr 1fr 1fr 0.8fr 1fr", gap: "1rem", padding: "0.8rem 1.2rem",
@@ -141,11 +139,7 @@ export default function DashboardEventsPage() {
             ))}
           </div>
         ) : filteredEvents.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">🗓️</div>
-            <div className="empty-state-title">No events found</div>
-            <div className="empty-state-desc">Try adjusting your filters or search terms.</div>
-          </div>
+          <EmptyState icon="🗓️" title="No events found" description="Try adjusting your filters or search terms." />
         ) : (
           <div className="dash-stagger">
             {filteredEvents.map((event) => {
@@ -178,12 +172,7 @@ export default function DashboardEventsPage() {
 
                   {/* Status */}
                   <div>
-                    <span style={{
-                      fontSize: "0.72rem", padding: "0.25rem 0.6rem", borderRadius: "12px",
-                      background: badge.bg, color: badge.color, fontWeight: 600
-                    }}>
-                      {badge.label}
-                    </span>
+                    <StatusBadge label={badge.label} color={badge.color} bg={badge.bg} />
                   </div>
 
                   {/* Actions */}
@@ -205,7 +194,7 @@ export default function DashboardEventsPage() {
             })}
           </div>
         )}
-      </div>
+      </TableContainer>
     </div>
   );
 }

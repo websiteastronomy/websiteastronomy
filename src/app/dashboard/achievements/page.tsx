@@ -6,6 +6,7 @@ import { getCollection, addDocument, deleteDocument } from "@/lib/db";
 import { useAuth } from "@/context/AuthContext";
 import { deriveDashboardRole } from "@/lib/module-access";
 import { useToast } from "@/components/ToastProvider";
+import { SectionHeader, EmptyState } from "@/components/ui";
 
 export default function DashboardAchievementsPage() {
   const { roleName, isAdmin, permissions } = useAuth();
@@ -82,20 +83,20 @@ export default function DashboardAchievementsPage() {
 
   return (
     <div style={{ maxWidth: "1100px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
-        <div>
-          <h1 style={{ fontSize: "1.6rem", fontWeight: 700, margin: 0 }}>Achievements</h1>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: "0.3rem 0 0" }}>
-            {achievements.length} achievement{achievements.length !== 1 ? "s" : ""} · <Link href="/about" style={{ color: "var(--gold)", textDecoration: "none" }}>View Public Page →</Link>
-          </p>
-        </div>
-        {dashboardRole === "admin" && (
-          <button onClick={() => setShowAddForm(!showAddForm)} className="btn-primary">
-            {showAddForm ? "Cancel" : "+ Add Achievement"}
-          </button>
-        )}
-      </div>
+      <SectionHeader
+        title="Achievements"
+        subtitle={`${achievements.length} achievement${achievements.length !== 1 ? "s" : ""}`}
+        action={
+          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+            <Link href="/about" style={{ color: "var(--gold)", textDecoration: "none", fontSize: "0.85rem" }}>View Public Page →</Link>
+            {dashboardRole === "admin" && (
+              <button onClick={() => setShowAddForm(!showAddForm)} className="btn-primary" style={{ fontSize: "0.85rem", padding: "0.4rem 1rem" }}>
+                {showAddForm ? "Cancel" : "+ Add"}
+              </button>
+            )}
+          </div>
+        }
+      />
 
       {/* Add Form */}
       {showAddForm && dashboardRole === "admin" && (
@@ -126,11 +127,7 @@ export default function DashboardAchievementsPage() {
           ))}
         </div>
       ) : achievements.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">🏆</div>
-          <div className="empty-state-title">No achievements</div>
-          <div className="empty-state-desc">The club&apos;s achievements will appear here.</div>
-        </div>
+        <EmptyState icon="🏆" title="No achievements" description="The club's achievements will appear here." />
       ) : (
         <div className="dash-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1.5rem" }}>
           {achievements.map((ach) => (

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { NightSkyLegacyData } from "@/data/mockNightSky";
 import type { NightSkySystemState } from "@/lib/night-sky";
+import { SectionHeader, TableContainer, EmptyState } from "@/components/ui";
 
 type Props = {
   nightSkyData: NightSkyLegacyData;
@@ -33,15 +34,11 @@ export default function DashboardNightSkyClient({ nightSkyData, state, lastUpdat
 
   return (
     <div style={{ maxWidth: "1100px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
-        <div>
-          <h1 style={{ fontSize: "1.6rem", fontWeight: 700, margin: 0 }}>Night Sky</h1>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: "0.3rem 0 0" }}>
-            Celestial data reference · <Link href="/night-sky" style={{ color: "var(--gold)", textDecoration: "none" }}>View Public Page →</Link>
-          </p>
-        </div>
-      </div>
+      <SectionHeader
+        title="Night Sky"
+        subtitle="Celestial data reference"
+        action={<Link href="/night-sky" style={{ color: "var(--gold)", textDecoration: "none", fontSize: "0.85rem" }}>View Public Page →</Link>}
+      />
 
       {/* System Info Bar */}
       <div style={{
@@ -89,11 +86,8 @@ export default function DashboardNightSkyClient({ nightSkyData, state, lastUpdat
       </div>
 
       {/* Planets Table */}
-      <div style={{
-        marginBottom: "1.5rem",
-        background: "rgba(15,22,40,0.35)", borderRadius: "12px", border: "1px solid var(--border-subtle)", overflow: "hidden"
-      }}>
-        <div style={{ padding: "1rem 1.2rem", borderBottom: "1px solid var(--border-subtle)" }}>
+      <TableContainer>
+        <div style={{ padding: "1rem 1.2rem", borderBottom: "1px solid var(--border-subtle)", marginBottom: "0.5rem" }}>
           <h2 style={{ fontSize: "1rem", fontWeight: 600, margin: 0, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)" }}>Planet Visibility</h2>
         </div>
         <div style={{
@@ -109,10 +103,7 @@ export default function DashboardNightSkyClient({ nightSkyData, state, lastUpdat
           <span>Naked Eye</span>
         </div>
         {planets.length === 0 ? (
-          <div className="empty-state" style={{ padding: "2rem" }}>
-            <div className="empty-state-icon">🪐</div>
-            <div className="empty-state-title">No planet data</div>
-          </div>
+          <EmptyState icon="🪐" title="No planet data" description="Data feed might be down." />
         ) : (
           <div className="dash-stagger">
             {planets.map((planet) => (
@@ -139,12 +130,10 @@ export default function DashboardNightSkyClient({ nightSkyData, state, lastUpdat
             ))}
           </div>
         )}
-      </div>
+      </TableContainer>
 
       {/* Upcoming Celestial Events */}
-      <div style={{
-        background: "rgba(15,22,40,0.35)", borderRadius: "12px", border: "1px solid var(--border-subtle)", overflow: "hidden"
-      }}>
+      <TableContainer>
         <div style={{ padding: "1rem 1.2rem", borderBottom: "1px solid var(--border-subtle)" }}>
           <h2 style={{ fontSize: "1rem", fontWeight: 600, margin: 0, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)" }}>Upcoming Celestial Events</h2>
         </div>
@@ -159,10 +148,7 @@ export default function DashboardNightSkyClient({ nightSkyData, state, lastUpdat
           <span>Visibility</span>
         </div>
         {upcomingEvents.length === 0 ? (
-          <div className="empty-state" style={{ padding: "2rem" }}>
-            <div className="empty-state-icon">✨</div>
-            <div className="empty-state-title">No upcoming events</div>
-          </div>
+          <EmptyState icon="✨" title="No upcoming events" description="No celestial events tracked at the moment." />
         ) : (
           <div className="dash-stagger">
             {upcomingEvents.map((evt) => (
@@ -194,7 +180,7 @@ export default function DashboardNightSkyClient({ nightSkyData, state, lastUpdat
             ))}
           </div>
         )}
-      </div>
+      </TableContainer>
     </div>
   );
 }

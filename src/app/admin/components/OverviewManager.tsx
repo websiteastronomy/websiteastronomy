@@ -5,6 +5,7 @@ import { subscribeToCollection } from '@/lib/db';
 import ApprovalsPanel from './ApprovalsPanel';
 import { useAuth } from '@/context/AuthContext';
 import { ADMIN_PAGE_PERMISSIONS } from '@/lib/admin-access';
+import { StatsCard, StatsGrid, SectionHeader } from '@/components/ui';
 
 export default function OverviewManager({ onNavigate }: { onNavigate: (tab: string) => void }) {
   const { user, roleName, isAdmin, hasPermission } = useAuth();
@@ -62,20 +63,16 @@ export default function OverviewManager({ onNavigate }: { onNavigate: (tab: stri
 
   return (
     <div style={{ animation: "fadeIn 0.3s ease" }}>
-      <h2 style={{ fontSize: '1.6rem', marginBottom: '0.3rem' }}>Dashboard Overview</h2>
-      <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontWeight: 300, fontSize: '0.9rem' }}>
-        Welcome back, {roleName || 'member'}. Here&apos;s what&apos;s happening.
-      </p>
+      <SectionHeader
+        title="Dashboard Overview"
+        subtitle={`Welcome back, ${roleName || 'member'}. Here\u2019s what\u2019s happening.`}
+      />
       
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2.5rem' }}>
+      <StatsGrid>
         {stats.map((stat) => (
-          <div key={stat.label} className="feature-card" style={{ textAlign: 'left', padding: '1.3rem', background: 'rgba(15, 22, 40, 0.4)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.4rem' }}>{stat.label}</p>
-            <h3 style={{ fontSize: '1.8rem', marginBottom: '0.2rem', color: 'var(--gold-light)' }}>{stat.value}</h3>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>{stat.change}</span>
-          </div>
+          <StatsCard key={stat.label} label={stat.label} value={stat.value} detail={stat.change} />
         ))}
-      </div>
+      </StatsGrid>
 
       <div style={{ marginBottom: "2.5rem" }}>
         <ApprovalsPanel userRole={roleName || "Admin"} userId={user?.id || "Unknown"} />
