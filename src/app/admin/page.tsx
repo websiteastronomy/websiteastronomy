@@ -9,7 +9,6 @@ import {
   canAccessAdminPage as canAccessAdminDashboard,
 } from "@/lib/admin-access";
 
-import DeprecationBanner from "@/components/DeprecationBanner";
 import OverviewManager from "./components/OverviewManager";
 import CoreObservationsManager from "./components/CoreObservationsManager";
 import EventsManager from "./components/EventsManager";
@@ -181,7 +180,6 @@ export default function Admin() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 60px)" }}>
-      <DeprecationBanner currentPath="/admin" />
       <div style={{ display: "flex", flex: 1 }}>
         <aside style={{ width: "220px", background: "rgba(8, 12, 22, 0.6)", borderRight: "1px solid var(--border-subtle)", padding: "2rem 0", flexShrink: 0 }}>
         <div style={{ padding: "0 1.5rem", marginBottom: "2rem" }}>

@@ -1,5 +1,11 @@
+import DeprecationBanner from "@/components/DeprecationBanner";
 import DashboardFormsPage from "@/app/dashboard/forms/page";
 
 export default function AppFormsPage() {
-  return <DashboardFormsPage />;
+  return (
+    <>
+      <DeprecationBanner currentPath="/app/forms" newPath="/admin?tab=forms" />
+      <DashboardFormsPage />
+    </>
+  );
 }

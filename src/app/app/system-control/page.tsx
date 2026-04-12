@@ -1,6 +1,12 @@
 "use client";
+import DeprecationBanner from "@/components/DeprecationBanner";
 import SystemControlManager from "@/app/admin/components/SystemControlManager";
 
 export default function AppSystemControlPage() {
-  return <SystemControlManager />;
+  return (
+    <>
+      <DeprecationBanner currentPath="/app/system-control" newPath="/admin?tab=system-control" />
+      <SystemControlManager />
+    </>
+  );
 }

@@ -35,57 +35,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const dashboardRole = deriveDashboardRole({ roleName, isAdmin, permissions });
   
-  // Custom sidebar config for Unified /app structure
-  let sidebarLinks: { label: string; shortLabel: string; href: string }[] = [];
+  // Clean Dashboard: Single uniform sidebar for everyone
+  const sidebarLinks = [
+    { label: "Overview", shortLabel: "OV", href: "/app/overview" },
+    { label: "My Projects", shortLabel: "PR", href: "/app/projects" },
+    { label: "Leaderboard", shortLabel: "LB", href: "/app/leaderboard" },
+    { label: "Announcements", shortLabel: "AN", href: "/app/announcements" },
+    { label: "Activity", shortLabel: "AC", href: "/app/activity-logs" },
+  ];
 
-  if (dashboardRole === "admin") {
-    sidebarLinks = [
-      { label: "Overview", shortLabel: "OV", href: "/app/overview" },
-      { label: "Events", shortLabel: "EV", href: "/app/events" },
-      { label: "Directory & Approvals", shortLabel: "MB", href: "/app/members" },
-      { label: "Articles & Facts", shortLabel: "AR", href: "/app/articles" },
-      { label: "Projects", shortLabel: "PR", href: "/app/projects" },
-      { label: "Documentation", shortLabel: "DC", href: "/app/documentation" },
-      { label: "Observations", shortLabel: "OB", href: "/app/observations" },
-      { label: "Quizzes", shortLabel: "QZ", href: "/app/quizzes" },
-      { label: "Outreach", shortLabel: "OT", href: "/app/outreach" },
-      { label: "Achievements", shortLabel: "AC", href: "/app/achievements" },
-      { label: "Night Sky", shortLabel: "NS", href: "/app/night-sky" },
-      { label: "Announcements", shortLabel: "AN", href: "/app/announcements" },
-      { label: "Finance", shortLabel: "FN", href: "/app/finance" },
-      { label: "Activity Logs", shortLabel: "LG", href: "/app/activity-logs" },
-      { label: "System Control", shortLabel: "SC", href: "/app/system-control" },
-      { label: "Site Settings", shortLabel: "ST", href: "/app/site-settings" },
-      { label: "System Storage", shortLabel: "SS", href: "/app/storage" },
-    ];
-  } else if (dashboardRole === "core") {
-    sidebarLinks = [
-      { label: "Overview", shortLabel: "OV", href: "/app/overview" },
-      { label: "Projects", shortLabel: "PR", href: "/app/projects" },
-      { label: "Documentation", shortLabel: "DC", href: "/app/documentation" },
-      { label: "Events (Manage)", shortLabel: "EV", href: "/app/events" },
-      { label: "Observations (Review)", shortLabel: "OB", href: "/app/observations" },
-      { label: "Announcements", shortLabel: "AN", href: "/app/announcements" },
-      { label: "Activity", shortLabel: "AC", href: "/app/activity-logs" },
-    ];
-  } else if (dashboardRole === "finance_head") {
-    sidebarLinks = [
-      { label: "Overview", shortLabel: "OV", href: "/app/overview" },
-      { label: "Finance Workspace", shortLabel: "FN", href: "/app/finance" },
-      { label: "Projects", shortLabel: "PR", href: "/app/projects" },
-      { label: "Events", shortLabel: "EV", href: "/app/events" },
-      { label: "Announcements", shortLabel: "AN", href: "/app/announcements" },
-      { label: "Activity Logs", shortLabel: "LG", href: "/app/activity-logs" },
-    ];
-  } else {
-    sidebarLinks = [
-      { label: "Overview", shortLabel: "OV", href: "/app/overview" },
-      { label: "My Projects", shortLabel: "PR", href: "/app/projects" },
-      { label: "Documentation", shortLabel: "DC", href: "/app/documentation" },
-      { label: "Forms", shortLabel: "FM", href: "/app/forms" },
-      { label: "Activity", shortLabel: "AC", href: "/app/activity-logs" },
-    ];
-  }
+  let panelRedirectLabel = null;
+  if (isAdmin || roleName === "admin") panelRedirectLabel = "Admin Panel";
+  else if (roleName === "core" || dashboardRole === "core") panelRedirectLabel = "Core Panel";
+  else if (roleName === "lead" || roleName === "project_lead") panelRedirectLabel = "Project Panel";
+  else if (dashboardRole === "finance_head") panelRedirectLabel = "Finance Panel";
 
   useEffect(() => {
     if (!loading && !user && pathname.startsWith("/app")) {
@@ -204,6 +167,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {item.label}
           </Link>
         ))}
+
+        {panelRedirectLabel && (
+          <div style={{ marginTop: "1rem", padding: "0 1.25rem" }}>
+            <Link
+              href="/admin"
+              className="btn-primary"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "100%",
+                padding: "0.6rem",
+                fontSize: "0.8rem",
+                textDecoration: "none"
+              }}
+            >
+              {panelRedirectLabel} →
+            </Link>
+          </div>
+        )}
 
         <div style={{ marginTop: "0.5rem", borderTop: "1px solid var(--border-subtle)", paddingTop: "0.75rem" }}>
           <Link
