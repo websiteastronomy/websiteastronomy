@@ -60,7 +60,7 @@ export default function PortalProfile({
   }
 
   return (
-    <div>
+    <div className="portal-profile-sidebar" style={{ minWidth: 0 }}>
       <AnimatedSection direction="right" delay={0.1}>
         <div className="feature-card" style={{ padding: "2rem", textAlign: "center", marginBottom: "1.5rem" }}>
           {profileImageUrl && !imgError ? (
@@ -97,7 +97,7 @@ export default function PortalProfile({
             </div>
           )}
           <h3 style={{ fontSize: "1.1rem", marginBottom: "0.3rem" }}>{user.name || "Club Member"}</h3>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", wordWrap: "break-word" }}>{user.email}</p>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", overflowWrap: "anywhere", wordBreak: "break-word" }}>{user.email}</p>
 
           <div style={{ marginTop: "1rem" }}>
             <button
@@ -154,7 +154,7 @@ export default function PortalProfile({
                 {quoteFeedback.message}
               </div>
             )}
-            <div style={{ display: "flex", gap: "0.5rem" }}>
+            <div className="portal-quote-row" style={{ display: "flex", gap: "0.5rem" }}>
               <input
                 id="user-quote"
                 type="text"
@@ -169,6 +169,7 @@ export default function PortalProfile({
                   color: "var(--text-primary)",
                   fontSize: "0.8rem",
                   fontFamily: "inherit",
+                  minWidth: 0,
                 }}
               />
               <button

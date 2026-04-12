@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -97,6 +97,10 @@ export default function Admin() {
 
   const currentTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : (tabs[0]?.id ?? "overview");
 
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [currentTab]);
+
   if (loading) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
@@ -181,12 +185,11 @@ export default function Admin() {
   }
 
   return (
-    <div className="dashboard-root" style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 60px)" }}>
+    <div className="dashboard-root workspace-root" style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 60px)" }}>
       {/* Mobile Top Header (only visible on mobile via CSS) */}
       <div 
-        className="mobile-nav-toggle" 
+        className="mobile-nav-toggle workspace-mobile-header" 
         style={{ 
-          display: "flex", 
           alignItems: "center", 
           padding: "1rem", 
           borderBottom: "1px solid var(--border-subtle)", 
@@ -221,11 +224,12 @@ export default function Admin() {
         onClick={() => setIsSidebarOpen(false)}
       />
 
-      <div style={{ display: "flex", flex: 1, position: "relative", minHeight: 0 }}>
+      <div className="workspace-shell" style={{ display: "flex", flex: 1, position: "relative", minHeight: 0 }}>
         <aside 
           className={`sidebar-container ${isSidebarOpen ? "open" : ""}`} 
           style={{ 
             width: "220px", 
+            minWidth: "220px",
             background: "rgba(8, 12, 22, 0.95)", 
             borderRight: "1px solid var(--border-subtle)", 
             padding: "2rem 0", 
@@ -259,14 +263,14 @@ export default function Admin() {
         </nav>
       </aside>
 
-      <div style={{ flex: 1, padding: "2rem 3rem", maxWidth: "960px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+      <div className="workspace-main admin-main" style={{ flex: 1, padding: "2rem 3rem", maxWidth: "960px", minWidth: 0 }}>
+        <div className="admin-toolbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem", gap: "1rem" }}>
           <h2 style={{ fontSize: "1.6rem", color: "var(--text-primary)", flexShrink: 0 }}>Admin Dashboard</h2>
-          <div style={{ flex: 1, display: "flex", justifyContent: "center", padding: "0 2rem" }}>
+          <div className="admin-search-wrap" style={{ flex: 1, display: "flex", justifyContent: "center", padding: "0 2rem", minWidth: 0 }}>
             <GlobalSearch />
           </div>
-          <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexShrink: 0 }}>
-            <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: "bold" }}>{user.email}</span>
+          <div className="admin-toolbar-actions" style={{ display: "flex", gap: "1rem", alignItems: "center", flexShrink: 0, minWidth: 0 }}>
+            <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: "bold", overflowWrap: "anywhere" }}>{user.email}</span>
             <button onClick={logout} className="btn-secondary" style={{ padding: "0.4rem 1rem", fontSize: "0.8rem", background: "transparent", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.4)", cursor: "pointer", fontFamily: "inherit" }}>
               Sign Out
             </button>

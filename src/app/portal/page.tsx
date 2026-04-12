@@ -244,15 +244,17 @@ export default function Portal() {
         </div>
       ) : (
         <div
+          className="portal-shell"
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 340px",
             gap: "2rem",
             width: "100%",
             alignItems: "start",
+            minWidth: 0,
           }}
         >
-          <div>
+          <div style={{ minWidth: 0 }}>
             <PortalOverview
               maintenanceActive={portalData.maintenanceActive}
               systemControl={portalData.systemControl}

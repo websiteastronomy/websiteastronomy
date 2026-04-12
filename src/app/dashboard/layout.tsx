@@ -57,6 +57,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ? canAccessDashboardModule(currentRouteModule, dashboardRole)
     : true;
   const fallbackHref = getDefaultDashboardHref(dashboardRole);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!user || !currentRouteModule || isAllowedRoute) {
@@ -65,6 +66,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     router.replace(fallbackHref);
   }, [currentRouteModule, fallbackHref, isAllowedRoute, router, user]);
+
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [pathname]);
 
   if (loading) {
     return (
@@ -125,10 +130,47 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 80px)" }}>
+    <div className="dashboard-root workspace-root" style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 80px)" }}>
       <DeprecationBanner currentPath="/dashboard" />
-      <div style={{ display: "flex", flex: 1 }}>
+      <div
+        className="mobile-nav-toggle workspace-mobile-header"
+        style={{
+          alignItems: "center",
+          padding: "1rem",
+          borderBottom: "1px solid var(--border-subtle)",
+          background: "rgba(11, 16, 30, 0.95)",
+          position: "sticky",
+          top: 0,
+          zIndex: 30,
+        }}
+      >
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "var(--text-primary)",
+            fontSize: "1.5rem",
+            cursor: "pointer",
+            padding: "0.5rem",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          =
+        </button>
+        <h1 style={{ fontSize: "1.1rem", margin: 0, marginLeft: "0.5rem", color: "var(--gold)" }}>Dashboard</h1>
+      </div>
+
+      <div
+        className={`sidebar-overlay ${isSidebarOpen ? "open" : ""}`}
+        onClick={() => setIsSidebarOpen(false)}
+      />
+
+      <div className="workspace-shell" style={{ display: "flex", flex: 1, position: "relative", minHeight: 0 }}>
         <aside
+          className={`sidebar-container ${isSidebarOpen ? "open" : ""}`}
           style={{
           width: "240px",
           minWidth: "240px",
@@ -188,9 +230,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 style={{
                   fontSize: "0.7rem",
                   color: "var(--text-muted)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+                  overflowWrap: "anywhere",
                 }}
               >
                 {roleName || user.email}
@@ -266,7 +306,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      <div className="dash-fade-in" style={{ flex: 1, padding: "2rem", minWidth: 0, overflowY: "auto" }}>{children}</div>
+      <div className="dash-fade-in workspace-main" style={{ flex: 1, padding: "2rem", minWidth: 0, overflowY: "auto" }}>{children}</div>
       </div>
     </div>
   );

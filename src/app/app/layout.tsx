@@ -58,6 +58,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, router, pathname]);
 
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [pathname]);
+
   if (loading || !user) {
     return (
       <div style={{ minHeight: "60vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
@@ -83,12 +87,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <div className="dashboard-root" style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 64px)" }}>
+    <div className="dashboard-root workspace-root" style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 64px)" }}>
       {/* Mobile Top Header (only visible on mobile via CSS) */}
       <div 
-        className="mobile-nav-toggle" 
+        className="mobile-nav-toggle workspace-mobile-header" 
         style={{ 
-          display: "flex", 
           alignItems: "center", 
           padding: "1rem", 
           borderBottom: "1px solid var(--border-subtle)", 
@@ -123,7 +126,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         onClick={() => setIsSidebarOpen(false)}
       />
 
-      <div style={{ display: "flex", flex: 1, position: "relative", minHeight: 0 }}>
+      <div className="workspace-shell" style={{ display: "flex", flex: 1, position: "relative", minHeight: 0 }}>
         <aside
           className={`sidebar-container ${isSidebarOpen ? "open" : ""}`}
           style={{
@@ -185,9 +188,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 style={{
                   fontSize: "0.7rem",
                   color: "var(--text-muted)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+                  overflowWrap: "anywhere",
                 }}
               >
                 {roleName || user.email}
@@ -284,7 +285,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="dash-fade-in" style={{ flex: 1, padding: "2rem", minWidth: 0, overflowY: "auto" }}>
+      <main className="dash-fade-in workspace-main" style={{ flex: 1, padding: "2rem", minWidth: 0, overflowY: "auto" }}>
         {children}
       </main>
       </div>
