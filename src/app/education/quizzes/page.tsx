@@ -44,7 +44,7 @@ export default function QuizListing() {
           <p style={{ color: "var(--text-muted)", marginTop: "0.5rem" }}>New challenges appear automatically when their active window opens.</p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "2rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap: "2rem" }}>
           {quizzes.map((quiz, index) => (
             <AnimatedCard key={quiz.id} index={index}>
               <Link href={`/education/quizzes/${quiz.id}`} style={{ textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column", height: "100%", padding: "2rem", background: "rgba(15, 22, 40, 0.4)", borderRadius: "12px", border: "1px solid var(--border-subtle)" }}>

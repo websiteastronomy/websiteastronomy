@@ -43,7 +43,7 @@ export default function Events() {
   };
 
   return (
-    <div style={{ padding: "4rem 2rem", maxWidth: "1000px", margin: "0 auto", minHeight: "80vh", display: "flex", flexDirection: "column", gap: "6rem" }}>
+    <div style={{ padding: "4rem 1rem", maxWidth: "1000px", margin: "0 auto", minHeight: "80vh", display: "flex", flexDirection: "column", gap: "4rem" }}>
       
       {/* HEADER */}
       <AnimatedSection>
@@ -85,9 +85,9 @@ export default function Events() {
                   <div style={{ flex: "1 1 300px", minHeight: "250px" }}>
                      <img src={event.bannerImage} alt={event.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   </div>
-                  <div style={{ flex: "2 1 400px", padding: "2.5rem", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                  <div style={{ flex: "2 1 min(100%, 400px)", padding: "1.5rem", display: "flex", flexDirection: "column", justifyContent: "center" }}>
                     <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--gold-light)", fontWeight: 700, marginBottom: "0.5rem", display: "block" }}>{event.type}</span>
-                    <h3 style={{ fontSize: "1.8rem", marginBottom: "1rem", lineHeight: 1.2 }}>{event.title}</h3>
+                    <h3 style={{ fontSize: "clamp(1.3rem, 3vw, 1.8rem)", marginBottom: "1rem", lineHeight: 1.2 }}>{event.title}</h3>
                     
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.5rem", color: "var(--text-secondary)", fontSize: "0.95rem" }}>
                       <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -131,7 +131,7 @@ export default function Events() {
               <div style={{ height: '1px', flex: 1, background: 'linear-gradient(90deg, rgba(255,255,255,0.1), transparent)' }} />
             </div>
             
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1.5rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 260px), 1fr))", gap: "1.5rem" }}>
               {pastEvents.map((event, i) => (
                 <div key={event.id} style={{ 
                   background: "rgba(15, 22, 40, 0.3)", border: "1px solid var(--border-subtle)", borderRadius: "12px", 

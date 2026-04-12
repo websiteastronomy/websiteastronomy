@@ -90,7 +90,7 @@ export default function About() {
       </AnimatedSection>
 
       {/* ── STATS ROW ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", width: "100%", margin: "0 0 6rem", textAlign: "center" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: "1.5rem", width: "100%", margin: "0 0 6rem", textAlign: "center" }}>
         {[
           { label: "Active Members", value: stats.members || team.length, suffix: "+" },
           { label: "Events Done", value: stats.events || 0, suffix: "+" },
@@ -122,20 +122,20 @@ export default function About() {
       </div>
 
       {/* ── VISION / MISSION (static copy — edit in src/data/aboutPageStatic.ts) ── */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "8rem", width: "100%", marginBottom: "10rem" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "4rem", width: "100%", marginBottom: "6rem" }}>
         <AnimatedSection direction="up">
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "5rem", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ flex: "1 1 400px", position: "relative" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "2.5rem", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ flex: "1 1 min(100%, 400px)", position: "relative" }}>
               <div style={{ position: "absolute", inset: "-15px", border: "1px solid var(--gold)", opacity: 0.2, borderRadius: "32px", zIndex: 0 }} />
               <img 
                 src={aboutPageData.vision.imageUrl} 
                 alt="Vision" 
-                style={{ width: "100%", height: "450px", objectFit: "cover", borderRadius: "24px", boxShadow: "0 30px 60px rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.1)", position: "relative", zIndex: 1 }} 
+                style={{ width: "100%", height: "auto", maxHeight: "450px", objectFit: "cover", borderRadius: "24px", boxShadow: "0 30px 60px rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.1)", position: "relative", zIndex: 1, aspectRatio: "4/3" }} 
               />
             </div>
-            <div style={{ flex: "1 1 400px", padding: "1rem" }}>
+            <div style={{ flex: "1 1 min(100%, 400px)", padding: "1rem 0" }}>
               <div style={{ width: "40px", height: "2px", background: "var(--gold)", marginBottom: "1.5rem" }} />
-              <h3 style={{ fontSize: "2.4rem", marginBottom: "1.5rem", fontFamily: "'Cinzel', serif", color: "var(--text-primary)" }}>{aboutPageData.vision.title}</h3>
+              <h3 style={{ fontSize: "clamp(1.6rem, 4vw, 2.4rem)", marginBottom: "1.5rem", fontFamily: "'Cinzel', serif", color: "var(--text-primary)" }}>{aboutPageData.vision.title}</h3>
               <p style={{ color: "var(--text-secondary)", fontSize: "1.1rem", lineHeight: 1.8, fontWeight: 300, textAlign: "justify" }}>
                 {aboutPageData.vision.text}
               </p>
@@ -144,18 +144,18 @@ export default function About() {
         </AnimatedSection>
         
         <AnimatedSection direction="up">
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "5rem", alignItems: "center", justifyContent: "space-between", flexDirection: "row-reverse" }}>
-            <div style={{ flex: "1 1 400px", position: "relative" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "2.5rem", alignItems: "center", justifyContent: "space-between", flexDirection: "row-reverse" }}>
+            <div style={{ flex: "1 1 min(100%, 400px)", position: "relative" }}>
               <div style={{ position: "absolute", inset: "-15px", border: "1px solid var(--gold)", opacity: 0.2, borderRadius: "32px", zIndex: 0 }} />
               <img 
                 src={aboutPageData.mission.imageUrl} 
                 alt="Mission" 
-                style={{ width: "100%", height: "450px", objectFit: "cover", borderRadius: "24px", boxShadow: "0 30px 60px rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.1)", position: "relative", zIndex: 1 }} 
+                style={{ width: "100%", height: "auto", maxHeight: "450px", objectFit: "cover", borderRadius: "24px", boxShadow: "0 30px 60px rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.1)", position: "relative", zIndex: 1, aspectRatio: "4/3" }} 
               />
             </div>
-            <div style={{ flex: "1 1 400px", padding: "1rem" }}>
+            <div style={{ flex: "1 1 min(100%, 400px)", padding: "1rem 0" }}>
               <div style={{ width: "40px", height: "2px", background: "var(--gold)", marginBottom: "1.5rem" }} />
-              <h3 style={{ fontSize: "2.4rem", marginBottom: "1.5rem", fontFamily: "'Cinzel', serif", color: "var(--text-primary)" }}>{aboutPageData.mission.title}</h3>
+              <h3 style={{ fontSize: "clamp(1.6rem, 4vw, 2.4rem)", marginBottom: "1.5rem", fontFamily: "'Cinzel', serif", color: "var(--text-primary)" }}>{aboutPageData.mission.title}</h3>
               <p style={{ color: "var(--text-secondary)", fontSize: "1.1rem", lineHeight: 1.8, fontWeight: 300, textAlign: "justify" }}>
                 {aboutPageData.mission.text}
               </p>
@@ -169,7 +169,7 @@ export default function About() {
       <AnimatedSection style={{ width: "100%" }}>
         <h2 style={{ fontSize: "2rem", marginBottom: "2rem", textAlign: "center", fontFamily: "'Cinzel', serif" }}>Hall of Fame</h2>
       </AnimatedSection>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "2rem", width: "100%", marginBottom: "6rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "2rem", width: "100%", marginBottom: "6rem" }}>
         {achievements.map((ach, i) => (
           <motion.div
             key={ach.id}
@@ -205,7 +205,7 @@ export default function About() {
         </p>
       </AnimatedSection>
       
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "3rem", width: "100%", paddingBottom: "4rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap: "2rem", width: "100%", paddingBottom: "4rem" }}>
         {team.map((member, i) => (
           <motion.div
             key={member.id}

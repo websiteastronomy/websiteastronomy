@@ -134,12 +134,12 @@ export default function Home() {
   const secondaryHighlights = highlightDeck.slice(1, 5);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "2rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "2rem 1rem" }}>
 
       {/* ── HERO ─────────────────────────────────────── */}
       <motion.section
         ref={heroRef}
-        style={{ textAlign: "center", maxWidth: "900px", marginTop: "10vh", marginBottom: "6rem", y: heroY, opacity: heroOpacity }}
+        style={{ textAlign: "center", maxWidth: "900px", marginTop: "6vh", marginBottom: "4rem", y: heroY, opacity: heroOpacity }}
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
@@ -199,7 +199,7 @@ export default function Home() {
 
       {/* ── STATS BAR ────────────────────────────────── */}
       <AnimatedSection style={{ width: "100%", maxWidth: "1100px", marginBottom: "4rem" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1px", background: "var(--border-subtle)", borderRadius: "12px", overflow: "hidden", border: "1px solid var(--border-subtle)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "1px", background: "var(--border-subtle)", borderRadius: "12px", overflow: "hidden", border: "1px solid var(--border-subtle)" }}>
           {[
             { label: "Members", value: liveStats.members, suffix: "" },
             { label: "Observations", value: liveStats.observations, suffix: "+" },
@@ -226,7 +226,7 @@ export default function Home() {
         <AnimatedSection style={{ marginBottom: "1.5rem" }}>
           <p className="section-title">What We&apos;re Working On</p>
         </AnimatedSection>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.5rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "1.5rem" }}>
 
           {/* Featured Project */}
           {featuredProject && (

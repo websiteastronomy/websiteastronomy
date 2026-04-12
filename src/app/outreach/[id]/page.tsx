@@ -99,11 +99,11 @@ export default function OutreachDetail() {
       </div>
 
       {/* ── CONTENT GRID ── */}
-      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "4rem 2rem" }}>
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "4rem 1rem" }}>
         
         {/* ── STATS (POWER MOVE) ── */}
         <AnimatedSection delay={0.1}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "2rem", marginBottom: "4rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "1.5rem", marginBottom: "4rem" }}>
              
              {/* Stat 1: People Reached */}
              <div style={{ background: "rgba(201,168,76,0.05)", border: "1px solid var(--gold-dark)", borderRadius: "16px", padding: "2.5rem 2rem", textAlign: "center" }}>
@@ -142,7 +142,7 @@ export default function OutreachDetail() {
         {/* ── MEDIA (MAIN PROOF) ── */}
         <AnimatedSection delay={0.3}>
           <h2 style={{ fontSize: "1.5rem", marginBottom: "2rem", fontFamily: "'Cinzel', serif", textAlign: "center" }}>Event Documentation</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: "1rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "1rem" }}>
              {(item.images || []).map((img: string, idx: number) => (
                 <div key={idx} style={{ width: "100%", height: "400px", borderRadius: "16px", overflow: "hidden", border: "1px solid var(--border-subtle)" }}>
                    <img src={img} alt={`Proof of ${item.title} ${idx + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.5s hover:scale-105" }} />

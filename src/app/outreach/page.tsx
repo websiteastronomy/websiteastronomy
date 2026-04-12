@@ -56,7 +56,7 @@ export default function OutreachPage() {
   };
 
   return (
-    <div style={{ padding: "4rem 2rem", maxWidth: "1200px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "4rem", minHeight: "80vh" }}>
+    <div style={{ padding: "4rem 1rem", maxWidth: "1200px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "4rem", minHeight: "80vh" }}>
       
       {/* ── HEADER & IMPACT COUNTER (POWER MOVE) ── */}
       <AnimatedSection>
@@ -71,9 +71,9 @@ export default function OutreachPage() {
             </p>
           </div>
 
-          <div style={{ background: "rgba(201,168,76,0.1)", border: "1px solid var(--gold-dark)", borderRadius: "16px", padding: "2rem 3rem", textAlign: "center", minWidth: "250px" }}>
+          <div style={{ background: "rgba(201,168,76,0.1)", border: "1px solid var(--gold-dark)", borderRadius: "16px", padding: "1.5rem 2rem", textAlign: "center", minWidth: "200px" }}>
              <p style={{ color: "var(--gold-light)", fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.5rem", fontWeight: "bold" }}>Total People Impacted</p>
-             <h2 style={{ fontSize: "4rem", margin: 0, color: "var(--gold)", fontFamily: "'Cinzel', serif", lineHeight: 1 }}>
+             <h2 style={{ fontSize: "clamp(2rem, 6vw, 4rem)", margin: 0, color: "var(--gold)", fontFamily: "'Cinzel', serif", lineHeight: 1 }}>
                {formattedTotalImpacted}+
              </h2>
           </div>
@@ -118,7 +118,7 @@ export default function OutreachPage() {
       {/* ── LIST/GRID VIEW ── */}
       <AnimatedSection delay={0.2}>
          {filteredOutreach.length > 0 ? (
-           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "2.5rem" }}>
+           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap: "2rem" }}>
              {filteredOutreach.map(item => {
                const typeData = typeConfig[item.type] || { label: "Initiative", color: "#fff", bg: "transparent", icon: "✨" };
                return (
@@ -229,7 +229,7 @@ export default function OutreachPage() {
 
                 <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", margin: "1rem 0", paddingTop: "1rem" }}>
                    <h4 style={{ fontSize: "1rem", marginBottom: "1rem", color: "var(--gold-light)" }}>Impact Statistics</h4>
-                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
+                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 120px), 1fr))", gap: "1rem" }}>
                      <div>
                        <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.4rem" }}>People Reached</label>
                        <input name="peopleReached" type="number" placeholder="150" style={{ width: "100%", padding: "0.8rem", background: "rgba(255,255,255,0.05)", border: "1px solid var(--border-subtle)", borderRadius: "6px", color: "#fff", fontFamily: "inherit" }} />

@@ -54,19 +54,19 @@ export default function Observations() {
   };
 
   return (
-    <div style={{ padding: "4rem 2rem", maxWidth: "1200px", margin: "0 auto", minHeight: "80vh", display: "flex", flexDirection: "column", gap: "4rem" }}>
+    <div style={{ padding: "4rem 1rem", maxWidth: "1200px", margin: "0 auto", minHeight: "80vh", display: "flex", flexDirection: "column", gap: "4rem" }}>
       
       {/* ── HEADER & SEARCH CONTROLS ── */}
       <AnimatedSection>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "2rem", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div style={{ flex: "1 1 400px" }}>
             <p className="section-title">Astro Archive</p>
-            <h1 className="page-title" style={{ fontSize: "3rem", margin: 0 }}><span className="gradient-text">Observations</span></h1>
+            <h1 className="page-title" style={{ fontSize: "clamp(2rem, 5vw, 3rem)", margin: 0 }}><span className="gradient-text">Observations</span></h1>
             <p style={{ color: "var(--text-secondary)", marginTop: "1rem", maxWidth: "500px" }}>Explore captured images, techniques, and data shared by our club members.</p>
           </div>
 
           <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
-            <div style={{ position: "relative", width: "250px" }}>
+            <div style={{ position: "relative", width: "100%", maxWidth: "250px", minWidth: "0" }}>
               <input 
                 type="text" 
                 placeholder="Search observations..." 
@@ -115,16 +115,16 @@ export default function Observations() {
               display: "flex", flexWrap: "wrap", background: "rgba(8,12,22,0.8)", border: "1px solid var(--gold-dark)", 
               borderRadius: "16px", overflow: "hidden", position: "relative" 
             }}>
-              <div style={{ flex: "1 1 500px", minHeight: "400px" }}>
+              <div style={{ flex: "1 1 min(100%, 500px)", minHeight: "300px" }}>
                  <img src={featuredObs.imageCompressedUrl || featuredObs.imageOriginalUrl} alt={featuredObs.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
-              <div style={{ flex: "1 1 400px", padding: "3rem", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+              <div style={{ flex: "1 1 min(100%, 400px)", padding: "2rem", display: "flex", flexDirection: "column", justifyContent: "center" }}>
                 <div style={{ display: "flex", gap: "0.8rem", marginBottom: "1rem" }}>
                    <span style={{ fontSize: "0.75rem", padding: "0.3rem 0.8rem", borderRadius: "12px", background: getCategoryFormat(featuredObs.category).bg, color: getCategoryFormat(featuredObs.category).color, fontWeight: "bold" }}>
                       {getCategoryFormat(featuredObs.category).icon} {getCategoryFormat(featuredObs.category).label}
                    </span>
                 </div>
-                <h3 style={{ fontSize: "2.5rem", marginBottom: "0.5rem", lineHeight: 1.1 }}>{featuredObs.title}</h3>
+                <h3 style={{ fontSize: "clamp(1.5rem, 4vw, 2.5rem)", marginBottom: "0.5rem", lineHeight: 1.1 }}>{featuredObs.title}</h3>
                 <p style={{ color: "var(--text-muted)", fontSize: "0.95rem", marginBottom: "1rem" }}>
                   Target: <strong style={{color:"#fff"}}>{featuredObs.celestialTarget}</strong><br/>
                   Captured by <span style={{ color: "var(--text-primary)", fontWeight: "bold" }}>{featuredObs.observerId.slice(0,8)}</span> on {formatDate(featuredObs.capturedAt)}
@@ -146,7 +146,7 @@ export default function Observations() {
       {/* ── OBSERVATIONS GRID ── */}
       {!loading && (
         <AnimatedSection delay={0.2}>
-           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "2rem" }}>
+           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap: "2rem" }}>
               {filteredObservations.map((obs) => {
                 const cat = getCategoryFormat(obs.category);
                 return (

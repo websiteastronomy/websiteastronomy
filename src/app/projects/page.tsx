@@ -73,7 +73,7 @@ export default function ProjectsList() {
   };
 
   return (
-    <div style={{ padding: "4rem 2rem", maxWidth: "1200px", margin: "0 auto", minHeight: "80vh" }}>
+    <div style={{ padding: "4rem 1rem", maxWidth: "1200px", margin: "0 auto", minHeight: "80vh" }}>
       <AnimatedSection>
         <div style={{ textAlign: "center", marginBottom: "3rem" }}>
           <p className="section-title">What We Build</p>
@@ -132,7 +132,7 @@ export default function ProjectsList() {
       </AnimatedSection>
 
       {/* PROJECT GRID */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '2rem' }}>
         <AnimatePresence mode="popLayout">
           {filteredProjects.map((proj, i) => (
             <motion.div

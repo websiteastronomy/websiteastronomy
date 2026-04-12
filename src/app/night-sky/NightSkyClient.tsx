@@ -70,7 +70,7 @@ export default function NightSkyClient({ nightSkyData, state, lastUpdatedLabel }
         </div>
       </AnimatedSection>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "2rem", width: "100%", marginBottom: "4rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "2rem", width: "100%", marginBottom: "4rem" }}>
         <AnimatedCard index={0} style={{ padding: "2rem", display: "flex", flexDirection: "column", alignItems: "center", background: "rgba(15, 22, 40, 0.5)", border: "1px solid rgba(255, 255, 255, 0.05)" }}>
           <div style={{ position: "relative", width: "150px", height: "150px", marginBottom: "1.5rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <motion.div animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} style={{ position: "absolute", width: "100%", height: "100%", border: "1px dashed rgba(201, 168, 76, 0.3)", borderRadius: "50%" }} />
@@ -129,7 +129,7 @@ export default function NightSkyClient({ nightSkyData, state, lastUpdatedLabel }
         <h2 style={{ fontSize: "1.8rem", marginBottom: "0.6rem", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "0.8rem" }}>Astronomical Calendar</h2>
         <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem" }}>Upcoming observing moments and celestial events worth planning around.</p>
       </AnimatedSection>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))", gap: "1.5rem", width: "100%" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "1.5rem", width: "100%" }}>
         {upcomingEvents.length === 0 ? (
           <AnimatedCard index={0} style={{ padding: "1.5rem" }}>
             <p style={{ color: "var(--text-muted)" }}>No event data is available right now. Please check back soon.</p>

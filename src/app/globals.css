@@ -1340,3 +1340,76 @@ select.dash-filter-input {
     padding-right: 2.5rem;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   PUBLIC-FACING MOBILE RESPONSIVENESS (320px – 768px)
+   Fixes layout overflow, text sizing, grid stacking, spacing on all pages.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+
+  /* ── GLOBAL PAGE UTILITIES ── */
+  .page-container {
+    padding: 2.5rem 1rem 1.5rem !important;
+  }
+
+  .page-title {
+    font-size: 2rem !important;
+    line-height: 1.2 !important;
+    word-break: break-word;
+  }
+
+  .page-subtitle {
+    font-size: 0.92rem !important;
+    margin-bottom: 2rem !important;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    padding: 2.5rem 1.25rem 1.5rem !important;
+  }
+
+  footer > div:first-child {
+    grid-template-columns: 1fr !important;
+    gap: 2rem !important;
+  }
+
+  footer > div:last-child {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+  }
+
+  /* ── TOAST ── */
+  .toast-container {
+    right: 10px;
+    left: 10px;
+    max-width: 100%;
+  }
+
+  .toast-item {
+    max-width: 100%;
+  }
+}
+
+/* ── Very small screens (320px-480px) — extra safety ── */
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 1.75rem !important;
+  }
+
+  .hero-subtitle {
+    font-size: 0.7rem !important;
+    letter-spacing: 0.2em !important;
+  }
+
+  .section-title {
+    font-size: 0.7rem !important;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 0.75rem 1.5rem !important;
+    font-size: 0.8rem !important;
+  }
+}

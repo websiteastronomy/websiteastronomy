@@ -167,7 +167,7 @@ export default function EducationHub() {
               </button>
             ))}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 220px auto", gap: "1rem", alignItems: "center" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: "1rem", alignItems: "center" }}>
             <input
               type="text"
               placeholder="Search by title or tag"
