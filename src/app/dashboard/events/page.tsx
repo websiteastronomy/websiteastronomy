@@ -204,7 +204,7 @@ export default function DashboardEventsPage() {
               );
             })}
           </div>
-        )} )}
+        )}
       </div>
     </div>
   );

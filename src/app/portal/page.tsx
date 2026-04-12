@@ -11,6 +11,7 @@ import PortalNotifications from "@/components/portal/PortalNotifications";
 import PortalOverview from "@/components/portal/PortalOverview";
 import PortalProfile from "@/components/portal/PortalProfile";
 import PortalProjects from "@/components/portal/PortalProjects";
+import DeprecationBanner from "@/components/DeprecationBanner";
 import { usePortalData } from "@/components/portal/usePortalData";
 import { useAuth } from "@/context/AuthContext";
 import { canAccessAdminPage as canAccessAdminDashboard } from "@/lib/admin-access";
@@ -63,6 +64,7 @@ export default function Portal() {
 
   return (
     <div className="page-container">
+      <DeprecationBanner currentPath="/portal" />
       <AnimatedSection>
         <p className="section-title" style={{ textAlign: "center" }}>
           Welcome Back

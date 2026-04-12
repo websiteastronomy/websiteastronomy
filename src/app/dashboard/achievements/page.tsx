@@ -129,7 +129,7 @@ export default function DashboardAchievementsPage() {
         <div className="empty-state">
           <div className="empty-state-icon">🏆</div>
           <div className="empty-state-title">No achievements</div>
-          <div className="empty-state-desc">The club's achievements will appear here.</div>
+          <div className="empty-state-desc">The club&apos;s achievements will appear here.</div>
         </div>
       ) : (
         <div className="dash-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1.5rem" }}>

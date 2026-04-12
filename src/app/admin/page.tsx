@@ -9,6 +9,7 @@ import {
   canAccessAdminPage as canAccessAdminDashboard,
 } from "@/lib/admin-access";
 
+import DeprecationBanner from "@/components/DeprecationBanner";
 import OverviewManager from "./components/OverviewManager";
 import CoreObservationsManager from "./components/CoreObservationsManager";
 import EventsManager from "./components/EventsManager";
@@ -179,8 +180,10 @@ export default function Admin() {
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "calc(100vh - 60px)" }}>
-      <aside style={{ width: "220px", background: "rgba(8, 12, 22, 0.6)", borderRight: "1px solid var(--border-subtle)", padding: "2rem 0", flexShrink: 0 }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 60px)" }}>
+      <DeprecationBanner currentPath="/admin" />
+      <div style={{ display: "flex", flex: 1 }}>
+        <aside style={{ width: "220px", background: "rgba(8, 12, 22, 0.6)", borderRight: "1px solid var(--border-subtle)", padding: "2rem 0", flexShrink: 0 }}>
         <div style={{ padding: "0 1.5rem", marginBottom: "2rem" }}>
           <h3 className="gradient-text" style={{ fontFamily: "'Cinzel', serif", fontSize: "1rem", letterSpacing: "0.08em" }}>Admin Panel</h3>
           <p style={{ color: "var(--text-muted)", fontSize: "0.7rem", marginTop: "0.3rem" }}>
@@ -238,6 +241,7 @@ export default function Admin() {
         {currentTab === "logs" ? <div style={{ animation: "fadeIn 0.3s ease" }}><ActivityLogsManager /></div> : null}
         {currentTab === "settings" ? <div style={{ animation: "fadeIn 0.3s ease" }}><SettingsManager /></div> : null}
         {currentTab === "system" ? <div style={{ animation: "fadeIn 0.3s ease" }}><SystemSettingsManager /></div> : null}
+      </div>
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ import {
   getDashboardRouteModule,
   getDefaultDashboardHref,
 } from "@/lib/module-access";
+import DeprecationBanner from "@/components/DeprecationBanner";
 
 function SidebarBadge({ label }: { label: string }) {
   return (
@@ -123,9 +124,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <div style={{ display: "flex", minHeight: "calc(100vh - 80px)" }}>
-      <aside
-        style={{
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 80px)" }}>
+      <DeprecationBanner currentPath="/dashboard" />
+      <div style={{ display: "flex", flex: 1 }}>
+        <aside
+          style={{
           width: "240px",
           minWidth: "240px",
           background: "rgba(11, 16, 30, 0.95)",
@@ -260,6 +263,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       <div className="dash-fade-in" style={{ flex: 1, padding: "2rem", minWidth: 0, overflowY: "auto" }}>{children}</div>
+      </div>
     </div>
   );
 }
