@@ -40,9 +40,15 @@ export default function SystemRestrictionPage({ variant, title, message, until }
             })} IST
           </p>
         ) : null}
-        <p style={{ marginTop: "1.5rem", color: "var(--text-muted)", fontSize: "0.85rem" }}>
-          {isMaintenance ? "Please check back later." : "If you believe you should have access, contact an administrator."}
-        </p>
+
+        <div style={{ marginTop: "2.5rem", paddingTop: "2rem", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+          <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginBottom: "1.2rem" }}>
+            If you are an administrator, please log in to access the system and manage settings.
+          </p>
+          <a href="/portal" style={{ display: "inline-block", padding: "0.75rem 1.7rem", borderRadius: "8px", background: "var(--gold)", color: "#000", fontWeight: "bold", textDecoration: "none", fontSize: "0.95rem", transition: "all 0.2s ease" }}>
+            Admin Login
+          </a>
+        </div>
       </div>
     </div>
   );
