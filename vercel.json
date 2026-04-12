@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/night-sky/refresh",
-      "schedule": "0 */12 * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
