@@ -13,6 +13,7 @@ type NavbarProps = {
 
 export default function Navbar({ initialIsRecruiting = false }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { scrollY } = useScroll();
   const pathname = usePathname();
   const { user } = useAuth();
@@ -41,6 +42,23 @@ export default function Navbar({ initialIsRecruiting = false }: NavbarProps) {
       .catch(() => undefined);
   }, []);
 
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      document.body.style.overflow = '';
+      return;
+    }
+
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
     return pathname.startsWith(href);
@@ -50,11 +68,30 @@ export default function Navbar({ initialIsRecruiting = false }: NavbarProps) {
     color: isActive(href) ? 'var(--gold-light)' : undefined,
   });
 
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
+  const mobileMenuLinks = [
+    { href: '/', label: 'Home', visible: true },
+    { href: '/about', label: 'About', visible: true },
+    { href: '/projects', label: 'Projects', visible: true },
+    { href: '/observations', label: 'Observation', visible: features.observationsEnabled },
+    { href: '/events', label: 'Event', visible: features.eventsEnabled },
+    { href: '/education/quizzes', label: 'Quiz', visible: features.quizzesEnabled },
+    { href: '/documentation', label: 'Documentation', visible: true },
+    { href: '/outreach', label: 'Outreach', visible: true },
+    { href: '/education', label: 'Education', visible: true },
+    { href: '/night-sky', label: 'Night Sky', visible: true },
+    { href: '/join', label: 'Join', visible: isRecruiting },
+    { href: '/app', label: 'Dashboard', visible: Boolean(user) },
+    { href: '/portal', label: 'Login', visible: !user, className: 'btn-primary mobile-nav-cta' },
+  ].filter((link) => link.visible);
+
   return (
     <motion.nav
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: [0.25, 0.4, 0.25, 1] }}
+      className="site-navbar"
       style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -69,10 +106,11 @@ export default function Navbar({ initialIsRecruiting = false }: NavbarProps) {
         transition: 'padding 0.3s ease, background 0.3s ease',
       }}
     >
-      <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', textDecoration: 'none' }} prefetch={false}>
+      <Link href="/" className="site-navbar-brand" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', textDecoration: 'none' }} prefetch={false}>
         <motion.img
           src="/logo.png"
           alt="Logo"
+          className="site-navbar-logo"
           style={{
             height: scrolled ? '28px' : '36px',
             width: 'auto',
@@ -81,7 +119,7 @@ export default function Navbar({ initialIsRecruiting = false }: NavbarProps) {
             transition: 'height 0.3s ease',
           }}
         />
-        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+        <div className="site-navbar-brand-copy" style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
           <span className="gradient-text" style={{ fontSize: scrolled ? '0.9rem' : '1rem', fontWeight: 700, fontFamily: "'Cinzel', serif", letterSpacing: '0.08em', transition: 'font-size 0.3s ease' }}>
             Astronomy Club
           </span>
@@ -91,13 +129,12 @@ export default function Navbar({ initialIsRecruiting = false }: NavbarProps) {
         </div>
       </Link>
 
-      {/* Desktop Nav */}
-      <div style={{ display: 'flex', gap: '1.8rem', alignItems: 'center' }}>
+      <div className="site-navbar-desktop" style={{ display: 'flex', gap: '1.8rem', alignItems: 'center' }}>
         <Link href="/" className="nav-link" style={navLinkStyle('/')} prefetch={false}>Home</Link>
         <Link href="/about" className="nav-link" style={navLinkStyle('/about')} prefetch={false}>About</Link>
 
         <div className="nav-dropdown">
-          <span className="nav-link" style={{ cursor: 'default', color: isActive('/projects') || isActive('/observations') || isActive('/outreach') ? 'var(--gold-light)' : undefined }}>Explore ▾</span>
+          <span className="nav-link" style={{ cursor: 'default', color: isActive('/projects') || isActive('/observations') || isActive('/outreach') ? 'var(--gold-light)' : undefined }}>Explore v</span>
           <div className="dropdown-menu">
             <Link href="/projects" className="dropdown-item" style={isActive('/projects') ? { color: 'var(--gold-light)' } : {}} prefetch={false}>Projects</Link>
             <Link href="/observations" className="dropdown-item" style={isActive('/observations') ? { color: 'var(--gold-light)' } : {}} prefetch={false}>Observation</Link>
@@ -118,16 +155,66 @@ export default function Navbar({ initialIsRecruiting = false }: NavbarProps) {
           <Link href="/join" className="nav-link" style={navLinkStyle('/join')} prefetch={false}>Join</Link>
         )}
 
-        {/* Notification Bell — only for authenticated users */}
         {user && <NotificationBell />}
 
-        {/* Dashboard — only for authenticated users */}
         {user && (
           <Link href="/app" className="nav-link" style={navLinkStyle('/app')} prefetch={false}>Dashboard</Link>
         )}
         {!user && (
           <Link href="/portal" className="btn-primary" style={{ padding: '0.5rem 1.2rem', fontSize: '0.75rem', marginLeft: '0.5rem' }} prefetch={false}>Login</Link>
         )}
+      </div>
+
+      <button
+        type="button"
+        className={`site-navbar-toggle${isMobileMenuOpen ? ' open' : ''}`}
+        aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+        aria-expanded={isMobileMenuOpen}
+        aria-controls="mobile-navigation-menu"
+        onClick={() => setIsMobileMenuOpen((open) => !open)}
+      >
+        <span />
+        <span />
+        <span />
+      </button>
+
+      <div
+        className={`site-mobile-nav-backdrop${isMobileMenuOpen ? ' open' : ''}`}
+        onClick={closeMobileMenu}
+        aria-hidden={!isMobileMenuOpen}
+      />
+
+      <div
+        id="mobile-navigation-menu"
+        className={`site-mobile-nav-panel${isMobileMenuOpen ? ' open' : ''}`}
+        aria-hidden={!isMobileMenuOpen}
+      >
+        <div className="site-mobile-nav-header">
+          <span className="site-mobile-nav-title">Navigation</span>
+          <button
+            type="button"
+            className="site-mobile-nav-close"
+            aria-label="Close navigation menu"
+            onClick={closeMobileMenu}
+          >
+            X
+          </button>
+        </div>
+
+        <div className="site-mobile-nav-links">
+          {mobileMenuLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={link.className ?? 'site-mobile-nav-link'}
+              style={link.className ? undefined : navLinkStyle(link.href)}
+              onClick={closeMobileMenu}
+              prefetch={false}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
       </div>
     </motion.nav>
   );
