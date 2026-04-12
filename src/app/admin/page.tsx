@@ -65,6 +65,7 @@ export default function Admin() {
   } = useAuth();
 
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "overview");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -179,9 +180,62 @@ export default function Admin() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 60px)" }}>
-      <div style={{ display: "flex", flex: 1 }}>
-        <aside style={{ width: "220px", background: "rgba(8, 12, 22, 0.6)", borderRight: "1px solid var(--border-subtle)", padding: "2rem 0", flexShrink: 0 }}>
+    <div className="dashboard-root" style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 60px)" }}>
+      {/* Mobile Top Header (only visible on mobile via CSS) */}
+      <div 
+        className="mobile-nav-toggle" 
+        style={{ 
+          display: "flex", 
+          alignItems: "center", 
+          padding: "1rem", 
+          borderBottom: "1px solid var(--border-subtle)", 
+          background: "rgba(11, 16, 30, 0.95)", 
+          position: "sticky", 
+          top: 0, 
+          zIndex: 30 
+        }}
+      >
+        <button 
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+          style={{ 
+            background: "transparent", 
+            border: "none", 
+            color: "var(--text-primary)", 
+            fontSize: "1.5rem", 
+            cursor: "pointer", 
+            padding: "0.5rem", 
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "center" 
+          }}
+        >
+          ☰
+        </button>
+        <h1 style={{ fontSize: "1.1rem", margin: 0, marginLeft: "0.5rem", color: "var(--text-primary)" }}>Admin Control</h1>
+      </div>
+
+      {/* Sidebar Overlay */}
+      <div
+        className={`sidebar-overlay ${isSidebarOpen ? "open" : ""}`}
+        onClick={() => setIsSidebarOpen(false)}
+      />
+
+      <div style={{ display: "flex", flex: 1, position: "relative", minHeight: 0 }}>
+        <aside 
+          className={`sidebar-container ${isSidebarOpen ? "open" : ""}`} 
+          style={{ 
+            width: "220px", 
+            background: "rgba(8, 12, 22, 0.95)", 
+            borderRight: "1px solid var(--border-subtle)", 
+            padding: "2rem 0", 
+            flexShrink: 0,
+            overflowY: "auto",
+            height: "calc(100vh - 60px)",
+            position: "sticky",
+            top: "60px",
+            zIndex: 20
+          }}
+        >
         <div style={{ padding: "0 1.5rem", marginBottom: "2rem" }}>
           <h3 className="gradient-text" style={{ fontFamily: "'Cinzel', serif", fontSize: "1rem", letterSpacing: "0.08em" }}>Admin Panel</h3>
           <p style={{ color: "var(--text-muted)", fontSize: "0.7rem", marginTop: "0.3rem" }}>
@@ -192,7 +246,10 @@ export default function Admin() {
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setIsSidebarOpen(false);
+              }}
               style={{ display: "flex", alignItems: "center", gap: "0.8rem", padding: "0.7rem 1.5rem", background: currentTab === tab.id ? "rgba(201, 168, 76, 0.08)" : "transparent", border: "none", borderLeft: currentTab === tab.id ? "2px solid var(--gold)" : "2px solid transparent", color: currentTab === tab.id ? "var(--gold-light)" : "var(--text-secondary)", cursor: "pointer", fontSize: "0.85rem", fontFamily: "inherit", textAlign: "left", width: "100%" }}
             >
               <span>{tab.icon}</span> {tab.label}

@@ -225,14 +225,18 @@ export function StatusBadge({
 export function TableContainer({ children }: { children: React.ReactNode }) {
   return (
     <div
+      className="mobile-table-scroll"
       style={{
         background: "rgba(15,22,40,0.35)",
         border: "1px solid var(--border-subtle)",
         borderRadius: "12px",
-        overflow: "hidden",
+        overflowX: "auto",
+        overflowY: "hidden",
       }}
     >
-      {children}
+      <div style={{ minWidth: "100%" }}>
+        {children}
+      </div>
     </div>
   );
 }

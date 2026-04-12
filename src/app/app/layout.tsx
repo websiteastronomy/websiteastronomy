@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -50,6 +50,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   else if (roleName === "lead" || roleName === "project_lead") panelRedirectLabel = "Project Panel";
   else if (dashboardRole === "finance_head") panelRedirectLabel = "Finance Panel";
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   useEffect(() => {
     if (!loading && !user && pathname.startsWith("/app")) {
       router.replace(`/?login=true&redirect=${encodeURIComponent(pathname)}`);
@@ -81,25 +83,66 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <div style={{ display: "flex", minHeight: "calc(100vh - 80px)" }}>
-      <aside
-        style={{
-          width: "240px",
-          minWidth: "240px",
-          background: "rgba(11, 16, 30, 0.95)",
-          borderRight: "1px solid var(--border-subtle)",
-          padding: "1.5rem 0",
-          display: "flex",
-          flexDirection: "column",
-          gap: "0.25rem",
-          position: "sticky",
-          top: "64px",
-          height: "calc(100vh - 64px)",
-          overflowY: "auto",
+    <div className="dashboard-root" style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 64px)" }}>
+      {/* Mobile Top Header (only visible on mobile via CSS) */}
+      <div 
+        className="mobile-nav-toggle" 
+        style={{ 
+          display: "flex", 
+          alignItems: "center", 
+          padding: "1rem", 
+          borderBottom: "1px solid var(--border-subtle)", 
+          background: "rgba(11, 16, 30, 0.95)", 
+          position: "sticky", 
+          top: 0, 
+          zIndex: 30 
         }}
       >
-        <div style={{ padding: "0 1.25rem 1.25rem", borderBottom: "1px solid var(--border-subtle)", marginBottom: "0.5rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        <button 
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+          style={{ 
+            background: "transparent", 
+            border: "none", 
+            color: "var(--text-primary)", 
+            fontSize: "1.5rem", 
+            cursor: "pointer", 
+            padding: "0.5rem", 
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "center" 
+          }}
+        >
+          ☰
+        </button>
+        <h1 style={{ fontSize: "1.1rem", margin: 0, marginLeft: "0.5rem", color: "var(--gold)" }}>Dashboard</h1>
+      </div>
+      
+      {/* Sidebar Overlay */}
+      <div
+        className={`sidebar-overlay ${isSidebarOpen ? "open" : ""}`}
+        onClick={() => setIsSidebarOpen(false)}
+      />
+
+      <div style={{ display: "flex", flex: 1, position: "relative", minHeight: 0 }}>
+        <aside
+          className={`sidebar-container ${isSidebarOpen ? "open" : ""}`}
+          style={{
+            width: "240px",
+            minWidth: "240px",
+            background: "rgba(11, 16, 30, 0.95)",
+            borderRight: "1px solid var(--border-subtle)",
+            padding: "1.5rem 0",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.25rem",
+            position: "sticky",
+            top: "64px",
+            height: "calc(100vh - 64px)",
+            overflowY: "auto",
+          }}
+        >
+          <div style={{ padding: "0 1.25rem 1.25rem", borderBottom: "1px solid var(--border-subtle)", marginBottom: "0.5rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <div
               style={{
                 width: "36px",
@@ -240,6 +283,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="dash-fade-in" style={{ flex: 1, padding: "2rem", minWidth: 0, overflowY: "auto" }}>
         {children}
       </main>
+      </div>
     </div>
   );
 }
