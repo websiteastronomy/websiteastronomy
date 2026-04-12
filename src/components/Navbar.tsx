@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { motion, useMotionValueEvent, useScroll } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValueEvent, useScroll } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import NotificationBell from '@/components/NotificationBell';
@@ -14,6 +14,7 @@ type NavbarProps = {
 export default function Navbar({ initialIsRecruiting = false }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isExploreMobileOpen, setIsExploreMobileOpen] = useState(false);
   const { scrollY } = useScroll();
   const pathname = usePathname();
   const { user } = useAuth();
@@ -204,18 +205,42 @@ export default function Navbar({ initialIsRecruiting = false }: NavbarProps) {
         </div>
 
         <div className="site-mobile-nav-links">
-          {mobileMenuLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={link.className ?? 'site-mobile-nav-link'}
-              style={link.className ? undefined : navLinkStyle(link.href)}
-              onClick={closeMobileMenu}
-              prefetch={false}
-            >
-              {link.label}
-            </Link>
-          ))}
+          <Link href="/" className="site-mobile-nav-link" style={navLinkStyle('/')} onClick={closeMobileMenu}>Home</Link>
+          <Link href="/about" className="site-mobile-nav-link" style={navLinkStyle('/about')} onClick={closeMobileMenu}>About</Link>
+          
+          <button 
+            onClick={() => setIsExploreMobileOpen(!isExploreMobileOpen)}
+            className="site-mobile-nav-link"
+            style={{ 
+              background: 'transparent', border: 'none', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', color: 'var(--text-primary)', padding: '0.8rem 1.2rem', fontFamily: 'inherit', fontSize: 'inherit', marginTop: '0.2rem'
+            }}
+          >
+            Explore <span style={{ transform: isExploreMobileOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s ease', fontSize: '0.8em' }}>▼</span>
+          </button>
+          
+          <AnimatePresence>
+            {isExploreMobileOpen && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }} 
+                animate={{ height: 'auto', opacity: 1 }} 
+                exit={{ height: 0, opacity: 0 }}
+                style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '0.4rem', paddingLeft: '1.5rem', borderLeft: '1px solid rgba(255,255,255,0.1)', marginLeft: '1rem', marginTop: '0.2rem', marginBottom: '0.5rem' }}
+              >
+                <Link href="/projects" className="site-mobile-nav-link" style={navLinkStyle('/projects')} onClick={closeMobileMenu}>Projects</Link>
+                {features.observationsEnabled && <Link href="/observations" className="site-mobile-nav-link" style={navLinkStyle('/observations')} onClick={closeMobileMenu}>Observations</Link>}
+                {features.eventsEnabled && <Link href="/events" className="site-mobile-nav-link" style={navLinkStyle('/events')} onClick={closeMobileMenu}>Events</Link>}
+                {features.quizzesEnabled && <Link href="/education/quizzes" className="site-mobile-nav-link" style={navLinkStyle('/education/quizzes')} onClick={closeMobileMenu}>Quizzes</Link>}
+                <Link href="/documentation" className="site-mobile-nav-link" style={navLinkStyle('/documentation')} onClick={closeMobileMenu}>Documentation</Link>
+                <Link href="/outreach" className="site-mobile-nav-link" style={navLinkStyle('/outreach')} onClick={closeMobileMenu}>Outreach</Link>
+                <Link href="/education" className="site-mobile-nav-link" style={navLinkStyle('/education')} onClick={closeMobileMenu}>Education</Link>
+                <Link href="/night-sky" className="site-mobile-nav-link" style={navLinkStyle('/night-sky')} onClick={closeMobileMenu}>Night Sky</Link>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {isRecruiting && <Link href="/join" className="site-mobile-nav-link" style={navLinkStyle('/join')} onClick={closeMobileMenu}>Join</Link>}
+          {user && <Link href="/app" className="site-mobile-nav-link" style={navLinkStyle('/app')} onClick={closeMobileMenu}>Dashboard</Link>}
+          {!user && <Link href="/portal" className="btn-primary mobile-nav-cta" style={{ width: '100%', textAlign: 'center', marginTop: '1rem', display: 'block', boxSizing: 'border-box' }} onClick={closeMobileMenu}>Login</Link>}
         </div>
       </div>
     </>

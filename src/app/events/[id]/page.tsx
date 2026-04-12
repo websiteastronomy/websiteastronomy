@@ -142,11 +142,11 @@ export default function EventDetail() {
           <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "70%", background: "linear-gradient(to top, rgba(8,12,22,1) 0%, rgba(8,12,22,0.8) 40%, transparent 100%)" }} />
         </div>
         
-        <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", maxWidth: "1000px", margin: "0 auto", padding: "2rem" }}>
+        <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", maxWidth: "1000px", margin: "0 auto", padding: "2rem 1rem" }}>
           <motion.button 
             initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
             onClick={() => router.back()}
-            style={{ position: "absolute", top: "2rem", background: "rgba(15,22,40,0.6)", backdropFilter: "blur(8px)", border: "1px solid var(--border-subtle)", color: "var(--text-secondary)", padding: "0.5rem 1rem", borderRadius: "8px", cursor: "pointer", fontFamily: "'Space Grotesk', sans-serif" }}
+            style={{ position: "absolute", top: "2rem", left: "1rem", background: "rgba(15,22,40,0.6)", backdropFilter: "blur(8px)", border: "1px solid var(--border-subtle)", color: "var(--text-secondary)", padding: "0.5rem 1rem", borderRadius: "8px", cursor: "pointer", fontFamily: "'Space Grotesk', sans-serif" }}
           >
             ← Back
           </motion.button>
@@ -187,7 +187,7 @@ export default function EventDetail() {
         </div>
       </div>
 
-      <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "2rem", display: "grid", gridTemplateColumns: "1fr 340px", gap: "4rem", alignItems: "start" }}>
+      <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "2rem 1rem", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 340px), 1fr))", gap: "4rem", alignItems: "start" }}>
         
         {/* ── LEFT COLUMN ──────────────── */}
         <div style={{ display: "flex", flexDirection: "column", gap: "4rem" }}>

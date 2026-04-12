@@ -97,7 +97,7 @@ export default function ObservationDetail() {
         </div>
 
         {/* Action Buttons Overlay */}
-        <div style={{ position: "absolute", top: "2rem", left: "2rem", zIndex: 10, display: "flex", gap: "1rem" }}>
+        <div style={{ position: "absolute", top: "2rem", left: "1rem", zIndex: 10, display: "flex", gap: "1rem" }}>
           <motion.button 
             initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
             onClick={() => router.back()}
@@ -108,7 +108,7 @@ export default function ObservationDetail() {
         </div>
 
         {obs.imageOriginalUrl && (
-          <div style={{ position: "absolute", bottom: "2rem", right: "2rem", zIndex: 10 }}>
+          <div style={{ position: "absolute", bottom: "2rem", right: "1rem", zIndex: 10 }}>
             <a href={obs.imageOriginalUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ backdropFilter: "blur(8px)", background: "rgba(15,22,40,0.6)", padding: "0.5rem 1rem", fontSize: "0.8rem" }}>
               View Original Resolution ↗
             </a>
@@ -117,7 +117,7 @@ export default function ObservationDetail() {
       </div>
 
       {/* ── CONTENT GRID ── */}
-      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "4rem 2rem", display: "grid", gridTemplateColumns: "1fr 380px", gap: "5rem", alignItems: "start" }}>
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "4rem 1rem", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 350px), 1fr))", gap: "5rem", alignItems: "start" }}>
         
         {/* ── LEFT COLUMN (STORY & DETAILS) ── */}
         <div style={{ display: "flex", flexDirection: "column", gap: "3rem" }}>

@@ -776,7 +776,7 @@ export function ProjectDetailClient({ routeSection }: { routeSection?: ProjectRo
       <div style={{ width: "100%", height: "44vh", minHeight: "300px", position: "relative", overflow: "hidden" }}>
         <img src={proj.coverImage} alt={proj.title} style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.55 }} />
         <div style={{ position: "absolute", bottom: 0, left: 0, width: "100%", height: "80%", background: "linear-gradient(to top, rgba(8,12,22,1) 0%, rgba(8,12,22,0.7) 50%, transparent 100%)" }} />
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "flex-end", maxWidth: "1200px", margin: "0 auto", padding: "2rem" }}>
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "flex-end", maxWidth: "1200px", margin: "0 auto", padding: "2rem 1rem", zIndex: 10 }}>
           <motion.button
             initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} onClick={() => router.back()}
             style={{ position: "absolute", top: "2rem", left: "2rem", background: "rgba(15,22,40,0.6)", backdropFilter: "blur(8px)", border: "1px solid var(--border-subtle)", color: "var(--text-secondary)", padding: "0.5rem 1rem", borderRadius: "8px", cursor: "pointer", fontFamily: "'Space Grotesk', sans-serif", fontSize: "0.85rem" }}
@@ -803,7 +803,7 @@ export function ProjectDetailClient({ routeSection }: { routeSection?: ProjectRo
 
       {/* ── META STRIP ── */}
       <div style={{ background: "rgba(11,16,30,0.97)", borderBottom: "1px solid var(--border-subtle)", backdropFilter: "blur(12px)" }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "1rem 2rem" }}>
+        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "1rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.9rem" }}>
             <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Progress</span>
             <div style={{ flex: 1, height: "5px", background: "rgba(255,255,255,0.06)", borderRadius: "3px", overflow: "hidden" }}>
@@ -824,7 +824,7 @@ export function ProjectDetailClient({ routeSection }: { routeSection?: ProjectRo
       </div>
 
       {/* ── MAIN LAYOUT ── */}
-      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "2rem", display: "grid", gridTemplateColumns: "1fr 320px", gap: "2rem", alignItems: "start" }}>
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "2rem 1rem", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 350px), 1fr))", gap: "2rem", alignItems: "start" }}>
 
         {/* ── LEFT COLUMN ── */}
         <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
@@ -836,7 +836,7 @@ export function ProjectDetailClient({ routeSection }: { routeSection?: ProjectRo
 
           {/* Tab Nav */}
           {!routeSection && <AnimatedSection delay={0.05}>
-            <div style={{ display: "flex", gap: "0.25rem", background: "rgba(8,12,22,0.6)", border: "1px solid var(--border-subtle)", borderRadius: "10px", padding: "0.3rem" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", background: "rgba(8,12,22,0.6)", border: "1px solid var(--border-subtle)", borderRadius: "10px", padding: "0.3rem" }}>
               {(["tasks", "files", "documentation", "timeline", "discussion"] as const).map((tab) => (
                 <button key={tab} onClick={() => setActiveTab(tab)} style={{
                   flex: 1, padding: "0.6rem 0.5rem", borderRadius: "7px", border: "none", cursor: "pointer",
