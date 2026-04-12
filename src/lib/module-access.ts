@@ -49,16 +49,16 @@ export const moduleAccess: Record<DashboardModuleKey, DashboardRole[]> = {
 
 export const dashboardModules: DashboardModuleDefinition[] = [
   { key: "overview", label: "Overview", shortLabel: "OV", href: "/dashboard/overview", roles: moduleAccess.overview },
-  { key: "events", label: "Events", shortLabel: "EV", href: "/events", roles: moduleAccess.events },
+  { key: "events", label: "Events", shortLabel: "EV", href: "/dashboard/events", roles: moduleAccess.events },
   { key: "members", label: "Directory & Approvals", shortLabel: "MB", href: "/dashboard/members", roles: moduleAccess.members },
-  { key: "articles_facts", label: "Articles & Facts", shortLabel: "AR", href: "/education", roles: moduleAccess.articles_facts },
+  { key: "articles_facts", label: "Articles & Facts", shortLabel: "AR", href: "/dashboard/education", roles: moduleAccess.articles_facts },
   { key: "projects", label: "Projects", shortLabel: "PR", href: "/dashboard/projects", roles: moduleAccess.projects },
   { key: "documentation", label: "Documentation", shortLabel: "DC", href: "/dashboard/documentation", roles: moduleAccess.documentation },
-  { key: "observations", label: "Observations", shortLabel: "OB", href: "/observations", roles: moduleAccess.observations },
+  { key: "observations", label: "Observations", shortLabel: "OB", href: "/dashboard/observations", roles: moduleAccess.observations },
   { key: "quizzes", label: "Quizzes", shortLabel: "QZ", href: "/education/quizzes", roles: moduleAccess.quizzes },
-  { key: "outreach", label: "Outreach", shortLabel: "OT", href: "/outreach", roles: moduleAccess.outreach },
-  { key: "achievements", label: "Achievements", shortLabel: "AC", href: "/about", roles: moduleAccess.achievements },
-  { key: "night_sky", label: "Night Sky", shortLabel: "NS", href: "/night-sky", roles: moduleAccess.night_sky },
+  { key: "outreach", label: "Outreach", shortLabel: "OT", href: "/dashboard/outreach", roles: moduleAccess.outreach },
+  { key: "achievements", label: "Achievements", shortLabel: "AC", href: "/dashboard/achievements", roles: moduleAccess.achievements },
+  { key: "night_sky", label: "Night Sky", shortLabel: "NS", href: "/dashboard/night-sky", roles: moduleAccess.night_sky },
   { key: "system_control", label: "System Control", shortLabel: "SC", href: "/admin?tab=system-control", roles: moduleAccess.system_control },
   { key: "announcements", label: "Announcements", shortLabel: "AN", href: "/dashboard/announcements", roles: moduleAccess.announcements },
   { key: "finance", label: "Finance", shortLabel: "FN", href: "/dashboard/finance", roles: moduleAccess.finance },
@@ -146,6 +146,24 @@ export function getDashboardRouteModule(
   }
   if (pathname.startsWith("/dashboard/members")) {
     return "members";
+  }
+  if (pathname.startsWith("/dashboard/events")) {
+    return "events";
+  }
+  if (pathname.startsWith("/dashboard/observations")) {
+    return "observations";
+  }
+  if (pathname.startsWith("/dashboard/education")) {
+    return "articles_facts";
+  }
+  if (pathname.startsWith("/dashboard/outreach")) {
+    return "outreach";
+  }
+  if (pathname.startsWith("/dashboard/achievements")) {
+    return "achievements";
+  }
+  if (pathname.startsWith("/dashboard/night-sky")) {
+    return "night_sky";
   }
   return null;
 }

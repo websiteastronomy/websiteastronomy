@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import ScrollToTop from "@/components/ScrollToTop";
 import CursorGlow from "@/components/CursorGlow";
 import { AuthProvider } from "@/context/AuthContext";
+import { ToastProvider } from "@/components/ToastProvider";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getSystemAccess } from "@/lib/system-rbac";
@@ -91,16 +92,18 @@ export default async function RootLayout({
     <html lang="en" className={`${inter.variable} ${outfit.variable}`}>
       <body>
         <AuthProvider>
-          <Starfield />
-          <CursorGlow />
-          <div style={{ position: "relative", zIndex: 1, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-            <Navbar initialIsRecruiting={siteSettings?.isRecruiting ?? false} />
-            <main style={{ flex: 1 }}>
-              {children}
-            </main>
-            <Footer />
-          </div>
-          <ScrollToTop />
+          <ToastProvider>
+            <Starfield />
+            <CursorGlow />
+            <div style={{ position: "relative", zIndex: 1, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+              <Navbar initialIsRecruiting={siteSettings?.isRecruiting ?? false} />
+              <main style={{ flex: 1 }}>
+                {children}
+              </main>
+              <Footer />
+            </div>
+            <ScrollToTop />
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>

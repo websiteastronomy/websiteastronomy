@@ -38,11 +38,11 @@ function QuickLinkCard({
   return (
     <Link
       href={href}
+      className="dash-card dash-fade-in"
       style={{
         display: "block",
         padding: "1rem 1.1rem",
         borderRadius: "12px",
-        border: "1px solid var(--border-subtle)",
         background: "rgba(12,18,34,0.55)",
         textDecoration: "none",
       }}
@@ -144,7 +144,7 @@ export default function DashboardOverviewClient({
 
       {role === "member" ? (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
+          <div className="dash-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
             <QuickLinkCard title="Projects" description="Track your assigned work and project progress." href="/dashboard/projects" />
             <QuickLinkCard title="Announcements" description="Read the latest club updates and internal notices." href="/dashboard/announcements" />
             <QuickLinkCard title="Activity" description="Review your recent actions and member activity timeline." href="/dashboard/activity-logs" />
@@ -170,7 +170,7 @@ export default function DashboardOverviewClient({
 
       {role === "core" ? (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
+          <div className="dash-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
             <QuickLinkCard title="Projects" description="Open project workspaces and track execution progress." href="/dashboard/projects" />
             <QuickLinkCard title="Approvals" description={`You currently have ${approvalNotifications} approval items waiting in notifications.`} href="/dashboard/members" />
             <QuickLinkCard title="Tasks" description={`You are attached to ${portalData.myProjects.length} active project workspace(s).`} href="/dashboard/projects" />
@@ -196,7 +196,7 @@ export default function DashboardOverviewClient({
 
       {role === "finance_head" ? (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
+          <div className="dash-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
             {[
               { label: "Payments", value: financeLoading ? "Loading..." : formatMoney(financeSummary?.totalIncome || 0) },
               { label: "Expenses", value: financeLoading ? "Loading..." : formatMoney(financeSummary?.totalExpenses || 0) },
@@ -212,7 +212,7 @@ export default function DashboardOverviewClient({
               </div>
             ))}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
+          <div className="dash-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
             <QuickLinkCard title="Finance Workspace" description="Review the payment ledger, expense queue, and exports." href="/dashboard/finance" />
             <QuickLinkCard title="Announcements" description="Keep finance communications in sync with member-facing updates." href="/dashboard/announcements" />
             <QuickLinkCard title="Projects" description="Coordinate with project owners before approving expenses." href="/dashboard/projects" />
@@ -234,7 +234,7 @@ export default function DashboardOverviewClient({
 
       {role === "admin" ? (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
+          <div className="dash-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
             <QuickLinkCard title="Full Overview" description="Open the master admin overview with the full control surface." href="/admin?tab=overview" />
             <QuickLinkCard title="System Control" description="Review maintenance mode, restrictions, and critical system alerts." href="/admin?tab=system-control" />
             <QuickLinkCard title="Activity Logs" description="Inspect audit trails and operational activity from the admin system." href="/admin?tab=logs" />

@@ -517,3 +517,362 @@ html {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   DASHBOARD POLISH — Premium UX utilities
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/* Page-level fade-in */
+@keyframes dashFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dash-fade-in {
+  animation: dashFadeIn 0.3s ease-out both;
+}
+
+/* Staggered list children (use on parent) */
+.dash-stagger > * {
+  animation: dashFadeIn 0.3s ease-out both;
+}
+.dash-stagger > *:nth-child(1)  { animation-delay: 0.03s; }
+.dash-stagger > *:nth-child(2)  { animation-delay: 0.06s; }
+.dash-stagger > *:nth-child(3)  { animation-delay: 0.09s; }
+.dash-stagger > *:nth-child(4)  { animation-delay: 0.12s; }
+.dash-stagger > *:nth-child(5)  { animation-delay: 0.15s; }
+.dash-stagger > *:nth-child(6)  { animation-delay: 0.18s; }
+.dash-stagger > *:nth-child(7)  { animation-delay: 0.21s; }
+.dash-stagger > *:nth-child(8)  { animation-delay: 0.24s; }
+.dash-stagger > *:nth-child(9)  { animation-delay: 0.27s; }
+.dash-stagger > *:nth-child(10) { animation-delay: 0.30s; }
+.dash-stagger > *:nth-child(n+11) { animation-delay: 0.33s; }
+
+/* ── Shimmer Skeleton Loader ── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.03) 25%,
+    rgba(255,255,255,0.07) 50%,
+    rgba(255,255,255,0.03) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+.skeleton-row {
+  display: grid;
+  gap: 1rem;
+  padding: 0.9rem 1.2rem;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.skeleton-bar {
+  height: 12px;
+  border-radius: 4px;
+}
+
+.skeleton-bar-sm { width: 60%; }
+.skeleton-bar-md { width: 80%; }
+.skeleton-bar-lg { width: 100%; }
+
+/* ── Toast Notification System ── */
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastSlideOut {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(20px); }
+}
+
+.toast-container {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  pointer-events: none;
+}
+
+.toast-item {
+  pointer-events: auto;
+  padding: 0.75rem 1.2rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  backdrop-filter: blur(12px);
+  border: 1px solid;
+  max-width: 380px;
+  animation: toastSlideIn 0.25s ease-out both;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.toast-item.toast-exit {
+  animation: toastSlideOut 0.2s ease-in both;
+}
+
+.toast-success {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #86efac;
+}
+
+.toast-error {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.toast-info {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+}
+
+/* ── Dashboard Table Row Hover ── */
+.dash-row {
+  transition: background 0.15s ease;
+}
+.dash-row:hover {
+  background: rgba(255,255,255,0.025);
+}
+
+/* ── Dashboard Card Hover ── */
+.dash-card {
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid var(--border-subtle);
+}
+.dash-card:hover {
+  border-color: rgba(201, 168, 76, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+}
+
+/* ── Danger Button (consistent) ── */
+.btn-danger {
+  display: inline-block;
+  padding: 0.3rem 0.6rem;
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 6px;
+  color: #fca5a5;
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-danger:hover {
+  background: rgba(239,68,68,0.16);
+  border-color: rgba(239,68,68,0.5);
+}
+
+.btn-danger:active {
+  transform: scale(0.96);
+}
+
+/* ── Ghost Button (table actions) ── */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.btn-ghost:hover {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.15);
+  color: var(--text-primary);
+}
+
+.btn-ghost:active {
+  transform: scale(0.96);
+}
+
+/* ── Action Button (gold accent) ── */
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  background: rgba(201,168,76,0.08);
+  border: 1px solid rgba(201,168,76,0.3);
+  border-radius: 6px;
+  color: var(--gold);
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-action:hover {
+  background: rgba(201,168,76,0.16);
+  border-color: rgba(201,168,76,0.5);
+}
+
+.btn-action:active {
+  transform: scale(0.96);
+}
+
+/* ── Primary button click feedback ── */
+.btn-primary:active,
+.btn-secondary:active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 0.1s;
+}
+
+/* ── Focus ring for accessibility ── */
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-ghost:focus-visible,
+.btn-action:focus-visible,
+.btn-danger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg-deep), 0 0 0 4px rgba(201,168,76,0.5);
+}
+
+/* ── Sidebar link hover (dashboard) ── */
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1.25rem;
+  font-size: 0.85rem;
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.sidebar-link:hover {
+  background: rgba(255,255,255,0.03);
+  color: var(--text-primary);
+}
+
+.sidebar-link-active {
+  color: var(--gold-light);
+  background: rgba(201, 168, 76, 0.08);
+  border-left-color: var(--gold);
+  font-weight: 600;
+}
+
+/* ── Lazy-load image fade-in ── */
+.img-lazy {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.img-lazy.loaded {
+  opacity: 1;
+}
+
+/* ── Empty state styling ── */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: rgba(15, 22, 40, 0.2);
+  border-radius: 16px;
+  border: 1px dashed rgba(255,255,255,0.08);
+}
+
+.empty-state-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  opacity: 0.6;
+}
+
+.empty-state-title {
+  font-size: 1.15rem;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.empty-state-desc {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  max-width: 400px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* ── Spinner inline ── */
+@keyframes spinnerSpin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner-inline {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spinnerSpin 0.6s linear infinite;
+  display: inline-block;
+}
+
+/* ── Disabled button state ── */
+button:disabled,
+button[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Dashboard filter bar ── */
+.dash-filter-bar {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 1rem;
+  background: rgba(15,22,40,0.3);
+  borderRadius: 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+}
+
+.dash-filter-input {
+  padding: 0.6rem 0.8rem;
+  background: rgba(15,22,40,0.5);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dash-filter-input:focus {
+  outline: none;
+  border-color: var(--border-hover);
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.1);
+}
+
+.dash-filter-input::placeholder {
+  color: rgba(122, 139, 168, 0.6);
+}
+
+select.dash-filter-input {
+  cursor: pointer;
+}

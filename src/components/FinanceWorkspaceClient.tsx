@@ -477,7 +477,7 @@ export default function FinanceWorkspaceClient({ embedded = false }: FinanceWork
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap", marginTop: "1rem", alignItems: "center" }}>
               <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
-                Amount is validated server-side. Form payments will use the form's configured amount when available.
+                Amount is validated server-side. Form payments will use the form&apos;s configured amount when available.
               </span>
               <button className="btn-primary" style={{ cursor: "pointer", fontFamily: "inherit" }} onClick={handleQuickPayment} disabled={isPending}>
                 {isPending ? "Preparing..." : "Pay with Razorpay"}

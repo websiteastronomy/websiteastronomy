@@ -11,6 +11,12 @@ import type {
   FormStatus,
 } from "@/app/actions/files";
 
+function generateId() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto 
+    ? crypto.randomUUID() 
+    : `q_${Math.floor((typeof performance !== "undefined" ? performance.now() : 0) * 1000)}_${Math.floor(Math.random() * 1000)}`;
+}
+
 type FormQuestion = FormContent["fields"][number];
 
 type QuestionsEditorProps = {
@@ -115,7 +121,7 @@ export function FormQuestionsEditor({ formName, formDraft, canEdit, onChange }: 
   };
 
   const addQuestion = () => {
-    const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}`;
+    const id = generateId();
     const next = [...questions, { id, label: "Untitled question", type: "short_answer" as FormQuestionType, required: false, options: [] }];
     onChange((current) => ({ ...current, questions: next, fields: next }));
   };

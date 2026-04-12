@@ -199,18 +199,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Link
             key={item.href}
             href={item.href}
+            className={`sidebar-link${isActive(item.href) ? " sidebar-link-active" : ""}`}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              padding: "0.7rem 1.25rem",
-              fontSize: "0.85rem",
-              color: isActive(item.href) ? "var(--gold-light)" : "var(--text-secondary)",
-              background: isActive(item.href) ? "rgba(201, 168, 76, 0.08)" : "transparent",
-              borderLeft: isActive(item.href) ? "3px solid var(--gold)" : "3px solid transparent",
-              transition: "all 0.2s ease",
-              textDecoration: "none",
-              fontWeight: isActive(item.href) ? 600 : 400,
+              color: isActive(item.href) ? undefined : "var(--text-secondary)",
+              fontWeight: isActive(item.href) ? undefined : 400,
             }}
           >
             <SidebarBadge label={item.shortLabel} />
@@ -221,18 +213,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div style={{ marginTop: "0.5rem", borderTop: "1px solid var(--border-subtle)", paddingTop: "0.75rem" }}>
           <Link
             href="/dashboard/profile"
+            className={`sidebar-link${isActive("/dashboard/profile") ? " sidebar-link-active" : ""}`}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              padding: "0.7rem 1.25rem",
-              fontSize: "0.85rem",
-              color: isActive("/dashboard/profile") ? "var(--gold-light)" : "var(--text-secondary)",
-              background: isActive("/dashboard/profile") ? "rgba(201, 168, 76, 0.08)" : "transparent",
-              borderLeft: isActive("/dashboard/profile") ? "3px solid var(--gold)" : "3px solid transparent",
-              transition: "all 0.2s ease",
-              textDecoration: "none",
-              fontWeight: isActive("/dashboard/profile") ? 600 : 400,
+              color: isActive("/dashboard/profile") ? undefined : "var(--text-secondary)",
+              fontWeight: isActive("/dashboard/profile") ? undefined : 400,
             }}
           >
             <SidebarBadge label="PF" />
@@ -275,7 +259,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      <div style={{ flex: 1, padding: "2rem", minWidth: 0, overflowY: "auto" }}>{children}</div>
+      <div className="dash-fade-in" style={{ flex: 1, padding: "2rem", minWidth: 0, overflowY: "auto" }}>{children}</div>
     </div>
   );
 }
