@@ -536,6 +536,20 @@ input.input-field[type="time"]::-webkit-datetime-edit-minute-field:focus {
   transform: translateX(-2px);
 }
 
+.site-mobile-nav-dashboard-link {
+  background: linear-gradient(135deg, rgba(201, 168, 76, 0.18), rgba(154, 123, 46, 0.28));
+  border-color: rgba(201, 168, 76, 0.42);
+  color: var(--gold-light);
+  font-weight: 600;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+}
+
+.site-mobile-nav-dashboard-link:hover,
+.site-mobile-nav-dashboard-link:focus-visible {
+  background: linear-gradient(135deg, rgba(223, 192, 122, 0.22), rgba(201, 168, 76, 0.32));
+  border-color: rgba(223, 192, 122, 0.52);
+}
+
 .mobile-nav-cta {
   display: inline-flex;
   justify-content: center;
@@ -1221,8 +1235,6 @@ select.dash-filter-input {
 
   .workspace-mobile-header {
     display: flex;
-    justify-content: flex-start;
-    gap: 0.25rem;
     margin-right: 0;
   }
 
@@ -1272,10 +1284,10 @@ select.dash-filter-input {
   }
 
   /* Ensure inputs take full width */
-  .dashboard-root input, 
-  .dashboard-root select, 
-  .dashboard-root button,
-  .dashboard-root textarea {
+  .dashboard-root input,
+  .dashboard-root select,
+  .dashboard-root textarea,
+  .dashboard-root button:not(.auto-width):not(.workspace-mobile-menu-button) {
     width: 100%;
   }
   
@@ -1548,5 +1560,91 @@ select.dash-filter-input {
   .doc-file-row-actions button {
     padding: 0.2rem 0.35rem !important;
     font-size: 0.6rem !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   WORKSPACE / DASHBOARD RESPONSIVENESS
+   Converts the persistent sidebar into an off-canvas drawer on mobile screens,
+   hiding the hamburger header on desktop.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.workspace-mobile-header {
+  display: none !important;
+}
+
+.workspace-mobile-menu-button {
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.workspace-mobile-menu-button:hover,
+.workspace-mobile-menu-button:focus-visible {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(201, 168, 76, 0.35) !important;
+}
+
+.workspace-mobile-menu-button:active {
+  transform: scale(0.97);
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 40;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.sidebar-overlay.open {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+  .workspace-shell {
+    flex-direction: column !important;
+  }
+  
+  .workspace-mobile-header {
+    display: flex !important;
+    align-items: center;
+    min-height: 72px;
+  }
+  
+  .sidebar-container {
+    position: fixed !important;
+    top: 64px !important;
+    left: 0 !important;
+    width: min(86vw, 320px) !important;
+    min-width: min(86vw, 320px) !important;
+    height: calc(100vh - 64px) !important;
+    z-index: 50 !important;
+    background: rgba(11, 16, 30, 0.98) !important;
+    backdrop-filter: blur(16px);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border-right: 1px solid var(--border-subtle) !important;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.5) !important;
+    transform: translateX(-100%);
+    padding-top: 1rem !important;
+  }
+  
+  .sidebar-container.open {
+    transform: translateX(0) !important;
+  }
+
+  /* Force tables inside dashboard metrics to scroll properly */
+  .dash-row {
+    min-width: 600px; /* Prevent squash; let the TableContainer scroll horizontally */
+  }
+}
+
+@media (max-width: 480px) {
+  /* Smaller margins and grid collapse for deeply nested metric cards */
+  .dash-stagger {
+    grid-template-columns: 1fr !important;
   }
 }
