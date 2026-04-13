@@ -32,7 +32,7 @@ export default function SystemRestrictionPage({ variant, title, message, until }
         <h1 style={{ fontSize: "2.6rem", margin: "1rem 0", fontFamily: "'Cinzel', serif" }}>{heading}</h1>
         <p style={{ color: "var(--text-secondary)", fontSize: "1rem", lineHeight: 1.8, margin: "0 auto", maxWidth: "560px" }}>{body}</p>
         {until ? (
-          <p style={{ marginTop: "1.2rem", color: "var(--text-muted)", fontSize: "0.9rem" }}>
+          <p suppressHydrationWarning style={{ marginTop: "1.2rem", color: "var(--text-muted)", fontSize: "0.9rem" }}>
             Expected until: {new Date(until).toLocaleString("en-US", {
               dateStyle: "medium",
               timeStyle: "short",

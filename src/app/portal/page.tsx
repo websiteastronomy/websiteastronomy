@@ -318,6 +318,32 @@ export default function Portal() {
             </div>
           </AnimatedSection>
         </div>
+      ) : (portalData.systemControl?.lockdownEnabled || (portalData.systemControl && portalData.systemControl.maintenanceEnabled && new Date() < new Date(portalData.systemControl.maintenanceUntil || 0))) && !isAdmin ? (
+        /* ── System Restricted Gate (blocks non-admins during lockdown/maintenance) ── */
+        <div style={{ display: "flex", justifyContent: "center", marginTop: "3rem" }}>
+          <AnimatedSection direction="up" delay={0.1}>
+            <div className="feature-card" style={{ padding: "3rem", textAlign: "center", maxWidth: "460px", width: "100%" }}>
+              <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>🚧</div>
+              <h3 style={{ fontSize: "1.4rem", marginBottom: "0.5rem", color: "#ef4444" }}>System Restricted</h3>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "2rem", lineHeight: 1.7 }}>
+                The system is currently in lockdown or maintenance mode. Only administrators can access the portal at this time.
+              </p>
+              <button
+                onClick={() => logout().then(() => router.push("/"))}
+                className="btn-secondary"
+                style={{
+                  fontFamily: "inherit",
+                  cursor: "pointer",
+                  width: "100%",
+                  fontSize: "0.9rem",
+                  padding: "0.75rem",
+                }}
+              >
+                Sign Out & Return
+              </button>
+            </div>
+          </AnimatedSection>
+        </div>
       ) : (
         <div
           className="portal-shell"
