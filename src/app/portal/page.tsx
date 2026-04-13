@@ -244,8 +244,8 @@ export default function Portal() {
             </div>
           </AnimatedSection>
         </div>
-      ) : userStatus === "pending" ? (
-        /* ── Pending Approval Gate ── */
+      ) : userStatus === "pending" && !isAdmin ? (
+        /* ── Pending Approval Gate (only blocks non-admins) ── */
         <div style={{ display: "flex", justifyContent: "center", marginTop: "3rem" }}>
           <AnimatedSection direction="up" delay={0.1}>
             <div className="feature-card" style={{ padding: "3rem", textAlign: "center", maxWidth: "460px", width: "100%" }}>
@@ -292,8 +292,8 @@ export default function Portal() {
             </div>
           </AnimatedSection>
         </div>
-      ) : userStatus === "rejected" ? (
-        /* ── Rejected Account Gate ── */
+      ) : userStatus === "rejected" && !isAdmin ? (
+        /* ── Rejected Account Gate (only blocks non-admins) ── */
         <div style={{ display: "flex", justifyContent: "center", marginTop: "3rem" }}>
           <AnimatedSection direction="up" delay={0.1}>
             <div className="feature-card" style={{ padding: "3rem", textAlign: "center", maxWidth: "460px", width: "100%" }}>
