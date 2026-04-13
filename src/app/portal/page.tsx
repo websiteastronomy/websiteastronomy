@@ -4,18 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import AnimatedSection from "@/components/AnimatedSection";
-import AvatarCropperModal from "@/components/AvatarCropperModal";
-import PortalActivity from "@/components/portal/PortalActivity";
-import PortalAnnouncements from "@/components/portal/PortalAnnouncements";
-import PortalLeaderboard from "@/components/portal/PortalLeaderboard";
-import PortalNotifications from "@/components/portal/PortalNotifications";
-import PortalOverview from "@/components/portal/PortalOverview";
-import PortalProfile from "@/components/portal/PortalProfile";
-import PortalProjects from "@/components/portal/PortalProjects";
-import DeprecationBanner from "@/components/DeprecationBanner";
-import { usePortalData } from "@/components/portal/usePortalData";
 import { useAuth } from "@/context/AuthContext";
-import { canAccessAdminPage as canAccessAdminDashboard } from "@/lib/admin-access";
 
 export default function Portal() {
   const router = useRouter();
@@ -28,19 +17,14 @@ export default function Portal() {
     signInWithEmail,
     signUpWithEmail,
     logout,
-    hasPermission,
     isAdmin,
     userStatus,
   } = useAuth();
-  const canAccessAdminPage = canAccessAdminDashboard({ isAdmin, hasPermission });
 
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [isCropperOpen, setIsCropperOpen] = useState(false);
-  const [quoteFeedback, setQuoteFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const [contactFeedback, setContactFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const redirectTarget = searchParams.get("redirect");
   const safeRedirectTarget = redirectTarget?.startsWith("/") ? redirectTarget : null;
 
@@ -55,30 +39,17 @@ export default function Portal() {
     width: "100%",
   };
 
-  const portalData = usePortalData(
-    user
-      ? {
-          id: user.id,
-          image: user.image ?? null,
-          name: user.name ?? null,
-          email: user.email ?? null,
-          profileImageKey: (user as { profileImageKey?: string | null }).profileImageKey ?? null,
-          quote: (user as { quote?: string | null }).quote ?? null,
-        }
-      : null,
-  );
-
+  // When user is authenticated and past all gates → redirect to /app
   useEffect(() => {
-    if (!user || !safeRedirectTarget) {
-      return;
-    }
-
-    router.replace(safeRedirectTarget);
-  }, [router, safeRedirectTarget, user]);
+    if (!user || loading) return;
+    // Don't redirect if user is pending / rejected (gates below handle those)
+    if ((userStatus === "pending" || userStatus === "rejected") && !isAdmin) return;
+    const target = safeRedirectTarget || "/app";
+    router.replace(target);
+  }, [user, loading, userStatus, isAdmin, safeRedirectTarget, router]);
 
   return (
     <div className="page-container">
-      <DeprecationBanner currentPath="/portal" />
       <AnimatedSection>
         <p className="section-title" style={{ textAlign: "center" }}>
           Welcome Back
@@ -228,7 +199,7 @@ export default function Portal() {
               </div>
 
               <button
-                onClick={() => void signInWithGoogle(safeRedirectTarget || "/portal")}
+                onClick={() => void signInWithGoogle(safeRedirectTarget || "/app")}
                 className="btn-secondary"
                 style={{
                   fontFamily: "inherit",
@@ -318,122 +289,24 @@ export default function Portal() {
             </div>
           </AnimatedSection>
         </div>
-      ) : (portalData.systemControl?.lockdownEnabled || (portalData.systemControl && portalData.systemControl.maintenanceEnabled && new Date() < new Date(portalData.systemControl.maintenanceUntil || 0))) && !isAdmin ? (
-        /* ── System Restricted Gate (blocks non-admins during lockdown/maintenance) ── */
-        <div style={{ display: "flex", justifyContent: "center", marginTop: "3rem" }}>
-          <AnimatedSection direction="up" delay={0.1}>
-            <div className="feature-card" style={{ padding: "3rem", textAlign: "center", maxWidth: "460px", width: "100%" }}>
-              <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>🚧</div>
-              <h3 style={{ fontSize: "1.4rem", marginBottom: "0.5rem", color: "#ef4444" }}>System Restricted</h3>
-              <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "2rem", lineHeight: 1.7 }}>
-                The system is currently in lockdown or maintenance mode. Only administrators can access the portal at this time.
-              </p>
-              <button
-                onClick={() => logout().then(() => router.push("/"))}
-                className="btn-secondary"
-                style={{
-                  fontFamily: "inherit",
-                  cursor: "pointer",
-                  width: "100%",
-                  fontSize: "0.9rem",
-                  padding: "0.75rem",
-                }}
-              >
-                Sign Out & Return
-              </button>
-            </div>
-          </AnimatedSection>
-        </div>
       ) : (
-        <div
-          className="portal-shell"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 340px",
-            gap: "2rem",
-            width: "100%",
-            alignItems: "start",
-            minWidth: 0,
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <PortalOverview
-              maintenanceActive={portalData.maintenanceActive}
-              systemControl={portalData.systemControl}
-              formatTimestamp={portalData.formatTimestamp}
-            />
-            <PortalNotifications
-              notifications={portalData.notifications}
-              notificationsLoading={portalData.notificationsLoading}
-              formatRelativeTime={portalData.formatRelativeTime}
-              limit={5}
-              onNotificationSelect={async (notification) => {
-                if (!notification.isRead) {
-                  const { markNotificationReadAction } = await import("@/app/actions/notifications");
-                  await markNotificationReadAction(notification.id);
-                  portalData.setNotifications((previous) =>
-                    previous.map((entry) =>
-                      entry.id === notification.id ? { ...entry, isRead: true } : entry,
-                    ),
-                  );
-                }
-
-                if (notification.link) {
-                  window.location.href = notification.link;
-                }
-              }}
-            />
-            <PortalAnnouncements
-              announcements={portalData.portalAnnouncements}
-              loading={portalData.portalMetaLoading}
-              formatTimestamp={portalData.formatTimestamp}
-              limit={5}
-            />
-            <PortalProjects myProjects={portalData.myProjects} projectsLoading={portalData.projectsLoading} />
-            <PortalLeaderboard leaderboards={portalData.leaderboards} currentUserId={user.id} />
-            <PortalActivity
-              recentActivity={portalData.recentActivity}
-              loading={portalData.portalMetaLoading}
-              formatTimestamp={portalData.formatTimestamp}
-              limit={5}
-            />
-          </div>
-
-          <PortalProfile
-            user={{
-              id: user.id,
-              image: user.image ?? null,
-              name: user.name ?? null,
-              email: user.email ?? null,
-              profileImageKey: (user as { profileImageKey?: string | null }).profileImageKey ?? null,
-              quote: (user as { quote?: string | null }).quote ?? null,
+        /* ── Authenticated: Redirecting to /app ── */
+        <div style={{ textAlign: "center", padding: "4rem", color: "var(--gold)" }}>
+          <div
+            style={{
+              width: "36px",
+              height: "36px",
+              border: "2px solid var(--border-subtle)",
+              borderTopColor: "var(--gold)",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+              margin: "0 auto 1rem",
             }}
-            profileImageUrl={portalData.profileImageUrl}
-            imgError={portalData.imgError}
-            onImageError={() => portalData.setImgError(true)}
-            onOpenCropper={() => setIsCropperOpen(true)}
-            quoteFeedback={quoteFeedback}
-            contactFeedback={contactFeedback}
-            onQuoteFeedbackChange={setQuoteFeedback}
-            onContactFeedbackChange={setContactFeedback}
-            onLogout={logout}
-            systemControl={portalData.systemControl}
-            disabledFeatures={portalData.disabledFeatures}
-            hasPermission={hasPermission}
-            canAccessAdminPage={canAccessAdminPage}
           />
+          <p>Redirecting to your dashboard...</p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       )}
-
-      <AvatarCropperModal
-        isOpen={isCropperOpen}
-        onClose={() => setIsCropperOpen(false)}
-        onSuccess={(imageUrl) => {
-          portalData.setProfileImageUrl(imageUrl);
-          portalData.setImgError(false);
-          setIsCropperOpen(false);
-        }}
-      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import PortalActivity from "@/components/portal/PortalActivity";
 import PortalAnnouncements from "@/components/portal/PortalAnnouncements";
+import PortalLeaderboard from "@/components/portal/PortalLeaderboard";
 import PortalNotifications from "@/components/portal/PortalNotifications";
 import PortalOverview from "@/components/portal/PortalOverview";
 import PortalProjects from "@/components/portal/PortalProjects";
@@ -165,6 +166,13 @@ export default function DashboardOverviewClient({
               handleNotificationSelect(notification, portalData.setNotifications)
             }
           />
+          <PortalAnnouncements
+            announcements={portalData.portalAnnouncements}
+            loading={portalData.portalMetaLoading}
+            formatTimestamp={portalData.formatTimestamp}
+            limit={5}
+          />
+          <PortalLeaderboard leaderboards={portalData.leaderboards} currentUserId={user?.id || null} />
           <PortalActivity
             recentActivity={portalData.recentActivity}
             loading={portalData.portalMetaLoading}
@@ -197,6 +205,7 @@ export default function DashboardOverviewClient({
             formatTimestamp={portalData.formatTimestamp}
             limit={4}
           />
+          <PortalLeaderboard leaderboards={portalData.leaderboards} currentUserId={user?.id || null} />
         </>
       ) : null}
 

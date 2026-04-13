@@ -1392,6 +1392,18 @@ select.dash-filter-input {
   }
 }
 
+/* ── Login gate mobile fix ── */
+@media (max-width: 768px) {
+  .login-gate {
+    padding: 3rem 1rem !important;
+  }
+
+  .login-gate .feature-card {
+    padding: 1.5rem !important;
+    max-width: 100% !important;
+  }
+}
+
 /* ── Very small screens (320px-480px) — extra safety ── */
 @media (max-width: 480px) {
   .page-title {
