@@ -24,7 +24,7 @@ export default function SystemRestrictionPage({ variant, title, message, until }
         : "This section is currently unavailable.");
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem", background: "radial-gradient(circle at top, rgba(201,168,76,0.14), rgba(8,12,22,1) 55%)" }}>
+    <div style={{ position: "relative", zIndex: 1, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem", background: "radial-gradient(circle at top, rgba(201,168,76,0.14), rgba(8,12,22,1) 55%)" }}>
       <div style={{ width: "100%", maxWidth: "720px", padding: "3rem", borderRadius: "20px", border: "1px solid rgba(201,168,76,0.2)", background: "rgba(8,12,22,0.82)", boxShadow: "0 30px 80px rgba(0,0,0,0.35)", textAlign: "center" }}>
         <p style={{ margin: 0, color: "var(--gold)", fontSize: "0.82rem", textTransform: "uppercase", letterSpacing: "0.18em" }}>
           {isMaintenance ? "Maintenance Mode" : isLockdown ? "Lockdown Mode" : "Feature Control"}
