@@ -510,7 +510,8 @@ export default function DocumentationHubClient({
         </div>
       ) : null}
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", marginBottom: "1.5rem", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "1rem" }}>
+      {/* ── Hub Header: title/breadcrumbs + toolbar ── */}
+      <div className="doc-hub-header">
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
             <span>📁</span>
@@ -526,7 +527,7 @@ export default function DocumentationHubClient({
           </div>
           <p style={{ margin: "0.45rem 0 0", color: "var(--text-muted)", fontSize: "0.82rem" }}>{subtitle}</p>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", justifyContent: "flex-end" }}>
+        <div className="doc-hub-toolbar">
           <input placeholder="Search docs, files, uploader, project..." value={search} onChange={(event) => setSearch(event.target.value)} style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "6px", padding: "0.35rem 0.6rem", color: "white", fontSize: "0.75rem", outline: "none", minWidth: "220px" }} />
           <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as "all" | ProjectFile["type"])} style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", borderRadius: "6px", padding: "0.35rem 0.6rem", color: "white", fontSize: "0.75rem", outline: "none" }}>
             <option value="all">All Types</option>
@@ -576,19 +577,19 @@ export default function DocumentationHubClient({
               Showing {displayItems.length} matching resource{displayItems.length === 1 ? "" : "s"} across accessible documentation.
             </div>
           ) : null}
-          <div style={{ display: "flex", padding: "0.5rem 0.75rem", borderBottom: "1px solid var(--border-subtle)", marginBottom: "0.4rem", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", fontWeight: 600 }}>
-            <div style={{ flex: 2 }}>Name</div>
-            <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>Type</div>
-            <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>Updated</div>
-            <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", paddingRight: "1rem" }}>Actions</div>
+          <div className="doc-file-list-header">
+            <div className="doc-file-col-name">Name</div>
+            <div className="doc-file-col-type">Type</div>
+            <div className="doc-file-col-date">Updated</div>
+            <div className="doc-file-col-actions">Actions</div>
           </div>
           {displayItems.map((item) => {
             const icon = item.type === "folder" ? "📁" : item.type === "doc" ? "📝" : item.type === "form" ? "📋" : item.type === "sheet" ? "📊" : "📄";
             return (
-              <motion.div key={item.id} whileHover={{ background: "rgba(255,255,255,0.04)" }} onClick={() => void openItem(item.id)} style={{ display: "flex", alignItems: "center", padding: "0.75rem", borderRadius: "8px", cursor: "pointer", borderBottom: "1px solid var(--border-subtle)", transition: "background 0.2s" }}>
-                <div style={{ flex: 2, display: "flex", alignItems: "center", gap: "0.8rem", overflow: "hidden" }}>
-                  <span style={{ fontSize: "1.15rem" }}>{icon}</span>
-                  <div style={{ overflow: "hidden" }}>
+              <motion.div key={item.id} whileHover={{ background: "rgba(255,255,255,0.04)" }} onClick={() => void openItem(item.id)} className="doc-file-row">
+                <div className="doc-file-row-name">
+                  <span style={{ fontSize: "1.15rem", flexShrink: 0 }}>{icon}</span>
+                  <div style={{ overflow: "hidden", minWidth: 0 }}>
                     {renamingId === item.id ? (
                       <div onClick={(event) => event.stopPropagation()} style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
                         <input autoFocus value={renameValue} onChange={(event) => setRenameValue(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void renameItem(item.id); if (event.key === "Escape") { setRenamingId(null); setRenameValue(""); } }} style={{ width: "100%", minWidth: "220px", background: "rgba(0,0,0,0.3)", border: "1px solid var(--gold)", borderRadius: "6px", padding: "0.4rem 0.6rem", color: "white", fontSize: "0.8rem", outline: "none" }} />
@@ -612,9 +613,9 @@ export default function DocumentationHubClient({
                     )}
                   </div>
                 </div>
-                <div style={{ flex: 1, display: "flex", justifyContent: "center", fontSize: "0.75rem", color: "var(--text-secondary)", textTransform: "capitalize" }}>{item.type}</div>
-                <div style={{ flex: 1, display: "flex", justifyContent: "center", fontSize: "0.75rem", color: "var(--text-secondary)" }}>{formatDateStable(item.updatedAt)}</div>
-                <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", gap: "0.4rem", flexWrap: "wrap" }}>
+                <div className="doc-file-row-type">{item.type}</div>
+                <div className="doc-file-row-date">{formatDateStable(item.updatedAt)}</div>
+                <div className="doc-file-row-actions">
                   {item.type === "file" && tasks.length > 0 ? (
                     <div style={{ position: "relative" }}>
                       <button onClick={(event) => { event.stopPropagation(); setAttachId(attachId === item.id ? null : item.id); }} style={{ background: "transparent", border: "1px solid var(--border-subtle)", color: "var(--text-muted)", borderRadius: "4px", padding: "0.2rem 0.5rem", fontSize: "0.65rem", cursor: "pointer" }}>Attach</button>
@@ -690,7 +691,7 @@ export default function DocumentationHubClient({
                         </div>
                         <a href={`/forms/${activeForm.id}`} target="_blank" rel="noreferrer" style={{ color: "#93c5fd", textDecoration: "none", fontSize: "0.82rem" }}>Open fill page</a>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: canEditForm ? "minmax(0, 1.7fr) minmax(280px, 1fr)" : "1fr", gap: "1rem" }}>
+                      <div className="doc-form-builder-grid" style={{ display: "grid", gridTemplateColumns: canEditForm ? "minmax(0, 1.7fr) minmax(280px, 1fr)" : "1fr", gap: "1rem" }}>
                         <div style={{ display: "grid", gap: "0.9rem" }}>
                           <FormQuestionsEditor formName={activeForm.name} formDraft={formDraft} canEdit={canEditForm} onChange={setFormDraft} />
                           <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "1rem" }}>
@@ -738,7 +739,7 @@ export default function DocumentationHubClient({
                   <h4 style={{ margin: "0 0 0.75rem", fontSize: "0.9rem", color: "var(--gold-light)" }}>Roles</h4>
                   <div style={{ display: "grid", gap: "0.75rem" }}>
                     {accessDraft.map((entry) => (
-                      <div key={entry.role} style={{ display: "grid", gridTemplateColumns: "140px 1fr 1fr", gap: "0.75rem", alignItems: "center", padding: "0.75rem", borderRadius: "10px", border: "1px solid var(--border-subtle)", background: "rgba(255,255,255,0.03)" }}>
+                      <div key={entry.role} className="doc-access-role-row" style={{ display: "grid", gridTemplateColumns: "140px 1fr 1fr", gap: "0.75rem", alignItems: "center", padding: "0.75rem", borderRadius: "10px", border: "1px solid var(--border-subtle)", background: "rgba(255,255,255,0.03)" }}>
                         <div>
                           <div style={{ color: "var(--text-primary)", fontWeight: 600 }}>{roleLabel(entry.role)}</div>
                           <div style={{ color: "var(--text-muted)", fontSize: "0.72rem" }}>{entry.role === "admin" ? "Full-control role" : entry.role === "core" ? "Core committee role" : "Crew/member role"}</div>

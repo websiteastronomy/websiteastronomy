@@ -531,7 +531,10 @@ export default function MembersManager() {
       <h3 style={{ fontSize: "1.1rem", marginBottom: "1rem", color: "var(--text-secondary)", marginTop: "2rem" }}>Account Directory ({processedUsers.length})</h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1rem" }}>
         {processedUsers.map((user) => {
-          const roleOpt = ROLE_OPTIONS.find((o) => o.label.toLowerCase() === user.role?.toLowerCase())
+          // Prefer the canonical RBAC name returned from the roles table join;
+          // fall back to matching the legacy role string for backward compat.
+          const roleOpt = ROLE_OPTIONS.find((o) => o.value === user.rbacRoleName)
+            || ROLE_OPTIONS.find((o) => o.label.toLowerCase() === user.role?.toLowerCase())
             || ROLE_OPTIONS[0];
           
           const isEditingInfo = editingInfoUser === user.id;
@@ -555,7 +558,8 @@ export default function MembersManager() {
                   </span>
                   {user.status === "approved" && (
                     <div style={{ fontSize: "0.75rem", color: roleOpt.color, fontWeight: 600 }}>
-                      {user.roleId ? user.role : "member"} role
+                      {/* Show canonical RBAC name when available, else fall back to legacy role string */}
+                      {user.rbacRoleName || user.role || "member"} role
                     </div>
                   )}
                 </div>
@@ -656,7 +660,9 @@ export default function MembersManager() {
                   {mayEditRole && <button
                     disabled={isProcessing}
                     onClick={() => {
-                      const matchingOpt = ROLE_OPTIONS.find((o) => o.label.toLowerCase() === user.role?.toLowerCase() || o.value.toLowerCase() === user.role?.toLowerCase());
+                      // Prefer canonical RBAC name for matching; fall back to legacy string
+                      const matchingOpt = ROLE_OPTIONS.find((o) => o.value === user.rbacRoleName)
+                        || ROLE_OPTIONS.find((o) => o.label.toLowerCase() === user.role?.toLowerCase() || o.value.toLowerCase() === user.role?.toLowerCase());
                       openRoleEditor(user, matchingOpt ? matchingOpt.value : "Member");
                     }}
                     style={{ background: "transparent", border: "1px solid var(--border-subtle)", color: "var(--text-primary)", padding: "0.25rem 0.5rem", borderRadius: "4px", cursor: isProcessing ? "not-allowed" : "pointer", fontSize: "0.7rem", opacity: isProcessing ? 0.5: 1 }}

@@ -17,6 +17,7 @@ interface AuthContextType {
   isAdmin: boolean;
   roleName: string;
   permissions: string[];
+  userStatus: string | null; // "pending" | "approved" | "rejected" | null
   loading: boolean;
   authError: string | null;
   refreshRBAC: () => Promise<void>;
@@ -32,6 +33,7 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   roleName: "none",
   permissions: [],
+  userStatus: null,
   loading: true,
   authError: null,
   refreshRBAC: async () => {},
@@ -47,6 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [authError, setAuthError] = useState<string | null>(null);
   const [roleName, setRoleName] = useState<string>("none");
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [userStatus, setUserStatus] = useState<string | null>(null);
   const [rbacLoading, setRbacLoading] = useState(false);
   const [hasLoadedRBAC, setHasLoadedRBAC] = useState(false);
   const refreshInFlight = useRef(false);
@@ -59,6 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user?.id) {
       setRoleName("none");
       setPermissions([]);
+      setUserStatus(null);
       setHasLoadedRBAC(true);
       return;
     }
@@ -75,10 +79,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const profile = await getMyRBACProfile();
       setRoleName(profile?.roleName || "none");
       setPermissions(profile?.permissions || []);
+      setUserStatus(profile?.status || null);
       setHasLoadedRBAC(true);
     } catch {
       setRoleName("none");
       setPermissions([]);
+      setUserStatus(null);
       setHasLoadedRBAC(true);
     } finally {
       if (!silent) {
@@ -219,6 +225,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAdmin,
         roleName,
         permissions,
+        userStatus,
         loading,
         authError,
         refreshRBAC,

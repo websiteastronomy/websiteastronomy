@@ -30,6 +30,7 @@ export default function Portal() {
     logout,
     hasPermission,
     isAdmin,
+    userStatus,
   } = useAuth();
   const canAccessAdminPage = canAccessAdminDashboard({ isAdmin, hasPermission });
 
@@ -92,6 +93,7 @@ export default function Portal() {
           <p>Initializing uplink...</p>
         </div>
       ) : !user ? (
+        /* ── Auth Form ── */
         <div style={{ display: "flex", justifyContent: "center", marginTop: "3rem" }}>
           <AnimatedSection direction="up" delay={0.1}>
             <div className="feature-card" style={{ padding: "3rem", textAlign: "center", maxWidth: "400px", width: "100%" }}>
@@ -238,6 +240,80 @@ export default function Portal() {
                 }}
               >
                 Continue with Google
+              </button>
+            </div>
+          </AnimatedSection>
+        </div>
+      ) : userStatus === "pending" ? (
+        /* ── Pending Approval Gate ── */
+        <div style={{ display: "flex", justifyContent: "center", marginTop: "3rem" }}>
+          <AnimatedSection direction="up" delay={0.1}>
+            <div className="feature-card" style={{ padding: "3rem", textAlign: "center", maxWidth: "460px", width: "100%" }}>
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
+                style={{
+                  width: "80px",
+                  height: "80px",
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, rgba(234,179,8,0.3), rgba(234,179,8,0.1))",
+                  border: "2px solid rgba(234,179,8,0.4)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 1.5rem",
+                  fontSize: "2rem",
+                }}
+              >
+                ⏳
+              </motion.div>
+              <h3 style={{ fontSize: "1.4rem", marginBottom: "0.5rem", color: "#eab308" }}>Account Pending Approval</h3>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "1.5rem", lineHeight: 1.7 }}>
+                Your account has been registered. An administrator will review and approve your access shortly.
+              </p>
+              <p style={{ color: "var(--text-secondary)", fontSize: "0.82rem", marginBottom: "2rem", lineHeight: 1.6 }}>
+                You are signed in as <strong style={{ color: "var(--gold)" }}>{user.email}</strong>.
+                Once approved, you will be able to access the full member portal.
+              </p>
+              <button
+                onClick={() => logout()}
+                className="btn-secondary"
+                style={{
+                  fontFamily: "inherit",
+                  cursor: "pointer",
+                  width: "100%",
+                  fontSize: "0.9rem",
+                  padding: "0.75rem",
+                }}
+              >
+                Sign Out
+              </button>
+            </div>
+          </AnimatedSection>
+        </div>
+      ) : userStatus === "rejected" ? (
+        /* ── Rejected Account Gate ── */
+        <div style={{ display: "flex", justifyContent: "center", marginTop: "3rem" }}>
+          <AnimatedSection direction="up" delay={0.1}>
+            <div className="feature-card" style={{ padding: "3rem", textAlign: "center", maxWidth: "460px", width: "100%" }}>
+              <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>🚫</div>
+              <h3 style={{ fontSize: "1.4rem", marginBottom: "0.5rem", color: "#ef4444" }}>Access Not Approved</h3>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "2rem", lineHeight: 1.7 }}>
+                Your account request was not approved. Please contact an administrator if you believe this is a mistake.
+              </p>
+              <button
+                onClick={() => logout()}
+                className="btn-secondary"
+                style={{
+                  fontFamily: "inherit",
+                  cursor: "pointer",
+                  width: "100%",
+                  fontSize: "0.9rem",
+                  padding: "0.75rem",
+                }}
+              >
+                Sign Out
               </button>
             </div>
           </AnimatedSection>

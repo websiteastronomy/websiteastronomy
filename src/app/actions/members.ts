@@ -154,8 +154,9 @@ export async function getAllUsersAction() {
       email: users.email,
       phone: users.phone,
       status: users.status,
-      role: users.role,      // legacy
-      roleId: users.roleId,  // RBAC
+      role: users.role,             // legacy string (e.g. "core")
+      roleId: users.roleId,         // RBAC FK
+      rbacRoleName: roles.name,     // canonical RBAC name (e.g. "Core Committee")
       createdAt: users.createdAt,
       // Profile unification fields
       profileImageKey: users.profileImageKey,

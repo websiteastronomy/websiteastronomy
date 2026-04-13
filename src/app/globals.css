@@ -1413,3 +1413,128 @@ select.dash-filter-input {
     font-size: 0.8rem !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DOCUMENTATION HUB & PROJECT FILES — MOBILE RESPONSIVENESS
+   Fixes the dense toolbar, file list table overflow, and form section layout
+   on screens ≤ 768 px.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Hub container header: stack toolbar below title on mobile ── */
+.doc-hub-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 1rem;
+}
+
+/* ── Toolbar that holds filters + action buttons ── */
+.doc-hub-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* ── File list header row ── */
+.doc-file-list-header {
+  display: flex;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 0.4rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.doc-file-col-name   { flex: 2; }
+.doc-file-col-type   { flex: 1; display: flex; justify-content: center; }
+.doc-file-col-date   { flex: 1; display: flex; justify-content: center; }
+.doc-file-col-actions { flex: 1; display: flex; justify-content: flex-end; padding-right: 1rem; }
+
+/* ── Individual file row ── */
+.doc-file-row {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.2s;
+}
+
+.doc-file-row-name    { flex: 2; display: flex; align-items: center; gap: 0.8rem; overflow: hidden; }
+.doc-file-row-type    { flex: 1; display: flex; justify-content: center; font-size: 0.75rem; color: var(--text-secondary); text-transform: capitalize; }
+.doc-file-row-date    { flex: 1; display: flex; justify-content: center; font-size: 0.75rem; color: var(--text-secondary); }
+.doc-file-row-actions { flex: 1; display: flex; justify-content: flex-end; gap: 0.4rem; flex-wrap: wrap; }
+
+@media (max-width: 768px) {
+  /* Stack header + toolbar vertically */
+  .doc-hub-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .doc-hub-toolbar {
+    justify-content: flex-start;
+  }
+
+  /* Full-width search inputs */
+  .doc-hub-toolbar input,
+  .doc-hub-toolbar select {
+    min-width: 0 !important;
+    width: 100% !important;
+    flex: 1 1 160px;
+  }
+
+  /* Hide Type and Date columns in file list — too narrow to show */
+  .doc-file-col-type,
+  .doc-file-col-date,
+  .doc-file-row-type,
+  .doc-file-row-date {
+    display: none !important;
+  }
+
+  /* Name column takes all remaining space */
+  .doc-file-col-name,
+  .doc-file-row-name {
+    flex: 1 !important;
+  }
+
+  /* Actions column: wrap gracefully, don't overflow */
+  .doc-file-col-actions,
+  .doc-file-row-actions {
+    flex: 0 0 auto !important;
+    padding-right: 0 !important;
+  }
+
+  /* File row: name area clips correctly */
+  .doc-file-row-name > div {
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  /* Form builder grid: single column */
+  .doc-form-builder-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Access manager roles grid */
+  .doc-access-role-row {
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 0.5rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* At very small widths, also hide action labels and keep only icon buttons */
+  .doc-file-row-actions button {
+    padding: 0.2rem 0.35rem !important;
+    font-size: 0.6rem !important;
+  }
+}
