@@ -275,14 +275,19 @@ export async function updateUserPermissionOverridesAction(
   });
 
   if (targetUserId !== session.user.id) {
-    await createNotification({
-      userId: targetUserId,
-      type: "system",
-      title: "Permissions Updated",
-      message: "Your custom permission overrides were updated by an administrator.",
-      referenceId: targetUserId,
-      link: "/portal",
-    });
+    // Non-critical: notification failure should not roll back the permission save
+    try {
+      await createNotification({
+        userId: targetUserId,
+        type: "system",
+        title: "Permissions Updated",
+        message: "Your custom permission overrides were updated by an administrator.",
+        referenceId: targetUserId,
+        link: "/portal",
+      });
+    } catch (notifErr) {
+      console.warn("[updateUserPermissionOverridesAction] Notification failed (non-fatal):", notifErr);
+    }
   }
 
   revalidatePath("/admin");

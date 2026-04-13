@@ -128,13 +128,22 @@ export default function MembersManager() {
     setFeedback(null);
     setIsProcessing(true);
     try {
+      // Step 1: Approve or update the user's role
       if (approvingUser.status === "approved") {
         await updateUserRoleAction(approvingUser.id, selectedRole);
       } else {
         await approveUserAction(approvingUser.id, selectedRole);
       }
-      if (mayEditRole) {
+
+      // Step 2: Only Admins can modify role-wide permissions globally.
+      // Core Committee members have approve_actions but NOT assign_roles,
+      // so calling updateRolePermissionsAction for them throws Forbidden.
+      if (isAdmin) {
         await updateRolePermissionsAction(selectedRole, selectedPermissions);
+      }
+
+      // Step 3: Per-user permission overrides also require Admin access.
+      if (mayEditRole) {
         await updateUserPermissionOverridesAction(
           approvingUser.id,
           permissionCatalog.map((permission) => ({
@@ -142,11 +151,13 @@ export default function MembersManager() {
             mode: overrideModes[permission.key] || "default",
           }))
         );
+        // Refresh the local role→permissions map
         const refreshedCatalog = await getRolePermissionsCatalogAction();
         setRolePermissionsMap(
           Object.fromEntries(refreshedCatalog.roles.map((role) => [role.name, role.permissions]))
         );
       }
+
       await triggerRoleRefresh(approvingUser.id);
       setApprovingUser(null);
       setFeedback({ type: "success", message: approvingUser.status === "approved" ? "Role updated successfully." : "Member approved successfully." });
