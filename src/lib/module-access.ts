@@ -48,21 +48,21 @@ export const moduleAccess: Record<DashboardModuleKey, DashboardRole[]> = {
 };
 
 export const dashboardModules: DashboardModuleDefinition[] = [
-  { key: "overview", label: "Overview", shortLabel: "OV", href: "/dashboard/overview", roles: moduleAccess.overview },
-  { key: "events", label: "Events", shortLabel: "EV", href: "/dashboard/events", roles: moduleAccess.events },
-  { key: "members", label: "Directory & Approvals", shortLabel: "MB", href: "/dashboard/members", roles: moduleAccess.members },
-  { key: "articles_facts", label: "Articles & Facts", shortLabel: "AR", href: "/dashboard/education", roles: moduleAccess.articles_facts },
-  { key: "projects", label: "Projects", shortLabel: "PR", href: "/dashboard/projects", roles: moduleAccess.projects },
-  { key: "documentation", label: "Documentation", shortLabel: "DC", href: "/dashboard/documentation", roles: moduleAccess.documentation },
-  { key: "observations", label: "Observations", shortLabel: "OB", href: "/dashboard/observations", roles: moduleAccess.observations },
+  { key: "overview", label: "Overview", shortLabel: "OV", href: "/app/overview", roles: moduleAccess.overview },
+  { key: "events", label: "Events", shortLabel: "EV", href: "/app/events", roles: moduleAccess.events },
+  { key: "members", label: "Directory & Approvals", shortLabel: "MB", href: "/admin", roles: moduleAccess.members },
+  { key: "articles_facts", label: "Articles & Facts", shortLabel: "AR", href: "/app/articles", roles: moduleAccess.articles_facts },
+  { key: "projects", label: "Projects", shortLabel: "PR", href: "/app/projects", roles: moduleAccess.projects },
+  { key: "documentation", label: "Documentation", shortLabel: "DC", href: "/app/docs", roles: moduleAccess.documentation },
+  { key: "observations", label: "Observations", shortLabel: "OB", href: "/app/observations", roles: moduleAccess.observations },
   { key: "quizzes", label: "Quizzes", shortLabel: "QZ", href: "/education/quizzes", roles: moduleAccess.quizzes },
-  { key: "outreach", label: "Outreach", shortLabel: "OT", href: "/dashboard/outreach", roles: moduleAccess.outreach },
-  { key: "achievements", label: "Achievements", shortLabel: "AC", href: "/dashboard/achievements", roles: moduleAccess.achievements },
-  { key: "night_sky", label: "Night Sky", shortLabel: "NS", href: "/dashboard/night-sky", roles: moduleAccess.night_sky },
+  { key: "outreach", label: "Outreach", shortLabel: "OT", href: "/app/outreach", roles: moduleAccess.outreach },
+  { key: "achievements", label: "Achievements", shortLabel: "AC", href: "/app/overview", roles: moduleAccess.achievements },
+  { key: "night_sky", label: "Night Sky", shortLabel: "NS", href: "/app/night-sky", roles: moduleAccess.night_sky },
   { key: "system_control", label: "System Control", shortLabel: "SC", href: "/admin?tab=system-control", roles: moduleAccess.system_control },
-  { key: "announcements", label: "Announcements", shortLabel: "AN", href: "/dashboard/announcements", roles: moduleAccess.announcements },
-  { key: "finance", label: "Finance", shortLabel: "FN", href: "/dashboard/finance", roles: moduleAccess.finance },
-  { key: "activity_logs", label: "Activity Logs", shortLabel: "LG", href: "/dashboard/activity-logs", roles: moduleAccess.activity_logs },
+  { key: "announcements", label: "Announcements", shortLabel: "AN", href: "/app/overview", roles: moduleAccess.announcements },
+  { key: "finance", label: "Finance", shortLabel: "FN", href: "/app/finance", roles: moduleAccess.finance },
+  { key: "activity_logs", label: "Activity Logs", shortLabel: "LG", href: "/app/activity", roles: moduleAccess.activity_logs },
   { key: "site_settings", label: "Site Settings", shortLabel: "ST", href: "/admin?tab=settings", roles: moduleAccess.site_settings },
   { key: "system_storage", label: "System Storage", shortLabel: "SS", href: "/admin?tab=system", roles: moduleAccess.system_storage },
 ];
@@ -120,49 +120,67 @@ export function getAccessibleDashboardModules(role: DashboardRole) {
 }
 
 export function getDefaultDashboardHref(role: DashboardRole) {
-  return getAccessibleDashboardModules(role)[0]?.href || "/dashboard/overview";
+  return getAccessibleDashboardModules(role)[0]?.href || "/app/overview";
 }
 
 export function getDashboardRouteModule(
   pathname: string,
 ): DashboardModuleKey | null {
-  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/overview")) {
+  if (
+    pathname === "/dashboard" ||
+    pathname === "/app" ||
+    pathname.startsWith("/dashboard/overview") ||
+    pathname.startsWith("/app/overview")
+  ) {
     return "overview";
   }
-  if (pathname.startsWith("/dashboard/projects")) {
+  if (pathname.startsWith("/dashboard/projects") || pathname.startsWith("/app/projects")) {
     return "projects";
   }
-  if (pathname.startsWith("/dashboard/documentation") || pathname.startsWith("/dashboard/forms")) {
+  if (
+    pathname.startsWith("/dashboard/documentation") ||
+    pathname.startsWith("/dashboard/forms") ||
+    pathname.startsWith("/app/documentation") ||
+    pathname.startsWith("/app/docs")
+  ) {
     return "documentation";
   }
-  if (pathname.startsWith("/dashboard/finance")) {
+  if (pathname.startsWith("/dashboard/finance") || pathname.startsWith("/app/finance")) {
     return "finance";
   }
-  if (pathname.startsWith("/dashboard/announcements") || pathname.startsWith("/dashboard/notifications")) {
+  if (
+    pathname.startsWith("/dashboard/announcements") ||
+    pathname.startsWith("/dashboard/notifications")
+  ) {
     return "announcements";
   }
-  if (pathname.startsWith("/dashboard/activity-logs") || pathname.startsWith("/dashboard/activity")) {
+  if (
+    pathname.startsWith("/dashboard/activity-logs") ||
+    pathname.startsWith("/dashboard/activity") ||
+    pathname.startsWith("/app/activity-logs") ||
+    pathname.startsWith("/app/activity")
+  ) {
     return "activity_logs";
   }
   if (pathname.startsWith("/dashboard/members")) {
     return "members";
   }
-  if (pathname.startsWith("/dashboard/events")) {
+  if (pathname.startsWith("/dashboard/events") || pathname.startsWith("/app/events")) {
     return "events";
   }
-  if (pathname.startsWith("/dashboard/observations")) {
+  if (pathname.startsWith("/dashboard/observations") || pathname.startsWith("/app/observations")) {
     return "observations";
   }
-  if (pathname.startsWith("/dashboard/education")) {
+  if (pathname.startsWith("/dashboard/education") || pathname.startsWith("/app/articles")) {
     return "articles_facts";
   }
-  if (pathname.startsWith("/dashboard/outreach")) {
+  if (pathname.startsWith("/dashboard/outreach") || pathname.startsWith("/app/outreach")) {
     return "outreach";
   }
   if (pathname.startsWith("/dashboard/achievements")) {
     return "achievements";
   }
-  if (pathname.startsWith("/dashboard/night-sky")) {
+  if (pathname.startsWith("/dashboard/night-sky") || pathname.startsWith("/app/night-sky")) {
     return "night_sky";
   }
   return null;

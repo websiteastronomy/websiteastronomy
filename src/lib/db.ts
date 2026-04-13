@@ -1,6 +1,8 @@
 import {
   fetchCollectionAction,
   fetchDocumentAction,
+  fetchPublicCollectionAction,
+  fetchPublicDocumentAction,
   addDocumentAction,
   updateDocumentAction,
   deleteDocumentAction,
@@ -74,6 +76,14 @@ export const getCollection = async <T>(collectionName: string) => {
 
 export const getDocument = async <T>(collectionName: string, id: string) => {
   return await fetchDocumentAction(collectionName, id) as unknown as Promise<T | null>;
+};
+
+export const getPublicCollection = async <T>(collectionName: string) => {
+  return await fetchPublicCollectionAction(collectionName) as unknown as Promise<T[]>;
+};
+
+export const getPublicDocument = async <T>(collectionName: string, id: string) => {
+  return await fetchPublicDocumentAction(collectionName, id) as unknown as Promise<T | null>;
 };
 
 export const addDocument = async (collectionName: string, data: any) => {

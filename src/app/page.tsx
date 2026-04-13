@@ -13,6 +13,8 @@ import { loadSiteSettingsClient } from "@/data/siteSettingsStatic";
 import { 
   getDocument, 
   getCollection, 
+  getPublicCollection,
+  getPublicDocument,
   subscribeToCollection,
   SiteSettings 
 } from "@/lib/db";
@@ -51,10 +53,10 @@ export default function Home() {
 
       // Fetch featured project
       if (s.featuredProjectId) {
-        const p = await getDocument("projects", s.featuredProjectId);
+        const p = await getPublicDocument("projects", s.featuredProjectId);
         if (p) setFeaturedProject(p);
       } else {
-        const projects = await getCollection("projects");
+        const projects = await getPublicCollection("projects");
         if (projects.length > 0) setFeaturedProject(projects[0]);
       }
 

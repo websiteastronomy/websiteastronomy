@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { getDocument } from "@/lib/db";
+import { getPublicDocument } from "@/lib/db";
+import { useAuth } from "@/context/AuthContext";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface TeamMember { name: string; role: string; image?: string; }
@@ -47,16 +48,28 @@ export default function ProjectPublicPage() {
   const params = useParams();
   const router = useRouter();
   const id = typeof params?.id === "string" ? params.id : "";
+  const { user } = useAuth();
 
   const [proj, setProj] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!id) return;
-    getDocument("projects", id)
+    getPublicDocument("projects", id)
       .then((data) => { setProj(data); setLoading(false); })
       .catch(() => setLoading(false));
   }, [id]);
+
+  const openMemberWorkspace = () => {
+    if (!id) return;
+
+    if (user) {
+      router.push(`/projects/${id}`);
+      return;
+    }
+
+    router.push(`/portal?redirect=${encodeURIComponent(`/projects/${id}`)}`);
+  };
 
   /* ── Loading ── */
   if (loading) {
@@ -371,12 +384,12 @@ export default function ProjectPublicPage() {
             <div style={{ background: "rgba(168,85,247,0.07)", border: "1px solid rgba(168,85,247,0.2)", borderRadius: "12px", padding: "1.25rem", textAlign: "center" }}>
               <p style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.1em", color: "#a855f7", marginBottom: "0.5rem", fontWeight: 700 }}>🔐 Member Access</p>
               <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", lineHeight: 1.5, marginBottom: "1rem" }}>Sign in to view the full task board, files, and team discussion.</p>
-              <Link href="/login" style={{ display: "block", padding: "0.6rem 1rem", background: "rgba(168,85,247,0.15)", border: "1px solid rgba(168,85,247,0.35)", borderRadius: "8px", color: "#a855f7", textDecoration: "none", fontSize: "0.82rem", fontWeight: 600, transition: "all 0.2s" }}
+              <button type="button" onClick={openMemberWorkspace} style={{ display: "block", width: "100%", padding: "0.6rem 1rem", background: "rgba(168,85,247,0.15)", border: "1px solid rgba(168,85,247,0.35)", borderRadius: "8px", color: "#a855f7", textDecoration: "none", fontSize: "0.82rem", fontWeight: 600, transition: "all 0.2s", cursor: "pointer", fontFamily: "inherit" }}
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(168,85,247,0.25)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "rgba(168,85,247,0.15)")}
               >
                 Sign In →
-              </Link>
+              </button>
             </div>
           </motion.div>
         </div>

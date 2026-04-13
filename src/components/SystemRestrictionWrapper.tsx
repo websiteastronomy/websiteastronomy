@@ -20,7 +20,11 @@ export default function SystemRestrictionWrapper({
   const isMaintenance = systemControl ? isMaintenanceActive(systemControl) : false;
   const isLockdown = Boolean(systemControl?.lockdownEnabled);
   const isAdminRoute = pathname.startsWith("/admin");
-  const isAuthRoute = pathname.startsWith("/portal") || pathname.startsWith("/dashboard") || isAdminRoute;
+  const isAuthRoute =
+    pathname.startsWith("/portal") ||
+    pathname.startsWith("/app") ||
+    pathname.startsWith("/dashboard") ||
+    isAdminRoute;
   const restrictedFeature = systemControl ? getRestrictedFeatureForPath(pathname, systemControl) : null;
 
   if (systemControl) {

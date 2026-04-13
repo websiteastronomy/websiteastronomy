@@ -5,7 +5,7 @@ import * as schema from "@/db/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { revalidatePath } from "next/cache";
-import { getSystemAccess, requireAuthenticatedUser } from "@/lib/system-rbac";
+import { getSessionUser, getSystemAccess, requireAuthenticatedUser } from "@/lib/system-rbac";
 
 const PUBLIC_COLLECTIONS = new Set([
   "articles",
@@ -48,6 +48,67 @@ async function assertCollectionReadAccess(collectionName: string) {
   throw new Error("Forbidden");
 }
 
+async function getOptionalReadAccess() {
+  const user = await getSessionUser();
+  if (!user) {
+    return {
+      user: null,
+      access: null,
+    };
+  }
+
+  return {
+    user,
+    access: await getSystemAccess(user.id),
+  };
+}
+
+function isPrivilegedPublicReader(
+  collectionName: string,
+  access: Awaited<ReturnType<typeof getOptionalReadAccess>>["access"],
+) {
+  if (!access) {
+    return false;
+  }
+
+  if (access.isAdmin) {
+    return true;
+  }
+
+  if (collectionName === "outreach") {
+    return access.canApproveActions || access.canManageProjects || access.canManageEvents;
+  }
+
+  if (collectionName === "articles") {
+    return access.canApproveActions;
+  }
+
+  if (collectionName === "observations") {
+    return access.canManageProjects;
+  }
+
+  return false;
+}
+
+function isPublishedPublicRecord(collectionName: string, item: any) {
+  if (!item) {
+    return false;
+  }
+
+  switch (collectionName) {
+    case "outreach":
+      return item.isApproved === true;
+    case "articles":
+      return item.status === "published" || item.isPublished === true;
+    case "observations":
+      return item.status === "Published" || item.isApproved === true;
+    case "projects":
+      return item.isPublished === true;
+    default:
+      return true;
+  }
+}
+
 async function assertCollectionWriteAccess(collectionName: string) {
   const user = await requireAuthenticatedUser();
   const access = await getSystemAccess(user.id);
@@ -86,6 +147,26 @@ export async function fetchCollectionAction(collectionName: string) {
   }
 }
 
+export async function fetchPublicCollectionAction(collectionName: string) {
+  const publicCollections = new Set(["outreach", "articles", "observations", "projects"]);
+  if (!publicCollections.has(collectionName)) {
+    return fetchCollectionAction(collectionName);
+  }
+
+  const table = (schema as any)[collectionName];
+  if (!table) throw new Error(`Collection ${collectionName} not found`);
+
+  const { access } = await getOptionalReadAccess();
+  const hasPrivilegedAccess = isPrivilegedPublicReader(collectionName, access);
+  const data = await fetchCollectionAction(collectionName);
+
+  if (hasPrivilegedAccess) {
+    return data;
+  }
+
+  return data.filter((item) => isPublishedPublicRecord(collectionName, item));
+}
+
 export async function fetchDocumentAction(collectionName: string, id: string) {
   const table = (schema as any)[collectionName];
   if (!table) return null;
@@ -101,6 +182,30 @@ export async function fetchDocumentAction(collectionName: string, id: string) {
     const result = await db.execute(sql`select * from ${tableName} where "id" = ${id} limit 1`);
     return (result.rows[0] as any) || null;
   }
+}
+
+export async function fetchPublicDocumentAction(collectionName: string, id: string) {
+  const publicCollections = new Set(["outreach", "articles", "observations", "projects"]);
+  if (!publicCollections.has(collectionName)) {
+    return fetchDocumentAction(collectionName, id);
+  }
+
+  const { access } = await getOptionalReadAccess();
+  const hasPrivilegedAccess =
+    collectionName === "projects"
+      ? Boolean(access?.isAdmin)
+      : isPrivilegedPublicReader(collectionName, access);
+  const item = await fetchDocumentAction(collectionName, id);
+
+  if (!item) {
+    return null;
+  }
+
+  if (hasPrivilegedAccess || isPublishedPublicRecord(collectionName, item)) {
+    return item;
+  }
+
+  throw new Error("Unauthorized");
 }
 
 export async function addDocumentAction(collectionName: string, data: any) {

@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import AnimatedSection from '@/components/AnimatedSection';
-import { subscribeToCollection, addDocument } from '@/lib/db';
+import { addDocument, getPublicCollection } from '@/lib/db';
 import { useAuth } from '@/context/AuthContext';
 import { formatDateStable } from '@/lib/format-date';
 
@@ -17,8 +17,9 @@ export default function OutreachPage() {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
-    const unsub = subscribeToCollection('outreach', (data) => setOutreachData(data));
-    return () => unsub();
+    getPublicCollection('outreach')
+      .then((data) => setOutreachData(data))
+      .catch((error) => console.error("[OutreachPage] Failed to load outreach:", error));
   }, []);
 
   // Filter approved only and calculate High Value Impact Stats

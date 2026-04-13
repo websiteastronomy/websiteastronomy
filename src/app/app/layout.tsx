@@ -37,10 +37,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const sidebarLinks = [
     { label: "Overview", shortLabel: "OV", href: "/app/overview" },
-    { label: "My Projects", shortLabel: "PR", href: "/app/projects" },
-    { label: "Leaderboard", shortLabel: "LB", href: "/app/leaderboard" },
-    { label: "Announcements", shortLabel: "AN", href: "/app/announcements" },
-    { label: "Activity", shortLabel: "AC", href: "/app/activity-logs" },
+    { label: "Projects", shortLabel: "PR", href: "/app/projects" },
+    { label: "Documentation", shortLabel: "DC", href: "/app/docs" },
+    { label: "Events", shortLabel: "EV", href: "/app/events" },
+    { label: "Finance", shortLabel: "FN", href: "/app/finance" },
+    { label: "Articles", shortLabel: "AR", href: "/app/articles" },
+    { label: "Observations", shortLabel: "OB", href: "/app/observations" },
+    { label: "Quizzes", shortLabel: "QZ", href: "/app/quizzes" },
+    { label: "Activity", shortLabel: "AC", href: "/app/activity" },
+    { label: "Settings", shortLabel: "ST", href: "/app/settings" },
   ];
 
   let panelRedirectLabel = null;
@@ -282,7 +287,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               }}
             >
               <SidebarBadge label="PF" />
-              Profile & Settings
+              Settings
             </Link>
           </div>
 

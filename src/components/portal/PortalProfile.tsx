@@ -447,7 +447,7 @@ export default function PortalProfile({
             {showDashboardLink && (
               <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "0.8rem", marginTop: "0.4rem" }}>
                 <Link
-                  href="/dashboard"
+                  href="/app/overview"
                   style={{
                     display: "flex",
                     alignItems: "center",

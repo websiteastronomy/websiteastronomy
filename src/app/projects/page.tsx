@@ -4,16 +4,15 @@ import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import AnimatedSection from '@/components/AnimatedSection';
-import { subscribeToCollection } from '@/lib/db';
+import { getPublicCollection } from '@/lib/db';
 
 export default function ProjectsList() {
   const [projects, setProjects] = useState<any[]>([]);
 
   useEffect(() => {
-    const unsub = subscribeToCollection('projects', (data) => {
-      setProjects(data);
-    });
-    return () => unsub();
+    getPublicCollection('projects')
+      .then((data) => setProjects(data))
+      .catch((error) => console.error("[ProjectsList] Failed to load projects:", error));
   }, []);
 
   const [searchQuery, setSearchQuery] = useState("");
