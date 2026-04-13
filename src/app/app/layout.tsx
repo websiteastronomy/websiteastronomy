@@ -52,11 +52,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  const [redirected, setRedirected] = useState(false);
+
   useEffect(() => {
-    if (!loading && !user && pathname.startsWith("/app")) {
+    if (!loading && !user && pathname.startsWith("/app") && !redirected) {
+      setRedirected(true);
       router.replace(`/portal?redirect=${encodeURIComponent(pathname)}`);
     }
-  }, [user, loading, router, pathname]);
+  }, [user, loading, router, pathname, redirected]);
 
   useEffect(() => {
     setIsSidebarOpen(false);

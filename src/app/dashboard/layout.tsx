@@ -7,7 +7,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/app");
+    router.replace("/app/overview");
   }, [router]);
 
   return (

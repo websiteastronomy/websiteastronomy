@@ -39,14 +39,20 @@ export default function Portal() {
     width: "100%",
   };
 
+  const [redirected, setRedirected] = useState(false);
+
   // When user is authenticated and past all gates → redirect to /app
   useEffect(() => {
-    if (!user || loading) return;
+    if (!user || loading || redirected) return;
     // Don't redirect if user is pending / rejected (gates below handle those)
     if ((userStatus === "pending" || userStatus === "rejected") && !isAdmin) return;
-    const target = safeRedirectTarget || "/app";
+    
+    let target = safeRedirectTarget || "/app/overview";
+    if (target === "/app") target = "/app/overview";
+
+    setRedirected(true);
     router.replace(target);
-  }, [user, loading, userStatus, isAdmin, safeRedirectTarget, router]);
+  }, [user, loading, userStatus, isAdmin, safeRedirectTarget, router, redirected]);
 
   return (
     <div className="page-container">
