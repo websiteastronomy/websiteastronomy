@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@/verification-client": ["./src/app/v/[token]/VerificationClient"]
     }
   },
   "include": [

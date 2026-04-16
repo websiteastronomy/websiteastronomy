@@ -677,3 +677,32 @@ export const announcements = pgTable("announcements", {
   createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// ==============================================================================
+// ATTENDANCE SYSTEM TABLES
+// ==============================================================================
+
+export const attendance_invites = pgTable("attendance_invites", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull(),
+  token: text("token").notNull().unique(),
+  name: text("name"),
+  usn: text("usn"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const attendance_sessions = pgTable("attendance_sessions", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  date: text("date").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const attendance_records = pgTable("attendance_records", {
+  id: text("id").primaryKey(),
+  inviteId: text("invite_id").notNull().references(() => attendance_invites.id, { onDelete: "cascade" }),
+  sessionId: text("session_id").notNull().references(() => attendance_sessions.id, { onDelete: "cascade" }),
+  scannedAt: timestamp("scanned_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueAttendance: uniqueIndex("attendance_records_invite_session_unique").on(table.inviteId, table.sessionId),
+}));
