@@ -39,12 +39,15 @@ export default function Portal() {
     width: "100%",
   };
 
+  const [redirected, setRedirected] = useState(false);
+
   useEffect(() => {
-    if (!user || loading) return;
+    if (!user || loading || redirected) return;
     if ((userStatus === "pending" || userStatus === "rejected") && !isAdmin) return;
     const target = safeRedirectTarget || "/app";
+    setRedirected(true);
     router.replace(target);
-  }, [user, loading, userStatus, isAdmin, safeRedirectTarget, router]);
+  }, [user, loading, userStatus, isAdmin, safeRedirectTarget, router, redirected]);
 
   return (
     <div className="page-container">

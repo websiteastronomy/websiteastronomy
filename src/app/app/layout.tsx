@@ -50,12 +50,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   else if (dashboardRole === "finance_head") panelRedirectLabel = "Finance Panel";
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [redirected, setRedirected] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user && pathname.startsWith("/app")) {
+    if (!loading && !user && pathname.startsWith("/app") && !redirected) {
+      setRedirected(true);
       router.replace(`/portal?redirect=${encodeURIComponent(pathname)}`);
     }
-  }, [user, loading, router, pathname]);
+  }, [user, loading, router, pathname, redirected]);
 
   useEffect(() => {
     setIsSidebarOpen(false);
