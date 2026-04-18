@@ -39,20 +39,12 @@ export default function Portal() {
     width: "100%",
   };
 
-  const [redirected, setRedirected] = useState(false);
-
-  // When user is authenticated and past all gates → redirect to /app
   useEffect(() => {
-    if (!user || loading || redirected) return;
-    // Don't redirect if user is pending / rejected (gates below handle those)
+    if (!user || loading) return;
     if ((userStatus === "pending" || userStatus === "rejected") && !isAdmin) return;
-    
-    let target = safeRedirectTarget || "/app/overview";
-    if (target === "/app") target = "/app/overview";
-
-    setRedirected(true);
+    const target = safeRedirectTarget || "/app";
     router.replace(target);
-  }, [user, loading, userStatus, isAdmin, safeRedirectTarget, router, redirected]);
+  }, [user, loading, userStatus, isAdmin, safeRedirectTarget, router]);
 
   return (
     <div className="page-container">
@@ -70,7 +62,6 @@ export default function Portal() {
           <p>Initializing uplink...</p>
         </div>
       ) : !user ? (
-        /* ── Auth Form ── */
         <div style={{ display: "flex", justifyContent: "center", marginTop: "3rem" }}>
           <AnimatedSection direction="up" delay={0.1}>
             <div className="feature-card" style={{ padding: "3rem", textAlign: "center", maxWidth: "400px", width: "100%" }}>
@@ -222,7 +213,6 @@ export default function Portal() {
           </AnimatedSection>
         </div>
       ) : userStatus === "pending" && !isAdmin ? (
-        /* ── Pending Approval Gate (only blocks non-admins) ── */
         <div style={{ display: "flex", justifyContent: "center", marginTop: "3rem" }}>
           <AnimatedSection direction="up" delay={0.1}>
             <div className="feature-card" style={{ padding: "3rem", textAlign: "center", maxWidth: "460px", width: "100%" }}>
@@ -270,7 +260,6 @@ export default function Portal() {
           </AnimatedSection>
         </div>
       ) : userStatus === "rejected" && !isAdmin ? (
-        /* ── Rejected Account Gate (only blocks non-admins) ── */
         <div style={{ display: "flex", justifyContent: "center", marginTop: "3rem" }}>
           <AnimatedSection direction="up" delay={0.1}>
             <div className="feature-card" style={{ padding: "3rem", textAlign: "center", maxWidth: "460px", width: "100%" }}>
@@ -296,7 +285,6 @@ export default function Portal() {
           </AnimatedSection>
         </div>
       ) : (
-        /* ── Authenticated: Redirecting to /app ── */
         <div style={{ textAlign: "center", padding: "4rem", color: "var(--gold)" }}>
           <div
             style={{

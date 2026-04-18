@@ -37,15 +37,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const sidebarLinks = [
     { label: "Overview", shortLabel: "OV", href: "/app/overview" },
-    { label: "Projects", shortLabel: "PR", href: "/app/projects" },
-    { label: "Documentation", shortLabel: "DC", href: "/app/docs" },
-    { label: "Events", shortLabel: "EV", href: "/app/events" },
-    { label: "Finance", shortLabel: "FN", href: "/app/finance" },
-    { label: "Articles", shortLabel: "AR", href: "/app/articles" },
-    { label: "Observations", shortLabel: "OB", href: "/app/observations" },
-    { label: "Quizzes", shortLabel: "QZ", href: "/app/quizzes" },
-    { label: "Activity", shortLabel: "AC", href: "/app/activity" },
-    { label: "Settings", shortLabel: "ST", href: "/app/settings" },
+    { label: "My Projects", shortLabel: "PR", href: "/app/projects" },
+    { label: "Leaderboard", shortLabel: "LB", href: "/app/leaderboard" },
+    { label: "Announcements", shortLabel: "AN", href: "/app/announcements" },
+    { label: "Activity", shortLabel: "AC", href: "/app/activity-logs" },
   ];
 
   let panelRedirectLabel = null;
@@ -55,31 +50,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   else if (dashboardRole === "finance_head") panelRedirectLabel = "Finance Panel";
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [redirected, setRedirected] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user && pathname.startsWith("/app") && !redirected) {
-      setRedirected(true);
+    if (!loading && !user && pathname.startsWith("/app")) {
       router.replace(`/portal?redirect=${encodeURIComponent(pathname)}`);
     }
-  }, [user, loading, router, pathname, redirected]);
+  }, [user, loading, router, pathname]);
 
   useEffect(() => {
     setIsSidebarOpen(false);
   }, [pathname]);
-
-  useEffect(() => {
-    if (!isSidebarOpen) {
-      document.body.style.overflow = "";
-      return;
-    }
-
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isSidebarOpen]);
 
   if (loading || !user) {
     return (
@@ -111,9 +91,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         className="mobile-nav-toggle workspace-mobile-header"
         style={{
           alignItems: "center",
-          justifyContent: "space-between",
-          gap: "0.75rem",
-          padding: "0.85rem 1rem",
+          padding: "1rem",
           borderBottom: "1px solid var(--border-subtle)",
           background: "rgba(11, 16, 30, 0.95)",
           position: "sticky",
@@ -123,52 +101,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       >
         <button
           type="button"
-          className="workspace-mobile-menu-button auto-width"
-          aria-label={isSidebarOpen ? "Close dashboard navigation" : "Open dashboard navigation"}
-          aria-expanded={isSidebarOpen}
-          aria-controls="app-sidebar-navigation"
-          onClick={() => setIsSidebarOpen((open) => !open)}
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           style={{
-            background: "rgba(255, 255, 255, 0.04)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
-            borderRadius: "999px",
+            background: "transparent",
+            border: "none",
             color: "var(--text-primary)",
-            fontSize: "1.3rem",
+            fontSize: "1.5rem",
             cursor: "pointer",
-            padding: "0.65rem",
+            padding: "0.5rem",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            flexShrink: 0,
-            width: "44px",
-            height: "44px",
-            lineHeight: 1,
           }}
         >
-          {isSidebarOpen ? "×" : "☰"}
+          ☰
         </button>
-
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <h1 style={{ fontSize: "1.1rem", margin: 0, color: "var(--gold)" }}>Dashboard</h1>
-          <p
-            style={{
-              margin: "0.2rem 0 0",
-              color: "var(--text-muted)",
-              fontSize: "0.72rem",
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-            }}
-          >
-            Workspace Navigation
-          </p>
-        </div>
+        <h1 style={{ fontSize: "1.1rem", margin: 0, marginLeft: "0.5rem", color: "var(--gold)" }}>Dashboard</h1>
       </div>
 
       <div className={`sidebar-overlay ${isSidebarOpen ? "open" : ""}`} onClick={() => setIsSidebarOpen(false)} />
 
       <div className="workspace-shell" style={{ display: "flex", flex: 1, position: "relative", minHeight: 0 }}>
         <aside
-          id="app-sidebar-navigation"
           className={`sidebar-container ${isSidebarOpen ? "open" : ""}`}
           style={{
             width: "240px",
@@ -212,7 +166,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   (user.name || "U").charAt(0).toUpperCase()
                 )}
               </div>
-
               <div style={{ minWidth: 0 }}>
                 <div
                   style={{
@@ -287,7 +240,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               }}
             >
               <SidebarBadge label="PF" />
-              Settings
+              Profile & Settings
             </Link>
           </div>
 
@@ -307,7 +260,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             >
               Back to Public Site
             </Link>
-
             <button
               type="button"
               onClick={() => void logout()}
