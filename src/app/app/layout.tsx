@@ -63,6 +63,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setIsSidebarOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    if (!isSidebarOpen) {
+      document.body.style.overflow = "";
+      return;
+    }
+
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isSidebarOpen]);
+
   if (loading || !user) {
     return (
       <div style={{ minHeight: "60vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
@@ -92,8 +105,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div
         className="mobile-nav-toggle workspace-mobile-header"
         style={{
+          display: "flex",
           alignItems: "center",
-          padding: "1rem",
+          justifyContent: "space-between",
+          gap: "0.75rem",
+          padding: "0.9rem 1rem",
           borderBottom: "1px solid var(--border-subtle)",
           background: "rgba(11, 16, 30, 0.95)",
           position: "sticky",
@@ -103,28 +119,50 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       >
         <button
           type="button"
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="workspace-mobile-menu-button auto-width"
+          aria-label={isSidebarOpen ? "Close dashboard navigation" : "Open dashboard navigation"}
+          aria-expanded={isSidebarOpen}
+          aria-controls="app-dashboard-sidebar"
+          onClick={() => setIsSidebarOpen((open) => !open)}
           style={{
-            background: "transparent",
-            border: "none",
+            background: "rgba(255, 255, 255, 0.04)",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+            borderRadius: "999px",
             color: "var(--text-primary)",
-            fontSize: "1.5rem",
+            fontSize: "0.85rem",
+            fontWeight: 600,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
             cursor: "pointer",
-            padding: "0.5rem",
+            padding: "0.8rem 0.95rem",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          ☰
+          {isSidebarOpen ? "Close" : "Menu"}
         </button>
-        <h1 style={{ fontSize: "1.1rem", margin: 0, marginLeft: "0.5rem", color: "var(--gold)" }}>Dashboard</h1>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <h1 style={{ fontSize: "1.1rem", margin: 0, color: "var(--gold)" }}>Dashboard</h1>
+          <p
+            style={{
+              margin: "0.18rem 0 0",
+              color: "var(--text-muted)",
+              fontSize: "0.72rem",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+            }}
+          >
+            Mobile Workspace
+          </p>
+        </div>
       </div>
 
       <div className={`sidebar-overlay ${isSidebarOpen ? "open" : ""}`} onClick={() => setIsSidebarOpen(false)} />
 
       <div className="workspace-shell" style={{ display: "flex", flex: 1, position: "relative", minHeight: 0 }}>
         <aside
+          id="app-dashboard-sidebar"
           className={`sidebar-container ${isSidebarOpen ? "open" : ""}`}
           style={{
             width: "240px",

@@ -76,23 +76,23 @@ export default function Admin() {
   const canAccessAdminPage = canAccessAdminDashboard(access);
 
   const tabs: AdminTab[] = [
-    { id: "overview", label: "Overview", icon: "📊", visible: ADMIN_PAGE_PERMISSIONS.overview(access) },
-    { id: "events", label: "Events", icon: "📅", visible: ADMIN_PAGE_PERMISSIONS.events(access) },
-    { id: "members", label: "Directory & Approvals", icon: "👥", visible: ADMIN_PAGE_PERMISSIONS.members(access) },
-    { id: "articles", label: "Articles & Facts", icon: "📝", visible: ADMIN_PAGE_PERMISSIONS.articles(access) },
-    { id: "projects", label: "Projects", icon: "🚀", visible: ADMIN_PAGE_PERMISSIONS.projects(access) },
-    { id: "documentation", label: "Documentation", icon: "📚", visible: ADMIN_PAGE_PERMISSIONS.projects(access) },
-    { id: "observations", label: "Observations", icon: "🔭", visible: ADMIN_PAGE_PERMISSIONS.observations(access) },
-    { id: "quizzes", label: "Quizzes", icon: "🧠", visible: ADMIN_PAGE_PERMISSIONS.quizzes(access) },
-    { id: "outreach", label: "Outreach", icon: "🤝", visible: ADMIN_PAGE_PERMISSIONS.outreach(access) },
-    { id: "achievements", label: "Achievements", icon: "🏆", visible: ADMIN_PAGE_PERMISSIONS.achievements(access) },
-    { id: "night-sky", label: "Night Sky", icon: "🌙", visible: ADMIN_PAGE_PERMISSIONS.nightSky(access) },
-    { id: "system-control", label: "System Control", icon: "🛠️", visible: ADMIN_PAGE_PERMISSIONS.systemControl(access) },
-    { id: "announcements", label: "Announcements", icon: "📣", visible: ADMIN_PAGE_PERMISSIONS.announcements(access) },
-    { id: "finance", label: "Finance", icon: "💰", visible: ADMIN_PAGE_PERMISSIONS.finance(access) },
-    { id: "logs", label: "Activity Logs", icon: "🧾", visible: ADMIN_PAGE_PERMISSIONS.logs(access) },
-    { id: "settings", label: "Site Settings", icon: "⚙️", visible: ADMIN_PAGE_PERMISSIONS.settings(access) },
-    { id: "system", label: "System Storage", icon: "💾", visible: ADMIN_PAGE_PERMISSIONS.system(access) },
+    { id: "overview", label: "Overview", icon: "Overview", visible: ADMIN_PAGE_PERMISSIONS.overview(access) },
+    { id: "events", label: "Events", icon: "Events", visible: ADMIN_PAGE_PERMISSIONS.events(access) },
+    { id: "members", label: "Directory & Approvals", icon: "Members", visible: ADMIN_PAGE_PERMISSIONS.members(access) },
+    { id: "articles", label: "Articles & Facts", icon: "Articles", visible: ADMIN_PAGE_PERMISSIONS.articles(access) },
+    { id: "projects", label: "Projects", icon: "Projects", visible: ADMIN_PAGE_PERMISSIONS.projects(access) },
+    { id: "documentation", label: "Documentation", icon: "Docs", visible: ADMIN_PAGE_PERMISSIONS.projects(access) },
+    { id: "observations", label: "Observations", icon: "Obs", visible: ADMIN_PAGE_PERMISSIONS.observations(access) },
+    { id: "quizzes", label: "Quizzes", icon: "Quiz", visible: ADMIN_PAGE_PERMISSIONS.quizzes(access) },
+    { id: "outreach", label: "Outreach", icon: "Reach", visible: ADMIN_PAGE_PERMISSIONS.outreach(access) },
+    { id: "achievements", label: "Achievements", icon: "Awards", visible: ADMIN_PAGE_PERMISSIONS.achievements(access) },
+    { id: "night-sky", label: "Night Sky", icon: "Sky", visible: ADMIN_PAGE_PERMISSIONS.nightSky(access) },
+    { id: "system-control", label: "System Control", icon: "Control", visible: ADMIN_PAGE_PERMISSIONS.systemControl(access) },
+    { id: "announcements", label: "Announcements", icon: "News", visible: ADMIN_PAGE_PERMISSIONS.announcements(access) },
+    { id: "finance", label: "Finance", icon: "Funds", visible: ADMIN_PAGE_PERMISSIONS.finance(access) },
+    { id: "logs", label: "Activity Logs", icon: "Logs", visible: ADMIN_PAGE_PERMISSIONS.logs(access) },
+    { id: "settings", label: "Site Settings", icon: "Settings", visible: ADMIN_PAGE_PERMISSIONS.settings(access) },
+    { id: "system", label: "System Storage", icon: "Storage", visible: ADMIN_PAGE_PERMISSIONS.system(access) },
   ].filter((tab) => tab.visible);
 
   const currentTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : (tabs[0]?.id ?? "overview");
@@ -100,6 +100,19 @@ export default function Admin() {
   useEffect(() => {
     setIsSidebarOpen(false);
   }, [currentTab]);
+
+  useEffect(() => {
+    if (!isSidebarOpen) {
+      document.body.style.overflow = "";
+      return;
+    }
+
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isSidebarOpen]);
 
   if (loading) {
     return (
@@ -111,13 +124,13 @@ export default function Admin() {
 
   if (!user) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh", flexDirection: "column" }}>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh", flexDirection: "column", padding: "1rem" }}>
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          style={{ background: "rgba(12, 18, 34, 0.6)", padding: "3rem", borderRadius: "16px", border: "1px solid rgba(239, 68, 68, 0.3)", textAlign: "center", maxWidth: "420px" }}
+          style={{ background: "rgba(12, 18, 34, 0.6)", padding: "3rem", borderRadius: "16px", border: "1px solid rgba(239, 68, 68, 0.3)", textAlign: "center", maxWidth: "420px", width: "100%" }}
         >
-          <div style={{ color: "#ef4444", fontSize: "3rem", marginBottom: "1rem" }}>🔒</div>
+          <div style={{ color: "#ef4444", fontSize: "3rem", marginBottom: "1rem" }}>Locked</div>
           <h2 style={{ fontSize: "1.5rem", marginBottom: "1rem", color: "var(--text-primary)" }}>Restricted Area</h2>
           <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "2rem", lineHeight: 1.6 }}>
             You must be authenticated to access the administrative control panel.
@@ -162,13 +175,13 @@ export default function Admin() {
 
   if (!canAccessAdminPage) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh", flexDirection: "column" }}>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh", flexDirection: "column", padding: "1rem" }}>
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          style={{ background: "rgba(12, 18, 34, 0.6)", padding: "3rem", borderRadius: "16px", border: "1px solid rgba(239, 68, 68, 0.3)", textAlign: "center", maxWidth: "420px" }}
+          style={{ background: "rgba(12, 18, 34, 0.6)", padding: "3rem", borderRadius: "16px", border: "1px solid rgba(239, 68, 68, 0.3)", textAlign: "center", maxWidth: "420px", width: "100%" }}
         >
-          <div style={{ color: "#ef4444", fontSize: "3rem", marginBottom: "1rem" }}>⛔</div>
+          <div style={{ color: "#ef4444", fontSize: "3rem", marginBottom: "1rem" }}>Denied</div>
           <h2 style={{ fontSize: "1.5rem", marginBottom: "1rem", color: "var(--text-primary)" }}>Permission Denied</h2>
           <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "1rem", lineHeight: 1.6 }}>
             Your account (<strong>{user.email}</strong>) does not have the permissions required to access this area.
@@ -186,122 +199,147 @@ export default function Admin() {
 
   return (
     <div className="dashboard-root workspace-root" style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 60px)" }}>
-      {/* Mobile Top Header (only visible on mobile via CSS) */}
-      <div 
-        className="mobile-nav-toggle workspace-mobile-header" 
-        style={{ 
-          alignItems: "center", 
-          padding: "1rem", 
-          borderBottom: "1px solid var(--border-subtle)", 
-          background: "rgba(11, 16, 30, 0.95)", 
-          position: "sticky", 
-          top: 0, 
-          zIndex: 30 
+      <div
+        className="mobile-nav-toggle workspace-mobile-header"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "0.75rem",
+          padding: "0.9rem 1rem",
+          borderBottom: "1px solid var(--border-subtle)",
+          background: "rgba(11, 16, 30, 0.95)",
+          position: "sticky",
+          top: 0,
+          zIndex: 30,
         }}
       >
-        <button 
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
-          style={{ 
-            background: "transparent", 
-            border: "none", 
-            color: "var(--text-primary)", 
-            fontSize: "1.5rem", 
-            cursor: "pointer", 
-            padding: "0.5rem", 
-            display: "flex", 
-            alignItems: "center", 
-            justifyContent: "center" 
+        <button
+          type="button"
+          className="workspace-mobile-menu-button auto-width"
+          aria-label={isSidebarOpen ? "Close admin navigation" : "Open admin navigation"}
+          aria-expanded={isSidebarOpen}
+          aria-controls="admin-sidebar"
+          onClick={() => setIsSidebarOpen((open) => !open)}
+          style={{
+            background: "rgba(255, 255, 255, 0.04)",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+            borderRadius: "999px",
+            color: "var(--text-primary)",
+            fontSize: "0.85rem",
+            fontWeight: 600,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            cursor: "pointer",
+            padding: "0.8rem 0.95rem",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          ☰
+          {isSidebarOpen ? "Close" : "Menu"}
         </button>
-        <h1 style={{ fontSize: "1.1rem", margin: 0, marginLeft: "0.5rem", color: "var(--text-primary)" }}>Admin Control</h1>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <h1 style={{ fontSize: "1.1rem", margin: 0, color: "var(--text-primary)" }}>Admin Control</h1>
+          <p
+            style={{
+              margin: "0.18rem 0 0",
+              color: "var(--text-muted)",
+              fontSize: "0.72rem",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+            }}
+          >
+            Mobile Panel
+          </p>
+        </div>
       </div>
 
-      {/* Sidebar Overlay */}
-      <div
-        className={`sidebar-overlay ${isSidebarOpen ? "open" : ""}`}
-        onClick={() => setIsSidebarOpen(false)}
-      />
+      <div className={`sidebar-overlay ${isSidebarOpen ? "open" : ""}`} onClick={() => setIsSidebarOpen(false)} />
 
       <div className="workspace-shell" style={{ display: "flex", flex: 1, position: "relative", minHeight: 0 }}>
-        <aside 
-          className={`sidebar-container ${isSidebarOpen ? "open" : ""}`} 
-          style={{ 
-            width: "220px", 
+        <aside
+          id="admin-sidebar"
+          className={`sidebar-container ${isSidebarOpen ? "open" : ""}`}
+          style={{
+            width: "220px",
             minWidth: "220px",
-            background: "rgba(8, 12, 22, 0.95)", 
-            borderRight: "1px solid var(--border-subtle)", 
-            padding: "2rem 0", 
+            background: "rgba(8, 12, 22, 0.95)",
+            borderRight: "1px solid var(--border-subtle)",
+            padding: "2rem 0",
             flexShrink: 0,
             overflowY: "auto",
             height: "calc(100vh - 60px)",
             position: "sticky",
             top: "60px",
-            zIndex: 20
+            zIndex: 20,
           }}
         >
-        <div style={{ padding: "0 1.5rem", marginBottom: "2rem" }}>
-          <h3 className="gradient-text" style={{ fontFamily: "'Cinzel', serif", fontSize: "1rem", letterSpacing: "0.08em" }}>Admin Panel</h3>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.7rem", marginTop: "0.3rem" }}>
-            {isAdmin ? "Manage everything" : `${roleName || "Core"} access`}
-          </p>
-        </div>
-        <nav style={{ display: "flex", flexDirection: "column", gap: "0.15rem" }}>
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id);
-                setIsSidebarOpen(false);
-              }}
-              style={{ display: "flex", alignItems: "center", gap: "0.8rem", padding: "0.7rem 1.5rem", background: currentTab === tab.id ? "rgba(201, 168, 76, 0.08)" : "transparent", border: "none", borderLeft: currentTab === tab.id ? "2px solid var(--gold)" : "2px solid transparent", color: currentTab === tab.id ? "var(--gold-light)" : "var(--text-secondary)", cursor: "pointer", fontSize: "0.85rem", fontFamily: "inherit", textAlign: "left", width: "100%" }}
-            >
-              <span>{tab.icon}</span> {tab.label}
-            </button>
-          ))}
-        </nav>
-      </aside>
+          <div style={{ padding: "0 1.5rem", marginBottom: "2rem" }}>
+            <h3 className="gradient-text" style={{ fontFamily: "'Cinzel', serif", fontSize: "1rem", letterSpacing: "0.08em" }}>Admin Panel</h3>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.7rem", marginTop: "0.3rem" }}>
+              {isAdmin ? "Manage everything" : `${roleName || "Core"} access`}
+            </p>
+          </div>
+          <nav style={{ display: "flex", flexDirection: "column", gap: "0.15rem" }}>
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                className="admin-sidebar-tab"
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setIsSidebarOpen(false);
+                }}
+                style={{ display: "flex", alignItems: "center", gap: "0.8rem", padding: "0.7rem 1.5rem", background: currentTab === tab.id ? "rgba(201, 168, 76, 0.08)" : "transparent", border: "none", borderLeft: currentTab === tab.id ? "2px solid var(--gold)" : "2px solid transparent", color: currentTab === tab.id ? "var(--gold-light)" : "var(--text-secondary)", cursor: "pointer", fontSize: "0.85rem", fontFamily: "inherit", textAlign: "left", width: "100%" }}
+              >
+                <span style={{ flexShrink: 0, minWidth: "3.5rem", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.08em", opacity: 0.8 }}>
+                  {tab.icon}
+                </span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </nav>
+        </aside>
 
-      <div className="workspace-main admin-main" style={{ flex: 1, padding: "2rem 3rem", maxWidth: "960px", minWidth: 0 }}>
-        <div className="admin-toolbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem", gap: "1rem" }}>
-          <h2 style={{ fontSize: "1.6rem", color: "var(--text-primary)", flexShrink: 0 }}>Admin Dashboard</h2>
-          <div className="admin-search-wrap" style={{ flex: 1, display: "flex", justifyContent: "center", padding: "0 2rem", minWidth: 0 }}>
-            <GlobalSearch />
+        <div className="workspace-main admin-main" style={{ flex: 1, padding: "2rem 3rem", maxWidth: "960px", minWidth: 0 }}>
+          <div className="admin-toolbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem", gap: "1rem" }}>
+            <h2 style={{ fontSize: "1.6rem", color: "var(--text-primary)", flexShrink: 0 }}>Admin Dashboard</h2>
+            <div className="admin-search-wrap" style={{ flex: 1, display: "flex", justifyContent: "center", padding: "0 2rem", minWidth: 0 }}>
+              <GlobalSearch />
+            </div>
+            <div className="admin-toolbar-actions" style={{ display: "flex", gap: "1rem", alignItems: "center", flexShrink: 0, minWidth: 0 }}>
+              <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: "bold", overflowWrap: "anywhere" }}>{user.email}</span>
+              <button onClick={logout} className="btn-secondary" style={{ padding: "0.4rem 1rem", fontSize: "0.8rem", background: "transparent", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.4)", cursor: "pointer", fontFamily: "inherit" }}>
+                Sign Out
+              </button>
+            </div>
           </div>
-          <div className="admin-toolbar-actions" style={{ display: "flex", gap: "1rem", alignItems: "center", flexShrink: 0, minWidth: 0 }}>
-            <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: "bold", overflowWrap: "anywhere" }}>{user.email}</span>
-            <button onClick={logout} className="btn-secondary" style={{ padding: "0.4rem 1rem", fontSize: "0.8rem", background: "transparent", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.4)", cursor: "pointer", fontFamily: "inherit" }}>
-              Sign Out
-            </button>
-          </div>
-        </div>
 
-        {currentTab === "overview" ? <OverviewManager onNavigate={setActiveTab} /> : null}
-        {currentTab === "events" ? <div style={{ animation: "fadeIn 0.3s ease" }}><EventsManager /></div> : null}
-        {currentTab === "members" ? (
-          <div style={{ animation: "fadeIn 0.3s ease", display: "flex", flexDirection: "column", gap: "3rem" }}>
-            <ApprovalsPanel userRole={roleName} userId={user.id} />
-            <MembersManager />
-            <div style={{ height: "1px", background: "var(--border-subtle)", margin: "1rem 0" }} />
-            <PublicMembersManager />
-          </div>
-        ) : null}
-        {currentTab === "articles" ? <div style={{ animation: "fadeIn 0.3s ease" }}><ArticlesManager /></div> : null}
-        {currentTab === "projects" ? <div style={{ animation: "fadeIn 0.3s ease" }}><ProjectsManager /></div> : null}
-        {currentTab === "documentation" ? <div style={{ animation: "fadeIn 0.3s ease" }}><DocumentationManager /></div> : null}
-        {currentTab === "observations" ? <div style={{ animation: "fadeIn 0.3s ease" }}>{isAdmin ? <ObservationsManager /> : <CoreObservationsManager />}</div> : null}
-        {currentTab === "quizzes" ? <div style={{ animation: "fadeIn 0.3s ease" }}><QuizzesManager /></div> : null}
-        {currentTab === "outreach" ? <div style={{ animation: "fadeIn 0.3s ease" }}><OutreachManager /></div> : null}
-        {currentTab === "achievements" ? <div style={{ animation: "fadeIn 0.3s ease" }}><AchievementsManager /></div> : null}
-        {currentTab === "night-sky" ? <div style={{ animation: "fadeIn 0.3s ease" }}><NightSkyManager /></div> : null}
-        {currentTab === "system-control" ? <div style={{ animation: "fadeIn 0.3s ease" }}><SystemControlManager /></div> : null}
-        {currentTab === "announcements" ? <div style={{ animation: "fadeIn 0.3s ease" }}><AnnouncementsManager /></div> : null}
-        {currentTab === "finance" ? <div style={{ animation: "fadeIn 0.3s ease" }}><FinanceControlManager /></div> : null}
-        {currentTab === "logs" ? <div style={{ animation: "fadeIn 0.3s ease" }}><ActivityLogsManager /></div> : null}
-        {currentTab === "settings" ? <div style={{ animation: "fadeIn 0.3s ease" }}><SettingsManager /></div> : null}
-        {currentTab === "system" ? <div style={{ animation: "fadeIn 0.3s ease" }}><SystemSettingsManager /></div> : null}
-      </div>
+          {currentTab === "overview" ? <OverviewManager onNavigate={setActiveTab} /> : null}
+          {currentTab === "events" ? <div style={{ animation: "fadeIn 0.3s ease" }}><EventsManager /></div> : null}
+          {currentTab === "members" ? (
+            <div style={{ animation: "fadeIn 0.3s ease", display: "flex", flexDirection: "column", gap: "3rem" }}>
+              <ApprovalsPanel userRole={roleName} userId={user.id} />
+              <MembersManager />
+              <div style={{ height: "1px", background: "var(--border-subtle)", margin: "1rem 0" }} />
+              <PublicMembersManager />
+            </div>
+          ) : null}
+          {currentTab === "articles" ? <div style={{ animation: "fadeIn 0.3s ease" }}><ArticlesManager /></div> : null}
+          {currentTab === "projects" ? <div style={{ animation: "fadeIn 0.3s ease" }}><ProjectsManager /></div> : null}
+          {currentTab === "documentation" ? <div style={{ animation: "fadeIn 0.3s ease" }}><DocumentationManager /></div> : null}
+          {currentTab === "observations" ? <div style={{ animation: "fadeIn 0.3s ease" }}>{isAdmin ? <ObservationsManager /> : <CoreObservationsManager />}</div> : null}
+          {currentTab === "quizzes" ? <div style={{ animation: "fadeIn 0.3s ease" }}><QuizzesManager /></div> : null}
+          {currentTab === "outreach" ? <div style={{ animation: "fadeIn 0.3s ease" }}><OutreachManager /></div> : null}
+          {currentTab === "achievements" ? <div style={{ animation: "fadeIn 0.3s ease" }}><AchievementsManager /></div> : null}
+          {currentTab === "night-sky" ? <div style={{ animation: "fadeIn 0.3s ease" }}><NightSkyManager /></div> : null}
+          {currentTab === "system-control" ? <div style={{ animation: "fadeIn 0.3s ease" }}><SystemControlManager /></div> : null}
+          {currentTab === "announcements" ? <div style={{ animation: "fadeIn 0.3s ease" }}><AnnouncementsManager /></div> : null}
+          {currentTab === "finance" ? <div style={{ animation: "fadeIn 0.3s ease" }}><FinanceControlManager /></div> : null}
+          {currentTab === "logs" ? <div style={{ animation: "fadeIn 0.3s ease" }}><ActivityLogsManager /></div> : null}
+          {currentTab === "settings" ? <div style={{ animation: "fadeIn 0.3s ease" }}><SettingsManager /></div> : null}
+          {currentTab === "system" ? <div style={{ animation: "fadeIn 0.3s ease" }}><SystemSettingsManager /></div> : null}
+        </div>
       </div>
     </div>
   );
