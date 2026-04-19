@@ -10,7 +10,8 @@ import { assertProjectPermission } from "@/lib/project_permissions";
 import { getFinanceAccess } from "@/lib/finance";
 import { r2Client } from "@/lib/r2-storage";
 import { getSystemAccess } from "@/lib/system-rbac";
-import { buildUploadPlan, type UploadIntent, validateUploadAgainstRules } from "@/lib/storage-upload";
+import { buildUploadPlan, validateUploadAgainstRules } from "@/lib/storage-upload";
+import type { UploadIntent } from "@/lib/storage-upload.shared";
 import { isFeatureEnabled } from "@/lib/system-modules";
 
 async function assertUploadPermission(userId: string, intent: UploadIntent) {

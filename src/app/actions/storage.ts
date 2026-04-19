@@ -20,12 +20,9 @@ import {
   getStorageRuleKey,
   getStorageRules,
   serializeStorageRule,
-  type StorageModule,
-  type StorageRule,
-  type StorageRules,
-  type UploadIntent,
   validateUploadAgainstRules,
 } from "@/lib/storage-upload";
+import type { StorageModule, StorageRule, StorageRules, UploadIntent } from "@/lib/storage-upload.shared";
 
 async function requireSessionUser() {
   const session = await auth.api.getSession({ headers: await headers() });

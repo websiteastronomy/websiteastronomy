@@ -1,5 +1,5 @@
 import { finalizeDirectUploadAction, getStorageRuleAction } from "@/app/actions/storage";
-import { inferStorageModule, type StorageModule, type UploadIntent } from "@/lib/storage-upload";
+import { inferStorageModule, type StorageModule, type UploadIntent } from "@/lib/storage-upload.shared";
 
 type DirectUploadResult = {
   fileUrl: string;

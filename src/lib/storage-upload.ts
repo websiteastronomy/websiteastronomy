@@ -1,53 +1,18 @@
+import "server-only";
+
 import { and, desc, eq, like } from "drizzle-orm";
 import { db } from "@/db";
 import { files, system_settings } from "@/db/schema";
 import { getR2PublicUrl } from "@/lib/r2-storage";
-
-export type StorageModule =
-  | "docs"
-  | "projects"
-  | "forms"
-  | "general"
-  | "profile_images"
-  | "outreach_images"
-  | "achievement_images"
-  | "observation_images"
-  | "article_images"
-  | "finance_receipts";
-
-export type UploadCategory =
-  | "projects"
-  | "events"
-  | "media"
-  | "users"
-  | "general"
-  | "quizzes"
-  | "documentation"
-  | "forms"
-  | "profile_images"
-  | "outreach_images"
-  | "achievement_images"
-  | "observation_images"
-  | "article_images"
-  | "finance_receipts";
-
-export type UploadIntent = {
-  category: UploadCategory;
-  fileName: string;
-  fileType: string;
-  fileSize: number;
-  entityId?: string | null;
-  projectId?: string | null;
-  isGlobal?: boolean;
-  isPublic?: boolean;
-};
-
-export type StorageRule = {
-  maxFileSizeMb: number;
-  allowedFileTypes: string[];
-};
-
-export type StorageRules = Record<StorageModule, StorageRule>;
+import {
+  inferStorageModule,
+  normalizeAllowedTypes,
+  type StorageModule,
+  type StorageRule,
+  type StorageRules,
+  type UploadCategory,
+  type UploadIntent,
+} from "@/lib/storage-upload.shared";
 
 type UploadPlan = {
   module: StorageModule;
@@ -85,19 +50,6 @@ const DEFAULT_STORAGE_RULES: StorageRules = {
   article_images: { maxFileSizeMb: 10, allowedFileTypes: ["image/jpeg", "image/png", "image/webp"] },
   finance_receipts: { maxFileSizeMb: 25, allowedFileTypes: ["image/jpeg", "image/png", "image/webp", "application/pdf"] },
 };
-
-export function normalizeAllowedTypes(values: string[] | undefined): string[] {
-  const normalized = (values || [])
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean)
-    .map((value) => {
-      if (value === "*") return "*/*";
-      if (!value.includes("/") && !value.startsWith(".")) return `.${value.replace(/^\.+/, "")}`;
-      return value;
-    });
-
-  return normalized.length ? Array.from(new Set(normalized)) : ["*/*"];
-}
 
 function clampFileSizeMb(value: number, fallback: number): number {
   if (!Number.isFinite(value)) return fallback;
@@ -137,19 +89,6 @@ export function serializeStorageRule(rule: StorageRule): string {
 export function formatAllowedTypes(rule: StorageRule): string {
   if (rule.allowedFileTypes.includes("*/*")) return "All file types";
   return rule.allowedFileTypes.join(", ");
-}
-
-export function inferStorageModule(category: UploadCategory): StorageModule {
-  if (category === "documentation") return "docs";
-  if (category === "projects") return "projects";
-  if (category === "forms") return "forms";
-  if (category === "profile_images") return "profile_images";
-  if (category === "outreach_images") return "outreach_images";
-  if (category === "achievement_images") return "achievement_images";
-  if (category === "observation_images") return "observation_images";
-  if (category === "article_images") return "article_images";
-  if (category === "finance_receipts") return "finance_receipts";
-  return "general";
 }
 
 export function getStorageRuleKey(module: StorageModule): string {

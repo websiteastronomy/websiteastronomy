@@ -36,6 +36,7 @@ function parseAllowedFileTypes(value: string) {
 
 export default function SystemSettingsManager() {
   const [rules, setRules] = useState<EditableRules>(defaultRules);
+  const [fullRuleSnapshot, setFullRuleSnapshot] = useState<Awaited<ReturnType<typeof getStorageRulesAction>> | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -43,6 +44,7 @@ export default function SystemSettingsManager() {
   useEffect(() => {
     getStorageRulesAction()
       .then((nextRules) => {
+        setFullRuleSnapshot(nextRules);
         setRules({
           docs: {
             maxFileSizeMb: nextRules.docs.maxFileSizeMb,
@@ -112,6 +114,18 @@ export default function SystemSettingsManager() {
         achievement_images: {
           maxFileSizeMb: rules.achievement_images.maxFileSizeMb,
           allowedFileTypes: parseAllowedFileTypes(rules.achievement_images.allowedFileTypes),
+        },
+        observation_images: fullRuleSnapshot?.observation_images || {
+          maxFileSizeMb: 20,
+          allowedFileTypes: ["image/jpeg", "image/png", "image/webp"],
+        },
+        article_images: fullRuleSnapshot?.article_images || {
+          maxFileSizeMb: 10,
+          allowedFileTypes: ["image/jpeg", "image/png", "image/webp"],
+        },
+        finance_receipts: fullRuleSnapshot?.finance_receipts || {
+          maxFileSizeMb: 25,
+          allowedFileTypes: ["image/jpeg", "image/png", "image/webp", "application/pdf"],
         },
         general: {
           maxFileSizeMb: 25,

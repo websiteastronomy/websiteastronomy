@@ -72,7 +72,9 @@ export default function EditObservationPage({ params }: { params: { id: string }
           setProcessingSoftware(existing.processingSoftware || "");
           setImagePreview(existing.imageCompressedUrl || existing.imageOriginalUrl || null);
           setExistingStoredUrls(
-            [existing.imageOriginalUrl, existing.imageCompressedUrl, existing.imageThumbnailUrl].filter(Boolean)
+            [existing.imageOriginalUrl, existing.imageCompressedUrl, existing.imageThumbnailUrl].filter(
+              (value): value is string => Boolean(value)
+            )
           );
         }
 
