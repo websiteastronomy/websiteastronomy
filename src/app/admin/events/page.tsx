@@ -1,5 +1,9 @@
-import AdminRouteSection from "@/app/admin/components/AdminRouteSection";
-import EventsManager from "@/app/admin/components/EventsManager";
+"use client";
+
+import dynamic from "next/dynamic";
+
+const AdminRouteSection = dynamic(() => import("@/app/admin/components/AdminRouteSection"));
+const EventsManager = dynamic(() => import("@/app/admin/components/EventsManager"));
 
 export default function AdminEventsPage() {
   return (

@@ -1,5 +1,9 @@
-import AdminRouteSection from "@/app/admin/components/AdminRouteSection";
-import SettingsManager from "@/app/admin/components/SettingsManager";
+"use client";
+
+import dynamic from "next/dynamic";
+
+const AdminRouteSection = dynamic(() => import("@/app/admin/components/AdminRouteSection"));
+const SettingsManager = dynamic(() => import("@/app/admin/components/SettingsManager"));
 
 export default function AdminSiteSettingsPage() {
   return (

@@ -1,5 +1,9 @@
-import AdminRouteSection from "@/app/admin/components/AdminRouteSection";
-import AchievementsManager from "@/app/admin/components/AchievementsManager";
+"use client";
+
+import dynamic from "next/dynamic";
+
+const AdminRouteSection = dynamic(() => import("@/app/admin/components/AdminRouteSection"));
+const AchievementsManager = dynamic(() => import("@/app/admin/components/AchievementsManager"));
 
 export default function AdminAchievementsPage() {
   return (

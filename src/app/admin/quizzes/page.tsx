@@ -1,5 +1,9 @@
-import AdminRouteSection from "@/app/admin/components/AdminRouteSection";
-import QuizzesManager from "@/app/admin/components/QuizzesManager";
+"use client";
+
+import dynamic from "next/dynamic";
+
+const AdminRouteSection = dynamic(() => import("@/app/admin/components/AdminRouteSection"));
+const QuizzesManager = dynamic(() => import("@/app/admin/components/QuizzesManager"));
 
 export default function AdminQuizzesPage() {
   return (

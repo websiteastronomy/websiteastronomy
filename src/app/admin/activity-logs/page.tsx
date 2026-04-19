@@ -1,5 +1,9 @@
-import AdminRouteSection from "@/app/admin/components/AdminRouteSection";
-import ActivityLogsManager from "@/app/admin/components/ActivityLogsManager";
+"use client";
+
+import dynamic from "next/dynamic";
+
+const AdminRouteSection = dynamic(() => import("@/app/admin/components/AdminRouteSection"));
+const ActivityLogsManager = dynamic(() => import("@/app/admin/components/ActivityLogsManager"));
 
 export default function AdminActivityLogsPage() {
   return (

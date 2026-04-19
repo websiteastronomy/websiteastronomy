@@ -1,5 +1,9 @@
-import AdminRouteSection from "@/app/admin/components/AdminRouteSection";
-import DocumentationManager from "@/app/admin/components/DocumentationManager";
+"use client";
+
+import dynamic from "next/dynamic";
+
+const AdminRouteSection = dynamic(() => import("@/app/admin/components/AdminRouteSection"));
+const DocumentationManager = dynamic(() => import("@/app/admin/components/DocumentationManager"));
 
 export default function AdminDocsPage() {
   return (

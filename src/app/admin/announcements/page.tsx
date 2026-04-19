@@ -1,5 +1,9 @@
-import AdminRouteSection from "@/app/admin/components/AdminRouteSection";
-import AnnouncementsManager from "@/app/admin/components/AnnouncementsManager";
+"use client";
+
+import dynamic from "next/dynamic";
+
+const AdminRouteSection = dynamic(() => import("@/app/admin/components/AdminRouteSection"));
+const AnnouncementsManager = dynamic(() => import("@/app/admin/components/AnnouncementsManager"));
 
 export default function AdminAnnouncementsPage() {
   return (
