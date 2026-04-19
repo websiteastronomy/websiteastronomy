@@ -20,6 +20,22 @@ export const r2Client = new S3Client({
 
 let ensuredCorsPromise: Promise<void> | null = null;
 
+function isCorsConfigAccessDenied(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+
+  const name = "name" in error ? String(error.name || "") : "";
+  const message = "message" in error ? String(error.message || "") : "";
+  const combined = `${name} ${message}`.toLowerCase();
+
+  return (
+    combined.includes("accessdenied") ||
+    combined.includes("access denied") ||
+    combined.includes("forbidden") ||
+    combined.includes("not authorized") ||
+    combined.includes("unauthorized")
+  );
+}
+
 function buildExpectedCorsRule(): CORSRule {
   return {
     AllowedHeaders: ["*"],
@@ -66,8 +82,16 @@ export async function ensureR2UploadCors() {
       if (code === "NoSuchCORSConfiguration") {
         return { CORSRules: [] };
       }
+      if (isCorsConfigAccessDenied(error)) {
+        console.warn("[r2-storage] Skipping CORS inspection because the current R2 credentials cannot read bucket CORS settings.");
+        return null;
+      }
       throw error;
     });
+
+    if (!current) {
+      return;
+    }
 
     const alreadyConfigured = (current.CORSRules || []).some((rule) => corsRuleMatches(rule, expectedRule));
     if (alreadyConfigured) {
@@ -81,7 +105,13 @@ export async function ensureR2UploadCors() {
           CORSRules: [expectedRule],
         },
       })
-    );
+    ).catch((error) => {
+      if (isCorsConfigAccessDenied(error)) {
+        console.warn("[r2-storage] Skipping CORS update because the current R2 credentials cannot modify bucket CORS settings.");
+        return;
+      }
+      throw error;
+    });
   })().catch((error) => {
     ensuredCorsPromise = null;
     throw error;
