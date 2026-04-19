@@ -23,6 +23,7 @@ export default function AvatarCropperModal({ isOpen, onClose, onSuccess }: Props
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [compressionNote, setCompressionNote] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: "error"; message: string } | null>(null);
 
   // Camera video ref
@@ -86,6 +87,7 @@ export default function AvatarCropperModal({ isOpen, onClose, onSuccess }: Props
     if (!imageSrc || !croppedAreaPixels) return;
     setIsUploading(true);
     setUploadProgress(0);
+    setCompressionNote(null);
     setFeedback(null);
     try {
       const croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
@@ -109,12 +111,15 @@ export default function AvatarCropperModal({ isOpen, onClose, onSuccess }: Props
           onProgress: setUploadProgress,
         }
       );
+      if (result.wasCompressed) {
+        setCompressionNote("The image was automatically compressed to fit the allowed upload size.");
+      }
       const finalized = await finalizeProfileImageUploadAction({
         fileKey: result.fileKey,
         fileUrl: result.fileUrl,
-        fileName: optimizedFile.name,
-        fileType: optimizedFile.type,
-        fileSize: optimizedFile.size,
+        fileName: result.fileName,
+        fileType: result.fileType,
+        fileSize: result.fileSize,
       });
       onSuccess(finalized.url);
     } catch (err: any) {
@@ -165,6 +170,22 @@ export default function AvatarCropperModal({ isOpen, onClose, onSuccess }: Props
               }}
             >
               {feedback.message}
+            </div>
+          )}
+          {compressionNote && !feedback && (
+            <div
+              style={{
+                width: "100%",
+                marginBottom: "1rem",
+                padding: "0.75rem 0.9rem",
+                borderRadius: "8px",
+                border: "1px solid rgba(251,191,36,0.35)",
+                background: "rgba(251,191,36,0.12)",
+                color: "#fde68a",
+                fontSize: "0.82rem",
+              }}
+            >
+              {compressionNote}
             </div>
           )}
           

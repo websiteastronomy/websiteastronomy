@@ -1,4 +1,5 @@
 import { finalizeDirectUploadAction, getStorageRuleAction } from "@/app/actions/storage";
+import { compressImageToFitLimit } from "@/lib/client-upload-images";
 import { inferStorageModule, type StorageModule, type UploadIntent } from "@/lib/storage-upload.shared";
 
 type DirectUploadResult = {
@@ -6,6 +7,9 @@ type DirectUploadResult = {
   fileId: string;
   fileName: string;
   fileKey: string;
+  fileType: string;
+  fileSize: number;
+  wasCompressed?: boolean;
 };
 
 type UploadFileDirectOptions = {
@@ -40,6 +44,20 @@ async function getCachedRule(module: StorageModule) {
   return nextRule;
 }
 
+async function fetchUploadToSignedUrl(uploadUrl: string, file: File) {
+  const response = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": file.type || "application/octet-stream",
+    },
+    body: file,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Upload failed while sending the file to storage (${response.status}).`);
+  }
+}
+
 function uploadFileToSignedUrl(uploadUrl: string, file: File, onProgress?: (progress: number) => void) {
   return new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -58,10 +76,26 @@ function uploadFileToSignedUrl(uploadUrl: string, file: File, onProgress?: (prog
         return;
       }
 
-      reject(new Error("Upload failed while sending the file to storage."));
+      fetchUploadToSignedUrl(uploadUrl, file)
+        .then(() => {
+          onProgress?.(100);
+          resolve();
+        })
+        .catch((error) => {
+          reject(error instanceof Error ? error : new Error("Upload failed while sending the file to storage."));
+        });
     };
 
-    xhr.onerror = () => reject(new Error("Upload failed while sending the file to storage."));
+    xhr.onerror = () => {
+      fetchUploadToSignedUrl(uploadUrl, file)
+        .then(() => {
+          onProgress?.(100);
+          resolve();
+        })
+        .catch((error) => {
+          reject(error instanceof Error ? error : new Error("Upload failed while sending the file to storage."));
+        });
+    };
     xhr.send(file);
   });
 }
@@ -73,21 +107,31 @@ export async function uploadFileDirect(
 ): Promise<DirectUploadResult> {
   const storageModule = inferStorageModule(intent.category);
   const rule = await getCachedRule(storageModule);
+  const maxBytes = rule.maxFileSizeMb * 1024 * 1024;
+  const preparedFile =
+    file.type.startsWith("image/") && file.size > maxBytes
+      ? await compressImageToFitLimit(file, {
+          maxBytes,
+          allowedTypes: rule.allowedFileTypes,
+          maxWidth: storageModule === "profile_images" ? 720 : 2000,
+          maxHeight: storageModule === "profile_images" ? 720 : 2000,
+        })
+      : file;
 
-  if (file.size > rule.maxFileSizeMb * 1024 * 1024) {
+  if (preparedFile.size > maxBytes) {
     throw new Error(`File too large. Maximum allowed for ${storageModule} uploads is ${rule.maxFileSizeMb}MB.`);
   }
 
-  if (!matchesAllowedType(file, rule.allowedFileTypes)) {
+  if (!matchesAllowedType(preparedFile, rule.allowedFileTypes)) {
     const allowed = rule.allowedFileTypes.includes("*/*") ? "All file types" : rule.allowedFileTypes.join(", ");
     throw new Error(`Unsupported file type. Allowed types for ${storageModule} uploads: ${allowed}.`);
   }
 
   const requestBody = {
     ...intent,
-    fileName: file.name,
-    fileType: file.type || "application/octet-stream",
-    fileSize: file.size,
+    fileName: preparedFile.name,
+    fileType: preparedFile.type || "application/octet-stream",
+    fileSize: preparedFile.size,
   };
 
   const presignRes = await fetch("/api/upload-url", {
@@ -101,7 +145,7 @@ export async function uploadFileDirect(
     throw new Error(presignJson?.error || "Failed to prepare upload.");
   }
 
-  await uploadFileToSignedUrl(presignJson.uploadUrl, file, options?.onProgress);
+  await uploadFileToSignedUrl(presignJson.uploadUrl, preparedFile, options?.onProgress);
 
   const finalized = await finalizeDirectUploadAction({
     ...requestBody,
@@ -111,5 +155,8 @@ export async function uploadFileDirect(
   return {
     ...finalized,
     fileKey: presignJson.fileKey,
+    fileType: preparedFile.type || "application/octet-stream",
+    fileSize: preparedFile.size,
+    wasCompressed: preparedFile.size < file.size || preparedFile.type !== file.type || preparedFile.name !== file.name,
   };
 }
