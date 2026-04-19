@@ -1,5 +1,10 @@
-import { redirect } from "next/navigation";
+import AdminRouteSection from "@/app/admin/components/AdminRouteSection";
+import QuizzesManager from "@/app/admin/components/QuizzesManager";
 
 export default function AdminQuizzesPage() {
-  redirect("/admin?tab=quizzes");
+  return (
+    <AdminRouteSection>
+      <QuizzesManager />
+    </AdminRouteSection>
+  );
 }

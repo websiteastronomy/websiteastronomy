@@ -1,5 +1,10 @@
-import { redirect } from "next/navigation";
+import AdminRouteSection from "@/app/admin/components/AdminRouteSection";
+import AnnouncementsManager from "@/app/admin/components/AnnouncementsManager";
 
-export default function AdminAnnouncementsRedirectPage() {
-  redirect("/admin?tab=announcements");
+export default function AdminAnnouncementsPage() {
+  return (
+    <AdminRouteSection>
+      <AnnouncementsManager />
+    </AdminRouteSection>
+  );
 }

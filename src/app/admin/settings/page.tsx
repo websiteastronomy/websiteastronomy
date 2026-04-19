@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function AdminSettingsRedirectPage() {
-  redirect("/admin?tab=settings");
+export default function AdminSettingsAliasPage() {
+  redirect("/admin/site-settings");
 }

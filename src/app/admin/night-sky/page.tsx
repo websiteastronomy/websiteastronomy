@@ -1,10 +1,10 @@
 import AdminRouteSection from "@/app/admin/components/AdminRouteSection";
-import ProjectsManager from "@/app/admin/components/ProjectsManager";
+import NightSkyManager from "@/app/admin/components/NightSkyManager";
 
-export default function AdminProjectsPage() {
+export default function AdminNightSkyPage() {
   return (
     <AdminRouteSection>
-      <ProjectsManager />
+      <NightSkyManager />
     </AdminRouteSection>
   );
 }

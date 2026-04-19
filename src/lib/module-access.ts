@@ -59,12 +59,12 @@ export const dashboardModules: DashboardModuleDefinition[] = [
   { key: "outreach", label: "Outreach", shortLabel: "OT", href: "/app/outreach", roles: moduleAccess.outreach },
   { key: "achievements", label: "Achievements", shortLabel: "AC", href: "/app/overview", roles: moduleAccess.achievements },
   { key: "night_sky", label: "Night Sky", shortLabel: "NS", href: "/app/night-sky", roles: moduleAccess.night_sky },
-  { key: "system_control", label: "System Control", shortLabel: "SC", href: "/admin?tab=system-control", roles: moduleAccess.system_control },
+  { key: "system_control", label: "System Control", shortLabel: "SC", href: "/admin/system-control", roles: moduleAccess.system_control },
   { key: "announcements", label: "Announcements", shortLabel: "AN", href: "/app/overview", roles: moduleAccess.announcements },
   { key: "finance", label: "Finance", shortLabel: "FN", href: "/app/finance", roles: moduleAccess.finance },
   { key: "activity_logs", label: "Activity Logs", shortLabel: "LG", href: "/app/activity", roles: moduleAccess.activity_logs },
-  { key: "site_settings", label: "Site Settings", shortLabel: "ST", href: "/admin?tab=settings", roles: moduleAccess.site_settings },
-  { key: "system_storage", label: "System Storage", shortLabel: "SS", href: "/admin?tab=system", roles: moduleAccess.system_storage },
+  { key: "site_settings", label: "Site Settings", shortLabel: "ST", href: "/admin/site-settings", roles: moduleAccess.site_settings },
+  { key: "system_storage", label: "System Storage", shortLabel: "SS", href: "/admin/storage", roles: moduleAccess.system_storage },
 ];
 
 type DashboardAccessInput = {

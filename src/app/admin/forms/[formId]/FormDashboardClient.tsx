@@ -89,7 +89,7 @@ export default function FormDashboardClient({ formId }: Props) {
     setDeleting(true);
     try {
       await deleteDocumentationItemAction(formId);
-      window.location.href = "/admin?tab=documentation";
+      window.location.href = "/admin/docs";
     } catch (reason: any) {
       setFeedback({ type: "error", message: reason?.message || "Failed to delete form." });
       setDeleting(false);
@@ -128,7 +128,7 @@ export default function FormDashboardClient({ formId }: Props) {
     <div className="page-container" style={{ paddingTop: "2rem", paddingBottom: "3rem", maxWidth: "1180px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
         <div>
-          <Link href="/admin?tab=documentation" style={{ color: "var(--text-muted)", textDecoration: "none", fontSize: "0.85rem" }}>← Back to Forms List</Link>
+          <Link href="/admin/docs" style={{ color: "var(--text-muted)", textDecoration: "none", fontSize: "0.85rem" }}>← Back to Forms List</Link>
           <h1 style={{ margin: "0.5rem 0 0", color: "var(--text-primary)", fontSize: "2rem" }}>{String(formDraft.title || formItem?.name || "Form Dashboard")}</h1>
           <p style={{ margin: "0.45rem 0 0", color: "var(--text-muted)", lineHeight: 1.6 }}>Manage responses, analytics, editing, and publishing in one place.</p>
         </div>

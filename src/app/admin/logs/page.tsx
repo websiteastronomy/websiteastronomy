@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function AdminLogsRedirectPage() {
-  redirect("/admin?tab=logs");
+export default function AdminLogsAliasPage() {
+  redirect("/admin/activity-logs");
 }

@@ -5,7 +5,7 @@ import SystemSettingsManager from "@/app/admin/components/SystemSettingsManager"
 export default function AppStoragePage() {
   return (
     <>
-      <DeprecationBanner currentPath="/app/storage" newPath="/admin?tab=storage" />
+      <DeprecationBanner currentPath="/app/storage" newPath="/admin/storage" />
       <SystemSettingsManager />
     </>
   );

@@ -74,7 +74,7 @@ export default function DashboardMembersPage() {
               ? "Open the master approvals workflow in the admin panel."
               : "Approvals are managed by Core Committee and Admin from the master control panel."
           }
-          href={canApprove ? "/admin?tab=members" : "/admin"}
+          href={canApprove ? "/admin/members" : "/admin/overview"}
           cta={canApprove ? "Open approvals" : "View control center"}
         />
       </div>

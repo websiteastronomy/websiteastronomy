@@ -5,7 +5,7 @@ import SettingsManager from "@/app/admin/components/SettingsManager";
 export default function AppSiteSettingsPage() {
   return (
     <>
-      <DeprecationBanner currentPath="/app/site-settings" newPath="/admin?tab=site-settings" />
+      <DeprecationBanner currentPath="/app/site-settings" newPath="/admin/site-settings" />
       <SettingsManager />
     </>
   );

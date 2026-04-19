@@ -1,10 +1,10 @@
 import AdminRouteSection from "@/app/admin/components/AdminRouteSection";
-import ProjectsManager from "@/app/admin/components/ProjectsManager";
+import OutreachManager from "@/app/admin/components/OutreachManager";
 
-export default function AdminProjectsPage() {
+export default function AdminOutreachPage() {
   return (
     <AdminRouteSection>
-      <ProjectsManager />
+      <OutreachManager />
     </AdminRouteSection>
   );
 }

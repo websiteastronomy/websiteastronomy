@@ -434,7 +434,7 @@ export async function addExpenseAction(input: ExpenseInput) {
           title: "New Expense Submitted",
           message: `${input.title.trim()} for Rs. ${amount} is awaiting finance review.`,
           referenceId: id,
-          link: "/admin?tab=finance",
+          link: "/admin/finance",
         }))
     );
   }
@@ -484,7 +484,7 @@ export async function updateExpenseStatusAction(expenseId: string, status: "appr
       title: status === "approved" ? "Expense Approved" : "Expense Rejected",
       message: `${expense.title} (${expense.amount}) was ${status}.`,
       referenceId: expenseId,
-      link: "/admin?tab=finance",
+      link: "/admin/finance",
     });
   }
 

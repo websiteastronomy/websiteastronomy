@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import AdminOverviewRoute from "@/app/admin/components/AdminOverviewRoute";
 
-export default function AdminOverviewRedirectPage() {
-  redirect("/admin?tab=overview");
+export default function AdminOverviewPage() {
+  return <AdminOverviewRoute />;
 }

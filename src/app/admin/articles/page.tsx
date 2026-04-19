@@ -1,10 +1,10 @@
 import AdminRouteSection from "@/app/admin/components/AdminRouteSection";
-import ProjectsManager from "@/app/admin/components/ProjectsManager";
+import ArticlesManager from "@/app/admin/components/ArticlesManager";
 
-export default function AdminProjectsPage() {
+export default function AdminArticlesPage() {
   return (
     <AdminRouteSection>
-      <ProjectsManager />
+      <ArticlesManager />
     </AdminRouteSection>
   );
 }

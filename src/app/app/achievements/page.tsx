@@ -4,7 +4,7 @@ import DashboardAchievementsPage from "@/app/dashboard/achievements/page";
 export default function AppAchievementsPage() {
   return (
     <>
-      <DeprecationBanner currentPath="/app/achievements" newPath="/admin?tab=achievements" />
+      <DeprecationBanner currentPath="/app/achievements" newPath="/admin/achievements" />
       <DashboardAchievementsPage />
     </>
   );

@@ -628,7 +628,7 @@ export default function FinanceWorkspaceClient({ embedded = false }: FinanceWork
         <div style={{ padding: "0.95rem 1rem", borderRadius: "12px", border: "1px solid var(--border-subtle)", background: "rgba(15,22,40,0.35)", color: "var(--text-muted)", fontSize: "0.82rem", lineHeight: 1.7 }}>
           Need admin-level controls, exports, or expense approvals?
           {" "}
-          <Link href="/admin?tab=finance" style={{ color: "var(--gold)" }}>Open the finance control panel</Link>.
+          <Link href="/admin/finance" style={{ color: "var(--gold)" }}>Open the finance control panel</Link>.
         </div>
       ) : null}
     </div>

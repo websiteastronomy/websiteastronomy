@@ -44,7 +44,7 @@ export async function globalSearchAction(query: string): Promise<SearchResult[]>
       type: "member",
       title: u.name,
       subtitle: u.email,
-      url: `/admin?tab=members`, // Mock route for now
+      url: `/admin/members`,
     });
   }
 
