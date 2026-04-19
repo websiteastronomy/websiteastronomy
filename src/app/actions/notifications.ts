@@ -6,6 +6,7 @@ import { eq, desc, and, count } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
+import { isFeatureEnabled } from "@/lib/system-modules";
 
 type NotificationInsert = {
   userId: string;
@@ -28,6 +29,9 @@ export async function createNotificationForUser({
   referenceId = null,
   link = null,
 }: NotificationInsert) {
+  if (!(await isFeatureEnabled("notifications"))) {
+    return;
+  }
   await db.insert(notifications).values({
     id: uuidv4(),
     userId,
@@ -43,6 +47,9 @@ export async function createNotificationsForUsers(
   inserts: NotificationInsert[]
 ) {
   if (inserts.length === 0) {
+    return;
+  }
+  if (!(await isFeatureEnabled("notifications"))) {
     return;
   }
 

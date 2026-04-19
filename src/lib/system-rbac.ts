@@ -1,11 +1,17 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getUserProfile, hasPermission } from "@/lib/permissions";
+import { isLifecycleAllowedAccess } from "@/lib/user-lifecycle";
 
 export async function getSessionUser() {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
-    return session?.user ?? null;
+    if (!session?.user) return null;
+    const profile = await getUserProfile(session.user.id);
+    if (!profile || !isLifecycleAllowedAccess(profile.lifecycleState || "ACTIVE")) {
+      return null;
+    }
+    return session.user;
   } catch (error) {
     console.warn("[auth] getSessionUser failed:", error);
     return null;

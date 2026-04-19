@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getSystemAccess } from "@/lib/system-rbac";
 import { sanitizeRichHtml } from "@/lib/sanitize-rich-html";
+import { isFeatureEnabled } from "@/lib/system-modules";
 
 type AllowedFlow =
   | "join_application_admin"
@@ -76,6 +77,10 @@ async function getSessionContext() {
 
 export async function POST(req: Request) {
   try {
+    if (!(await isFeatureEnabled("email"))) {
+      return NextResponse.json({ error: "Email system is currently disabled" }, { status: 503 });
+    }
+
     const payload = (await req.json()) as EmailPayload;
     const flow = payload.flow;
 

@@ -9,9 +9,11 @@ import { logActivity } from "@/lib/activity-logs";
 export type ActivityLogCategory =
   | "all"
   | "authentication"
+  | "attendance"
   | "content"
   | "permissions"
   | "system"
+  | "exports"
   | "error"
   | "announcements";
 
@@ -66,6 +68,20 @@ function getActivityLogCategory(action: string, entityType: string) {
 
   if (normalizedEntity === "auth" || normalizedAction.includes("login") || normalizedAction.includes("logout")) {
     return "authentication" as const;
+  }
+
+  if (
+    normalizedAction.includes("attendance") ||
+    normalizedEntity.includes("event_registration")
+  ) {
+    return "attendance" as const;
+  }
+
+  if (
+    normalizedAction.includes("export") ||
+    normalizedEntity === "export"
+  ) {
+    return "exports" as const;
   }
 
   if (

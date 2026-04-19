@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { rowStyle } from "./shared";
-import { approveUserAction, rejectUserAction, getAllUsersAction, updateUserRoleAction, deleteUserAction, updateUserMetadataAction, getRolePermissionsCatalogAction, getUserPermissionOverridesAction, updateRolePermissionsAction, updateUserPermissionOverridesAction } from "@/app/actions/members";
+import { approveUserAction, rejectUserAction, getAllUsersAction, updateUserRoleAction, updateUserLifecycleStateAction, updateUserMetadataAction, getRolePermissionsCatalogAction, getUserPermissionOverridesAction, updateRolePermissionsAction, updateUserPermissionOverridesAction } from "@/app/actions/members";
 import { useAuth } from "@/context/AuthContext";
 import { canApproveMembers, canDeleteUser, canEditResponsibility, canEditRole, canTogglePublic } from "@/lib/member-ui-permissions";
 
@@ -239,6 +239,12 @@ export default function MembersManager() {
 
   const pendingUsers   = filteredUsers.filter((u) => u.status === "pending");
   const processedUsers = filteredUsers.filter((u) => u.status !== "pending");
+
+  const lifecycleTone = (state: string) => {
+    if (state === "ARCHIVED") return "#ef4444";
+    if (state === "INACTIVE") return "#f59e0b";
+    return "#22c55e";
+  };
 
   return (
     <>
@@ -567,6 +573,9 @@ export default function MembersManager() {
                   <span style={{ fontSize: "0.7rem", textTransform: "uppercase", color: user.status === "approved" ? "#22c55e" : "#ef4444" }}>
                     {user.status}
                   </span>
+                  <span style={{ fontSize: "0.68rem", padding: "0.2rem 0.45rem", borderRadius: "999px", background: `${lifecycleTone(user.lifecycleState || "ACTIVE")}18`, color: lifecycleTone(user.lifecycleState || "ACTIVE"), marginLeft: "0.5rem" }}>
+                    {user.lifecycleState || "ACTIVE"}
+                  </span>
                   {user.status === "approved" && (
                     <div style={{ fontSize: "0.75rem", color: roleOpt.color, fontWeight: 600 }}>
                       {/* Show canonical RBAC name when available, else fall back to legacy role string */}
@@ -691,9 +700,9 @@ export default function MembersManager() {
                       setFeedback(null);
                       setIsProcessing(true);
                       try {
-                        await deleteUserAction(user.id);
+                        await updateUserLifecycleStateAction(user.id, "ARCHIVED");
                         setPendingDeleteUserId(null);
-                        setFeedback({ type: "success", message: "User deleted successfully." });
+                        setFeedback({ type: "success", message: "User archived successfully." });
                         fetchUsers();
                       } catch (err: any) {
                         setFeedback({ type: "error", message: err.message });
@@ -703,8 +712,50 @@ export default function MembersManager() {
                     }}
                     style={{ background: "transparent", border: "1px solid rgba(239,68,68,0.5)", color: "#ef4444", padding: "0.25rem 0.5rem", borderRadius: "4px", cursor: isProcessing ? "not-allowed" : "pointer", fontSize: "0.7rem", opacity: isProcessing ? 0.5: 1 }}
                   >
-                    {pendingDeleteUserId === user.id ? "Confirm Delete" : "Delete"}
+                    {pendingDeleteUserId === user.id ? "Confirm Archive" : "Archive"}
                   </button>}
+                  {mayDeleteUser && user.lifecycleState !== "INACTIVE" && user.lifecycleState !== "ARCHIVED" ? (
+                    <button
+                      disabled={isProcessing}
+                      onClick={async () => {
+                        setFeedback(null);
+                        setIsProcessing(true);
+                        try {
+                          await updateUserLifecycleStateAction(user.id, "INACTIVE");
+                          setFeedback({ type: "success", message: "User deactivated successfully." });
+                          fetchUsers();
+                        } catch (err: any) {
+                          setFeedback({ type: "error", message: err.message });
+                        } finally {
+                          setIsProcessing(false);
+                        }
+                      }}
+                      style={{ background: "transparent", border: "1px solid rgba(245,158,11,0.5)", color: "#f59e0b", padding: "0.25rem 0.5rem", borderRadius: "4px", cursor: isProcessing ? "not-allowed" : "pointer", fontSize: "0.7rem", opacity: isProcessing ? 0.5 : 1 }}
+                    >
+                      Deactivate
+                    </button>
+                  ) : null}
+                  {mayDeleteUser && user.lifecycleState !== "ACTIVE" ? (
+                    <button
+                      disabled={isProcessing}
+                      onClick={async () => {
+                        setFeedback(null);
+                        setIsProcessing(true);
+                        try {
+                          await updateUserLifecycleStateAction(user.id, "ACTIVE");
+                          setFeedback({ type: "success", message: "User reactivated successfully." });
+                          fetchUsers();
+                        } catch (err: any) {
+                          setFeedback({ type: "error", message: err.message });
+                        } finally {
+                          setIsProcessing(false);
+                        }
+                      }}
+                      style={{ background: "transparent", border: "1px solid rgba(34,197,94,0.5)", color: "#22c55e", padding: "0.25rem 0.5rem", borderRadius: "4px", cursor: isProcessing ? "not-allowed" : "pointer", fontSize: "0.7rem", opacity: isProcessing ? 0.5 : 1 }}
+                    >
+                      Reactivate
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </div>

@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { users, roles, permissions, role_permissions, user_permissions } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { getUserLifecycleState, isLifecycleAllowedAccess } from "@/lib/user-lifecycle";
 
 type PermissionCapabilities = {
   hasUserPermissions: boolean;
@@ -59,6 +60,8 @@ export async function getUserPermissionOverride(userId: string, permissionKey: s
 export async function hasPermission(userId: string, permissionKey: string): Promise<boolean> {
   const userRes = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!userRes.length) return false;
+  const lifecycleState = await getUserLifecycleState(userId);
+  if (!isLifecycleAllowedAccess(lifecycleState)) return false;
 
   const override = await getUserPermissionOverride(userId, permissionKey);
   if (override !== null) {
@@ -90,6 +93,8 @@ export async function hasPermission(userId: string, permissionKey: string): Prom
 export async function getUserPermissions(userId: string): Promise<string[]> {
   const userRes = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!userRes.length) return [];
+  const lifecycleState = await getUserLifecycleState(userId);
+  if (!isLifecycleAllowedAccess(lifecycleState)) return [];
 
   const effective = new Set<string>();
 
@@ -139,8 +144,10 @@ export async function getUserProfile(userId: string) {
     .limit(1);
 
   if (!result.length) return null;
+  const lifecycleState = await getUserLifecycleState(userId);
   return {
     ...result[0].user,
     normalizedRole: result[0].roleName || "none",
+    lifecycleState,
   };
 }

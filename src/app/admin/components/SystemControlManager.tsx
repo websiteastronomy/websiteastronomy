@@ -68,6 +68,10 @@ export default function SystemControlManager() {
               ["quizzesEnabled", "Quizzes"],
               ["observationsEnabled", "Observations"],
               ["eventsEnabled", "Events"],
+              ["attendanceEnabled", "Attendance"],
+              ["emailEnabled", "Email System"],
+              ["fileUploadsEnabled", "File Uploads"],
+              ["notificationsEnabled", "Notifications"],
             ].map(([key, label]) => (
               <label key={key} style={{ display: "flex", gap: "0.6rem", alignItems: "center" }}>
                 <input
@@ -84,6 +88,13 @@ export default function SystemControlManager() {
               </label>
             ))}
           </div>
+        </div>
+
+        <div style={{ background: "rgba(15,22,40,0.4)", padding: "1.5rem", borderRadius: "12px", border: "1px solid var(--border-subtle)" }}>
+          <h3 style={{ fontSize: "1.05rem", marginBottom: "1rem", color: "var(--gold)" }}>Upgrade Safety</h3>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.82rem", margin: 0 }}>
+            Feature flags are applied as compatibility-safe module toggles. Disabling a module stops new operations but preserves stored data and history for later reactivation.
+          </p>
         </div>
 
         <button

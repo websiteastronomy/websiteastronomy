@@ -14,9 +14,11 @@ const colorMap: Record<string, string> = {
 const CATEGORY_OPTIONS: Array<{ label: string; value: ActivityLogCategory }> = [
   { label: "All Categories", value: "all" },
   { label: "Authentication", value: "authentication" },
+  { label: "Attendance", value: "attendance" },
   { label: "Permissions", value: "permissions" },
   { label: "Content", value: "content" },
   { label: "System", value: "system" },
+  { label: "Exports", value: "exports" },
   { label: "Error", value: "error" },
   { label: "Announcements", value: "announcements" },
 ];

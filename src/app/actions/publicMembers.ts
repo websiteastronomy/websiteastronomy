@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { requireAdminAccess } from "@/lib/member-access";
+import { attachUserLifecycleState, isLifecycleVisibleInStandardQueries } from "@/lib/user-lifecycle";
 
 /**
  * Get all public-facing member profiles.
@@ -28,8 +29,11 @@ export async function getPublicMembersAction() {
     .from(users)
     .where(and(eq(users.status, "approved"), eq(users.isPublic, true)));
 
+  const visibleUsers = (await attachUserLifecycleState(publicUsers)).filter((user) =>
+    isLifecycleVisibleInStandardQueries(user.lifecycleState)
+  );
   const r2Base = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
-  return publicUsers.map(u => ({
+  return visibleUsers.map(u => ({
     ...u,
     imageUrl: u.image || (u.profileImageKey ? `${r2Base}/${u.profileImageKey}` : `https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=200&q=80`),
   }));

@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getSystemAccess } from "@/lib/system-rbac";
 import { formatDateStable } from "@/lib/format-date";
+import { attachUserLifecycleState, isLifecycleVisibleInStandardQueries } from "@/lib/user-lifecycle";
 
 export interface SearchResult {
   id: string;
@@ -30,9 +31,12 @@ export async function globalSearchAction(query: string): Promise<SearchResult[]>
   const results: SearchResult[] = [];
 
   // Search Users
-  const userResults = await db.select().from(users).where(
+  const rawUserResults = await db.select().from(users).where(
     or(ilike(users.name, searchPattern), ilike(users.email, searchPattern))
   ).limit(5);
+  const userResults = (await attachUserLifecycleState(rawUserResults)).filter((user) =>
+    isLifecycleVisibleInStandardQueries(user.lifecycleState)
+  );
 
   for (const u of userResults) {
     results.push({

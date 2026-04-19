@@ -7,9 +7,15 @@ import { v4 as uuidv4 } from "uuid";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { hasPermission } from "@/lib/permissions";
+import { logActivity } from "@/lib/activity-logs";
+import { isFeatureEnabled, getSystemConfig } from "@/lib/system-modules";
 
 export async function registerForEvent(eventId: string, name?: string, email?: string) {
   try {
+    if (!(await isFeatureEnabled("attendance"))) {
+      return { success: false, error: "Attendance module is currently disabled." };
+    }
+
     const session = await auth.api.getSession({ headers: await headers() });
     let authUser = session?.user;
     let dbUser = null;
@@ -56,9 +62,22 @@ export async function registerForEvent(eventId: string, name?: string, email?: s
         .where(eq(event_registrations.eventId, eventId));
 
       if (dbUser && allRegs.some(r => r.userId === dbUser.id)) {
+        void logActivity({
+          userId: dbUser.id,
+          action: "attendance_scan_duplicate",
+          entityType: "event_registration",
+          entityId: eventId,
+          details: { eventId, reason: "duplicate_user_registration" },
+        });
         return { success: false as const, error: "Already registered" };
       }
       if (!dbUser && email && allRegs.some(r => r.email === email)) {
+        void logActivity({
+          action: "attendance_scan_duplicate",
+          entityType: "event_registration",
+          entityId: eventId,
+          details: { eventId, email, reason: "duplicate_guest_registration" },
+        });
         return { success: false as const, error: "Already registered with this email" };
       }
 
@@ -85,6 +104,17 @@ export async function registerForEvent(eventId: string, name?: string, email?: s
       return registrationResult;
     }
 
+    await logActivity({
+      userId: dbUser?.id || authUser?.id || null,
+      action: "attendance_scan_success",
+      entityType: "event_registration",
+      entityId: eventId,
+      details: {
+        eventId,
+        registrationType: dbUser ? "member" : "guest",
+      },
+    });
+
     return { success: true };
 
   } catch (err: any) {
@@ -95,6 +125,10 @@ export async function registerForEvent(eventId: string, name?: string, email?: s
 
 export async function applyForVolunteer(eventId: string) {
   try {
+    if (!(await isFeatureEnabled("attendance"))) {
+      return { success: false, error: "Attendance module is currently disabled." };
+    }
+
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user) return { success: false, error: "Authentication required to volunteer." };
     const authUser = session.user;
@@ -148,6 +182,11 @@ export async function applyForVolunteer(eventId: string) {
 
 export async function getEventStats(eventId: string) {
   try {
+    const systemConfig = await getSystemConfig();
+    if (!systemConfig.featureFlags.attendance) {
+      return { totalRegistrations: 0, volunteers: 0, backupVolunteers: 0, userRegistered: false, userVolunteered: false };
+    }
+
     const allRegs = await db.select().from(event_registrations).where(eq(event_registrations.eventId, eventId));
     const allVols = await db.select().from(event_volunteers).where(eq(event_volunteers.eventId, eventId));
     const isVol = allVols.filter(r => !r.isBackup).length;

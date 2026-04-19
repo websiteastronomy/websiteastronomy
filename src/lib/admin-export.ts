@@ -1,9 +1,10 @@
 import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { activity_logs, files, form_responses, project_files, users } from "@/db/schema";
+import { activity_logs, files, form_responses, project_files, settingsTable, users } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { getSystemAccess } from "@/lib/system-rbac";
+import { writeAuditLog } from "@/lib/audit";
 
 function isMissingTableError(error: unknown, tableName: string) {
   const message = error instanceof Error ? error.message : String(error);
@@ -38,6 +39,21 @@ export async function requireAdminExportAccess() {
   }
 
   return session.user;
+}
+
+export async function recordAdminExportAction(exportType: string, metadata?: Record<string, unknown>) {
+  const user = await requireAdminExportAccess();
+  await writeAuditLog({
+    action: "admin_export",
+    entityType: "export",
+    entityId: exportType,
+    performedBy: user.id,
+    metadata: {
+      exportType,
+      ...(metadata || {}),
+    },
+  });
+  return user;
 }
 
 function formatValue(value: unknown): string {
@@ -115,7 +131,7 @@ export async function getActivityExportRows() {
 }
 
 export async function getFullBackupPayload() {
-  const [userRows, docsPayload, activityRows] = await Promise.all([
+  const [userRows, docsPayload, activityRows, settingsRows] = await Promise.all([
     safeQuery(
       "user",
       () =>
@@ -137,6 +153,7 @@ export async function getFullBackupPayload() {
     ),
     getDocsExportPayload(),
     getActivityExportRows(),
+    safeQuery("settings", () => db.select().from(settingsTable), [] as any[]),
   ]);
 
   return {
@@ -146,5 +163,6 @@ export async function getFullBackupPayload() {
     files: docsPayload.files,
     formResponses: docsPayload.formResponses,
     activityLogs: activityRows,
+    settings: settingsRows,
   };
 }

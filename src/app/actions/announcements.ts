@@ -8,6 +8,7 @@ import { createNotificationsForUsers } from "@/app/actions/notifications";
 import { sendEmail } from "@/lib/email";
 import { logActivity } from "@/lib/activity-logs";
 import { getSystemAccess, requireAuthenticatedUser } from "@/lib/system-rbac";
+import { attachUserLifecycleState, isLifecycleVisibleInStandardQueries } from "@/lib/user-lifecycle";
 
 type AnnouncementInput = {
   title: string;
@@ -105,10 +106,13 @@ export async function createAnnouncementAction(input: AnnouncementInput) {
         .from(users)
         .where(and(inArray(users.role, expandedTargets.map((role) => role.toLowerCase())), eq(users.status, "approved")))
     : [];
+  const visibleRecipients = (await attachUserLifecycleState(recipients)).filter((recipient) =>
+    isLifecycleVisibleInStandardQueries(recipient.lifecycleState)
+  );
 
-  if (input.sendNotification && recipients.length) {
+  if (input.sendNotification && visibleRecipients.length) {
     await createNotificationsForUsers(
-      recipients.map((recipient) => ({
+      visibleRecipients.map((recipient) => ({
         userId: recipient.id,
         type: "system" as const,
         title,
@@ -118,9 +122,9 @@ export async function createAnnouncementAction(input: AnnouncementInput) {
     );
   }
 
-  if (input.sendEmail && recipients.length) {
+  if (input.sendEmail && visibleRecipients.length) {
     await Promise.all(
-      recipients
+      visibleRecipients
         .filter((recipient) => recipient.email)
         .map((recipient) =>
           sendEmail({

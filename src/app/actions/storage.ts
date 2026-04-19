@@ -12,6 +12,7 @@ import { getSystemAccess } from "@/lib/system-rbac";
 import { logActivity } from "@/lib/activity-logs";
 import { assertProjectPermission } from "@/lib/project_permissions";
 import { getFinanceAccess } from "@/lib/finance";
+import { isFeatureEnabled } from "@/lib/system-modules";
 import {
   type StorageModule,
   type StorageRule,
@@ -215,6 +216,9 @@ async function assertUploadPermission(userId: string, intent: UploadIntent) {
 export async function finalizeDirectUploadAction(
   intent: UploadIntent & { fileKey: string }
 ) {
+  if (!(await isFeatureEnabled("fileUploads"))) {
+    throw new Error("File uploads are currently disabled");
+  }
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) throw new Error("Unauthorized");
 
@@ -259,6 +263,9 @@ export async function finalizeDirectUploadAction(
 }
 
 export async function uploadFile(formData: FormData, category: "projects" | "events" | "media" | "users" | "general" | "quizzes", entityId?: string, isPublic?: boolean) {
+  if (!(await isFeatureEnabled("fileUploads"))) {
+    throw new Error("File uploads are currently disabled");
+  }
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) throw new Error("Unauthorized");
 
@@ -313,6 +320,9 @@ export async function uploadDocumentationBinaryAction(
   formData: FormData,
   options: { projectId?: string | null; isGlobal?: boolean }
 ) {
+  if (!(await isFeatureEnabled("fileUploads"))) {
+    throw new Error("File uploads are currently disabled");
+  }
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) throw new Error("Unauthorized");
 
@@ -343,6 +353,9 @@ export async function uploadDocumentationBinaryAction(
 }
 
 export async function uploadExpenseReceiptAction(formData: FormData) {
+  if (!(await isFeatureEnabled("fileUploads"))) {
+    throw new Error("File uploads are currently disabled");
+  }
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) throw new Error("Unauthorized");
 

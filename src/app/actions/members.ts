@@ -14,6 +14,7 @@ import {
 import { logActivity } from "@/lib/activity-logs";
 import { getUserPermissions } from "@/lib/permissions";
 import { createNotification } from "./notifications";
+import { attachUserLifecycleState, getUserLifecycleState, setUserLifecycleState, type UserLifecycleState } from "@/lib/user-lifecycle";
 
 let membersPermissionCapabilityPromise: Promise<boolean> | null = null;
 
@@ -169,7 +170,7 @@ export async function getAllUsersAction() {
     .from(users)
     .leftJoin(roles, eq(users.roleId, roles.id));
 
-  return allUsers;
+  return attachUserLifecycleState(allUsers);
 }
 
 export async function getRolePermissionsCatalogAction() {
@@ -392,14 +393,53 @@ export async function updateRolePermissionsAction(
 /**
  * Delete a user from the database.
  */
-export async function deleteUserAction(targetUserId: string) {
+export async function updateUserLifecycleStateAction(
+  targetUserId: string,
+  nextState: UserLifecycleState,
+  options?: { permanentCleanup?: boolean }
+) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) throw new Error("Unauthorized");
-  await requireAdminAccess(session.user.id);
+  const access = await requireAdminAccess(session.user.id);
 
-  await db.delete(users).where(eq(users.id, targetUserId));
+  if (options?.permanentCleanup) {
+    await db.delete(users).where(eq(users.id, targetUserId));
+    await logActivity({
+      userId: session.user.id,
+      action: "user_permanent_cleanup",
+      entityType: "user",
+      entityId: targetUserId,
+      role: access.roleName,
+      details: { previousLifecycleState: await getUserLifecycleState(targetUserId) },
+    });
+    revalidatePath("/admin");
+    return { success: true };
+  }
+
+  const previousState = await getUserLifecycleState(targetUserId);
+  await setUserLifecycleState(targetUserId, nextState);
+  await logActivity({
+    userId: session.user.id,
+    action:
+      nextState === "INACTIVE"
+        ? "user_deactivated"
+        : nextState === "ARCHIVED"
+          ? "user_archived"
+          : "user_reactivated",
+    entityType: "user",
+    entityId: targetUserId,
+    role: access.roleName,
+    details: {
+      previousState,
+      nextState,
+    },
+  });
   revalidatePath("/admin");
   return { success: true };
+}
+
+export async function deleteUserAction(targetUserId: string) {
+  return updateUserLifecycleStateAction(targetUserId, "ARCHIVED");
 }
 
 /**
@@ -439,6 +479,15 @@ export async function updateUserMetadataAction(
     .set(updates)
     .where(eq(users.id, targetUserId));
 
+  await logActivity({
+    userId: session.user.id,
+    action: "update_user_metadata",
+    entityType: "user",
+    entityId: targetUserId,
+    role: access.roleName,
+    details: data as Record<string, unknown>,
+  });
+
   revalidatePath("/admin");
   revalidatePath("/about");
   return { success: true };
@@ -462,6 +511,16 @@ export async function updateUserProfileAction(
       updatedAt: new Date(),
     })
     .where(eq(users.id, session.user.id));
+
+  await logActivity({
+    userId: session.user.id,
+    action: "update_own_profile",
+    entityType: "user",
+    entityId: session.user.id,
+    details: {
+      updatedFields: Object.keys(data).filter((key) => (data as Record<string, unknown>)[key] !== undefined),
+    },
+  });
 
   revalidatePath("/portal");
   return { success: true };

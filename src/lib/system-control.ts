@@ -2,6 +2,10 @@ export type SystemFeatureFlags = {
   quizzesEnabled: boolean;
   observationsEnabled: boolean;
   eventsEnabled: boolean;
+  attendanceEnabled: boolean;
+  emailEnabled: boolean;
+  fileUploadsEnabled: boolean;
+  notificationsEnabled: boolean;
 };
 
 export type SystemControlSettings = {
@@ -23,6 +27,10 @@ export const DEFAULT_SYSTEM_CONTROL_SETTINGS: SystemControlSettings = {
     quizzesEnabled: true,
     observationsEnabled: true,
     eventsEnabled: true,
+    attendanceEnabled: true,
+    emailEnabled: true,
+    fileUploadsEnabled: true,
+    notificationsEnabled: true,
   },
 };
 
@@ -53,6 +61,10 @@ export function normalizeSystemControlSettings(value: unknown): SystemControlSet
       quizzesEnabled: features.quizzesEnabled !== false,
       observationsEnabled: features.observationsEnabled !== false,
       eventsEnabled: features.eventsEnabled !== false,
+      attendanceEnabled: features.attendanceEnabled !== false,
+      emailEnabled: features.emailEnabled !== false,
+      fileUploadsEnabled: features.fileUploadsEnabled !== false,
+      notificationsEnabled: features.notificationsEnabled !== false,
     },
   };
 }
@@ -98,6 +110,10 @@ export function getRestrictedFeatureForPath(pathname: string, settings: SystemCo
 export function getFeatureDisplayName(feature: keyof SystemFeatureFlags) {
   if (feature === "quizzesEnabled") return "Quizzes";
   if (feature === "observationsEnabled") return "Observations";
+  if (feature === "attendanceEnabled") return "Attendance";
+  if (feature === "emailEnabled") return "Email";
+  if (feature === "fileUploadsEnabled") return "File Uploads";
+  if (feature === "notificationsEnabled") return "Notifications";
   return "Events";
 }
 

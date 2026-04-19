@@ -2,6 +2,7 @@ import {
   downloadResponse,
   getDocsExportCsvRows,
   getDocsExportPayload,
+  recordAdminExportAction,
   requireAdminExportAccess,
   toCsv,
 } from "@/lib/admin-export";
@@ -10,6 +11,7 @@ export async function GET(request: Request) {
   await requireAdminExportAccess();
   const { searchParams } = new URL(request.url);
   const format = searchParams.get("format") === "csv" ? "csv" : "json";
+  await recordAdminExportAction("docs", { format });
 
   if (format === "csv") {
     const csv = toCsv(await getDocsExportCsvRows());

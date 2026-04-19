@@ -11,6 +11,8 @@ import {
   type SystemControlSettings,
 } from "@/lib/system-control";
 import { logActivity } from "@/lib/activity-logs";
+import { attachUserLifecycleState, isLifecycleVisibleInStandardQueries } from "@/lib/user-lifecycle";
+import { getSystemConfig, updateSystemConfig } from "@/lib/system-modules";
 
 const SYSTEM_CONTROL_SETTINGS_ID = "system_control";
 
@@ -34,6 +36,7 @@ export async function getSystemControlSettingsAction(): Promise<SystemControlSet
 export async function updateSystemControlSettingsAction(input: SystemControlSettings) {
   const { user, access } = await requireSystemControlAccess();
   const normalized = normalizeSystemControlSettings(input);
+  const currentConfig = await getSystemConfig();
   const existing = await db.select().from(settingsTable).where(eq(settingsTable.id, SYSTEM_CONTROL_SETTINGS_ID)).limit(1);
 
   if (existing.length) {
@@ -59,6 +62,28 @@ export async function updateSystemControlSettingsAction(input: SystemControlSett
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath("/portal");
+
+  await updateSystemConfig({
+    ...currentConfig,
+    featureFlags: {
+      ...currentConfig.featureFlags,
+      attendance: normalized.features.attendanceEnabled,
+      email: normalized.features.emailEnabled,
+      notifications: normalized.features.notificationsEnabled,
+      fileUploads: normalized.features.fileUploadsEnabled,
+      storage: normalized.features.fileUploadsEnabled,
+      users: true,
+    },
+    modules: {
+      ...currentConfig.modules,
+      attendance: { ...currentConfig.modules.attendance, enabled: normalized.features.attendanceEnabled },
+      email: { ...currentConfig.modules.email, enabled: normalized.features.emailEnabled },
+      notifications: { ...currentConfig.modules.notifications, enabled: normalized.features.notificationsEnabled },
+      fileUploads: { ...currentConfig.modules.fileUploads, enabled: normalized.features.fileUploadsEnabled },
+      storage: { ...currentConfig.modules.storage, enabled: normalized.features.fileUploadsEnabled },
+    },
+  });
+
   return normalized;
 }
 
@@ -83,5 +108,8 @@ export async function getAnnouncementTargetUsersByRoles(roleNames: string[]) {
     .from(users)
     .where(inArray(users.role, roleNames.map((role) => role.toLowerCase())));
 
-  return rows.filter((row) => row.status === "approved");
+  const visibleRows = (await attachUserLifecycleState(rows)).filter((row) =>
+    row.status === "approved" && isLifecycleVisibleInStandardQueries(row.lifecycleState)
+  );
+  return visibleRows;
 }

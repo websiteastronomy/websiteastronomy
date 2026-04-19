@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm";
 import { assertProjectPermission } from "@/lib/project_permissions";
 import { getSystemAccess } from "@/lib/system-rbac";
 import { buildUploadPlan, type UploadIntent, validateUploadAgainstRules } from "@/lib/storage-upload";
+import { isFeatureEnabled } from "@/lib/system-modules";
 
 const r2 = new S3Client({
   region: "auto",
@@ -57,6 +58,10 @@ async function assertUploadPermission(userId: string, intent: UploadIntent) {
 
 export async function POST(req: Request) {
   try {
+    if (!(await isFeatureEnabled("fileUploads"))) {
+      return NextResponse.json({ error: "File uploads are currently disabled" }, { status: 503 });
+    }
+
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
