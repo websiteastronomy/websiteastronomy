@@ -379,7 +379,7 @@ input.input-field[type="time"]::-webkit-datetime-edit-minute-field:focus {
 }
 
 .site-navbar {
-  overflow: clip;
+  overflow: visible;
 }
 
 .site-navbar-brand {
@@ -393,6 +393,7 @@ input.input-field[type="time"]::-webkit-datetime-edit-minute-field:focus {
 
 .site-navbar-desktop {
   flex-shrink: 0;
+  overflow: visible;
 }
 
 .site-navbar-toggle {
