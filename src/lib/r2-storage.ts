@@ -1,4 +1,13 @@
-import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import "server-only";
+
+import {
+  DeleteObjectCommand,
+  GetBucketCorsCommand,
+  PutBucketCorsCommand,
+  S3Client,
+  type CORSRule,
+} from "@aws-sdk/client-s3";
+import { getTrustedOrigins } from "@/lib/env";
 
 export const r2Client = new S3Client({
   region: "auto",
@@ -8,6 +17,78 @@ export const r2Client = new S3Client({
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
   },
 });
+
+let ensuredCorsPromise: Promise<void> | null = null;
+
+function buildExpectedCorsRule(): CORSRule {
+  return {
+    AllowedHeaders: ["*"],
+    AllowedMethods: ["GET", "HEAD", "PUT", "POST", "DELETE"],
+    AllowedOrigins: getTrustedOrigins(),
+    ExposeHeaders: ["ETag"],
+    MaxAgeSeconds: 3600,
+  };
+}
+
+function corsRuleMatches(current: CORSRule | undefined, expected: CORSRule) {
+  if (!current) return false;
+
+  const sameList = (left?: string[], right?: string[]) => {
+    const normalizedLeft = [...(left || [])].sort();
+    const normalizedRight = [...(right || [])].sort();
+    return normalizedLeft.length === normalizedRight.length &&
+      normalizedLeft.every((value, index) => value === normalizedRight[index]);
+  };
+
+  return (
+    sameList(current.AllowedHeaders, expected.AllowedHeaders) &&
+    sameList(current.AllowedMethods, expected.AllowedMethods) &&
+    sameList(current.AllowedOrigins, expected.AllowedOrigins) &&
+    sameList(current.ExposeHeaders, expected.ExposeHeaders) &&
+    (current.MaxAgeSeconds || 0) === (expected.MaxAgeSeconds || 0)
+  );
+}
+
+export async function ensureR2UploadCors() {
+  if (ensuredCorsPromise) {
+    return ensuredCorsPromise;
+  }
+
+  ensuredCorsPromise = (async () => {
+    const bucket = process.env.R2_BUCKET_NAME || "";
+    if (!bucket) {
+      throw new Error("R2_BUCKET_NAME is required for upload storage.");
+    }
+
+    const expectedRule = buildExpectedCorsRule();
+    const current = await r2Client.send(new GetBucketCorsCommand({ Bucket: bucket })).catch((error) => {
+      const code = typeof error === "object" && error && "name" in error ? String(error.name) : "";
+      if (code === "NoSuchCORSConfiguration") {
+        return { CORSRules: [] };
+      }
+      throw error;
+    });
+
+    const alreadyConfigured = (current.CORSRules || []).some((rule) => corsRuleMatches(rule, expectedRule));
+    if (alreadyConfigured) {
+      return;
+    }
+
+    await r2Client.send(
+      new PutBucketCorsCommand({
+        Bucket: bucket,
+        CORSConfiguration: {
+          CORSRules: [expectedRule],
+        },
+      })
+    );
+  })().catch((error) => {
+    ensuredCorsPromise = null;
+    throw error;
+  });
+
+  return ensuredCorsPromise;
+}
 
 export function getR2PublicBaseUrl() {
   return (process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "").replace(/\/+$/, "");

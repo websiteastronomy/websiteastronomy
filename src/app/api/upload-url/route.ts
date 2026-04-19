@@ -8,7 +8,7 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { assertProjectPermission } from "@/lib/project_permissions";
 import { getFinanceAccess } from "@/lib/finance";
-import { r2Client } from "@/lib/r2-storage";
+import { ensureR2UploadCors, r2Client } from "@/lib/r2-storage";
 import { getSystemAccess } from "@/lib/system-rbac";
 import { buildUploadPlan, validateUploadAgainstRules } from "@/lib/storage-upload";
 import type { UploadIntent } from "@/lib/storage-upload.shared";
@@ -95,6 +95,7 @@ export async function POST(req: Request) {
 
     await assertUploadPermission(session.user.id, intent);
     await validateUploadAgainstRules(intent);
+    await ensureR2UploadCors();
     const uploadPlan = await buildUploadPlan(session.user.id, intent);
 
     const bucket = process.env.R2_BUCKET_NAME || "";
