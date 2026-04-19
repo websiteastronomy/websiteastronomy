@@ -68,7 +68,7 @@ export default function ProjectPublicPage() {
       return;
     }
 
-    router.push(`/portal?redirect=${encodeURIComponent(`/projects/${id}`)}`);
+    router.push(`/login?redirect=${encodeURIComponent(`/projects/${id}`)}`);
   };
 
   /* ── Loading ── */

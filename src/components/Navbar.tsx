@@ -84,7 +84,7 @@ export default function Navbar({ initialIsRecruiting = false }: NavbarProps) {
     { href: '/night-sky', label: 'Night Sky', visible: true },
     { href: '/join', label: 'Join', visible: isRecruiting },
     { href: '/app', label: 'Dashboard', visible: Boolean(user) },
-    { href: '/portal', label: 'Login', visible: !user, className: 'btn-primary mobile-nav-cta' },
+    { href: '/login', label: 'Login', visible: !user, className: 'btn-primary mobile-nav-cta' },
   ].filter((link) => link.visible);
 
   return (
@@ -163,7 +163,7 @@ export default function Navbar({ initialIsRecruiting = false }: NavbarProps) {
           <Link href="/app" className="nav-link" style={navLinkStyle('/app')} prefetch={false}>Dashboard</Link>
         )}
         {!user && (
-          <Link href="/portal" className="btn-primary" style={{ padding: '0.5rem 1.2rem', fontSize: '0.75rem', marginLeft: '0.5rem' }} prefetch={false}>Login</Link>
+          <Link href="/login" className="btn-primary" style={{ padding: '0.5rem 1.2rem', fontSize: '0.75rem', marginLeft: '0.5rem' }} prefetch={false}>Login</Link>
         )}
       </div>
 
@@ -240,7 +240,7 @@ export default function Navbar({ initialIsRecruiting = false }: NavbarProps) {
 
           {isRecruiting && <Link href="/join" className="site-mobile-nav-link" style={navLinkStyle('/join')} onClick={closeMobileMenu}>Join</Link>}
           {user && <Link href="/app" className="site-mobile-nav-link" style={navLinkStyle('/app')} onClick={closeMobileMenu}>Dashboard</Link>}
-          {!user && <Link href="/portal" className="btn-primary mobile-nav-cta" style={{ width: '100%', textAlign: 'center', marginTop: '1rem', display: 'block', boxSizing: 'border-box' }} onClick={closeMobileMenu}>Login</Link>}
+          {!user && <Link href="/login" className="btn-primary mobile-nav-cta" style={{ width: '100%', textAlign: 'center', marginTop: '1rem', display: 'block', boxSizing: 'border-box' }} onClick={closeMobileMenu}>Login</Link>}
         </div>
       </div>
     </>

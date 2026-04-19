@@ -174,7 +174,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAuthError(null);
     const { error } = await authClient.signIn.social({
       provider: "google",
-      callbackURL: callbackURL || "/portal",
+      callbackURL: callbackURL || "/app",
     });
     if (error) {
       console.error("Google Sign-in Error:", error);

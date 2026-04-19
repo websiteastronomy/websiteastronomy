@@ -14,7 +14,7 @@ export default function Observations() {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   
-  const { user } = useAuth(); // If they want to post, direct them to portal
+  const { user } = useAuth(); // If they want to post, direct them to login/dashboard flow
 
   useEffect(() => {
     getPublishedObservationsAction().then(data => {
@@ -92,7 +92,7 @@ export default function Observations() {
               <option value="Widefield / Milky Way">✨ Widefield</option>
             </select>
 
-            <Link href="/portal/observations" className="btn-primary" style={{ padding: "0.8rem 1.5rem" }}>
+            <Link href="/dashboard/observations" className="btn-primary" style={{ padding: "0.8rem 1.5rem" }}>
               {user ? "+ My Observations" : "+ Submit Observation"}
             </Link>
           </div>

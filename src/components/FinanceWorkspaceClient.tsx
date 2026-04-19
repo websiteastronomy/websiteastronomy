@@ -341,7 +341,7 @@ export default function FinanceWorkspaceClient({ embedded = false }: FinanceWork
           You need to sign in before using the finance workspace.
         </div>
         <div style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-          Open the member portal to authenticate, then return here.
+          Open the login page to authenticate, then return here.
         </div>
       </div>
     );

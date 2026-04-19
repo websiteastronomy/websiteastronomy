@@ -9,7 +9,7 @@ import CoreReviewList from "./CoreReviewList";
 
 export default async function CoreObservationsQueue() {
   const session = await auth.api.getSession({ headers: await import("next/headers").then(m => m.headers()) });
-  if (!session?.user) redirect("/portal?redirect=/core/observations");
+  if (!session?.user) redirect("/login?redirect=/core/observations");
 
   // Validate Core Team access
   const isCore = await hasPermission(session.user.id, "manage_projects"); // Proxy permission

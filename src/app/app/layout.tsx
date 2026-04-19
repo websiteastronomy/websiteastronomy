@@ -55,7 +55,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!loading && !user && pathname.startsWith("/app") && !redirected) {
       setRedirected(true);
-      router.replace(`/portal?redirect=${encodeURIComponent(pathname)}`);
+      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
     }
   }, [user, loading, router, pathname, redirected]);
 

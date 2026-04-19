@@ -45,7 +45,7 @@ export default function SystemRestrictionPage({ variant, title, message, until }
           <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginBottom: "1.2rem" }}>
             If you are an administrator, please log in to access the system and manage settings.
           </p>
-          <a href="/portal" style={{ display: "inline-block", padding: "0.75rem 1.7rem", borderRadius: "8px", background: "var(--gold)", color: "#000", fontWeight: "bold", textDecoration: "none", fontSize: "0.95rem", transition: "all 0.2s ease" }}>
+          <a href="/login" style={{ display: "inline-block", padding: "0.75rem 1.7rem", borderRadius: "8px", background: "var(--gold)", color: "#000", fontWeight: "bold", textDecoration: "none", fontSize: "0.95rem", transition: "all 0.2s ease" }}>
             Admin Login
           </a>
         </div>
