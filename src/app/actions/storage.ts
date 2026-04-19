@@ -24,6 +24,20 @@ import {
 } from "@/lib/storage-upload";
 import type { StorageModule, StorageRule, StorageRules, UploadIntent } from "@/lib/storage-upload.shared";
 
+function getFileNameFromKey(fileKey: string) {
+  return fileKey.split("/").filter(Boolean).pop() || fileKey;
+}
+
+function getDirectoryFromKey(fileKey: string) {
+  const lastSlashIndex = fileKey.lastIndexOf("/");
+  return lastSlashIndex >= 0 ? fileKey.slice(0, lastSlashIndex + 1) : "";
+}
+
+function getVersionFromFileName(fileName: string) {
+  const match = fileName.match(/_v(\d+)(\.[^./\\]+)?$/i);
+  return match ? Number.parseInt(match[1], 10) || 1 : 1;
+}
+
 async function requireSessionUser() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.id) throw new Error("Unauthorized");
@@ -148,11 +162,19 @@ export async function finalizeDirectUploadAction(intent: UploadIntent & { fileKe
   await validateUploadAgainstRules(intent);
 
   const uploadPlan = await buildUploadPlan(user.id, intent);
-  if (uploadPlan.key !== intent.fileKey) {
+  const normalizedFileKey = intent.fileKey.trim();
+  const expectedDirectory = getDirectoryFromKey(uploadPlan.key);
+  const uploadedFileName = getFileNameFromKey(normalizedFileKey);
+
+  if (uploadPlan.key !== normalizedFileKey && !normalizedFileKey.startsWith(expectedDirectory)) {
     throw new Error("Upload metadata mismatch. Please retry the upload.");
   }
 
-  const existing = await db.select().from(files).where(eq(files.filePath, uploadPlan.key)).limit(1);
+  const finalizedKey = uploadPlan.key === normalizedFileKey ? uploadPlan.key : normalizedFileKey;
+  const finalizedFileName = uploadPlan.key === normalizedFileKey ? uploadPlan.finalFileName : uploadedFileName;
+  const finalizedVersion = uploadPlan.key === normalizedFileKey ? uploadPlan.version : getVersionFromFileName(uploadedFileName);
+
+  const existing = await db.select().from(files).where(eq(files.filePath, finalizedKey)).limit(1);
   if (existing.length > 0) {
     return {
       fileUrl: existing[0].fileUrl,
@@ -164,23 +186,23 @@ export async function finalizeDirectUploadAction(intent: UploadIntent & { fileKe
   const fileId = uuidv4();
   await db.insert(files).values({
     id: fileId,
-    fileName: uploadPlan.finalFileName,
-    fileUrl: getPublicFileUrl(uploadPlan.key),
-    filePath: uploadPlan.key,
+    fileName: finalizedFileName,
+    fileUrl: getPublicFileUrl(finalizedKey),
+    filePath: finalizedKey,
     fileSize: intent.fileSize,
     fileType: intent.fileType || "application/octet-stream",
     projectId: uploadPlan.projectId,
     eventId: uploadPlan.eventId,
     uploadedBy: user.id,
-    version: uploadPlan.version,
+    version: finalizedVersion,
     isPublic: uploadPlan.isPublic,
     status: "active",
   });
 
   return {
-    fileUrl: getPublicFileUrl(uploadPlan.key),
+    fileUrl: getPublicFileUrl(finalizedKey),
     fileId,
-    fileName: uploadPlan.finalFileName,
+    fileName: finalizedFileName,
   };
 }
 
