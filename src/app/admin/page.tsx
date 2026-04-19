@@ -198,7 +198,10 @@ export default function Admin() {
   }
 
   return (
-    <div className="dashboard-root workspace-root" style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 60px)" }}>
+    <div
+      className={`dashboard-root workspace-root admin-dashboard-shell${isSidebarOpen ? " admin-mobile-sidebar-open" : ""}`}
+      style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 60px)" }}
+    >
       <div
         className="mobile-nav-toggle workspace-mobile-header"
         style={{
@@ -275,7 +278,7 @@ export default function Admin() {
             zIndex: 20,
           }}
         >
-          <div style={{ padding: "0 1.5rem", marginBottom: "2rem" }}>
+          <div className="admin-sidebar-header" style={{ padding: "0 1.5rem", marginBottom: "2rem" }}>
             <h3 className="gradient-text" style={{ fontFamily: "'Cinzel', serif", fontSize: "1rem", letterSpacing: "0.08em" }}>Admin Panel</h3>
             <p style={{ color: "var(--text-muted)", fontSize: "0.7rem", marginTop: "0.3rem" }}>
               {isAdmin ? "Manage everything" : `${roleName || "Core"} access`}
@@ -286,6 +289,7 @@ export default function Admin() {
               <button
                 key={tab.id}
                 className="admin-sidebar-tab"
+                data-active={currentTab === tab.id ? "true" : "false"}
                 onClick={() => {
                   setActiveTab(tab.id);
                   setIsSidebarOpen(false);

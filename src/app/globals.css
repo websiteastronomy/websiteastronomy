@@ -1620,13 +1620,17 @@ select.dash-filter-input {
   transform: scale(0.97);
 }
 
+.admin-dashboard-shell {
+  position: relative;
+}
+
 .sidebar-overlay {
   display: none;
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
-  z-index: 40;
+  z-index: 70;
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;
@@ -1638,6 +1642,12 @@ select.dash-filter-input {
 }
 
 @media (max-width: 768px) {
+  .admin-dashboard-shell {
+    background:
+      radial-gradient(circle at top left, rgba(201, 168, 76, 0.09), transparent 32%),
+      linear-gradient(180deg, rgba(5, 10, 20, 0.94), rgba(8, 12, 22, 0.98));
+  }
+
   .workspace-shell {
     flex-direction: column !important;
   }
@@ -1646,27 +1656,46 @@ select.dash-filter-input {
     display: flex !important;
     align-items: center;
     min-height: 72px;
+    backdrop-filter: blur(18px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
   }
   
   .sidebar-container {
     position: fixed !important;
     top: 72px !important;
-    left: 0 !important;
-    width: min(86vw, 320px) !important;
-    min-width: min(86vw, 320px) !important;
-    height: calc(100dvh - 72px) !important;
-    z-index: 50 !important;
-    background: rgba(11, 16, 30, 0.98) !important;
-    backdrop-filter: blur(16px);
+    left: 0.85rem !important;
+    width: min(84vw, 340px) !important;
+    min-width: min(84vw, 340px) !important;
+    height: calc(100dvh - 88px) !important;
+    z-index: 80 !important;
+    background:
+      linear-gradient(180deg, rgba(13, 19, 34, 0.98), rgba(7, 11, 22, 0.99)) !important;
+    backdrop-filter: blur(18px);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    border-right: 1px solid var(--border-subtle) !important;
-    box-shadow: 4px 0 24px rgba(0,0,0,0.5) !important;
+    border: 1px solid rgba(201, 168, 76, 0.18) !important;
+    border-radius: 1.25rem !important;
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.42),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
     transform: translateX(-100%);
-    padding-top: 1rem !important;
+    padding-top: 1.15rem !important;
+    padding-bottom: 1rem !important;
+    overflow: hidden;
   }
   
   .sidebar-container.open {
     transform: translateX(0) !important;
+  }
+
+  .admin-sidebar-header {
+    margin: 0 1rem 1rem !important;
+    padding: 0 0 1rem !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .sidebar-container nav {
+    gap: 0.45rem !important;
+    padding: 0 0.85rem 1rem;
   }
 
   .sidebar-container nav,
@@ -1675,9 +1704,52 @@ select.dash-filter-input {
   }
 
   .admin-sidebar-tab {
-    align-items: flex-start !important;
+    align-items: center !important;
     line-height: 1.35;
     white-space: normal;
+    margin: 0 !important;
+    padding: 0.95rem 1rem !important;
+    border: 1px solid transparent !important;
+    border-left: 1px solid transparent !important;
+    border-radius: 1rem !important;
+    background: rgba(255, 255, 255, 0.025) !important;
+    color: var(--text-primary) !important;
+    transition:
+      background 0.2s ease,
+      border-color 0.2s ease,
+      transform 0.2s ease,
+      box-shadow 0.2s ease !important;
+  }
+
+  .admin-sidebar-tab:hover,
+  .admin-sidebar-tab:focus-visible {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border-color: rgba(201, 168, 76, 0.2) !important;
+    transform: translateX(2px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+  }
+
+  .admin-sidebar-tab span:first-child {
+    min-width: 4.25rem !important;
+    font-size: 0.68rem !important;
+    letter-spacing: 0.12em !important;
+    color: var(--gold-light);
+    opacity: 0.85 !important;
+  }
+
+  .admin-sidebar-tab[data-active="true"] {
+    background: linear-gradient(135deg, rgba(201, 168, 76, 0.16), rgba(201, 168, 76, 0.04)) !important;
+    border-color: rgba(201, 168, 76, 0.34) !important;
+    box-shadow: 0 16px 30px rgba(201, 168, 76, 0.08);
+  }
+
+  .admin-mobile-sidebar-open .workspace-main {
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .admin-mobile-sidebar-open .admin-search-wrap {
+    display: none !important;
   }
 
   /* Force tables inside dashboard metrics to scroll properly */
