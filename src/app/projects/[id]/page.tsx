@@ -35,7 +35,7 @@ import {
   deleteProjectFileAction,
   type ProjectFile,
 } from "@/app/actions/files";
-import { uploadFile } from "@/app/actions/storage";
+import { uploadFileDirect } from "@/lib/direct-upload";
 import {
   getProjectTimelineAction,
   addTimelineEntryAction,
@@ -285,6 +285,7 @@ export function ProjectDetailClient({ routeSection }: { routeSection?: ProjectRo
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [fileSearch, setFileSearch] = useState("");
   const [dragActive, setDragActive] = useState(false);
+  const [fileFeedback, setFileFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [attachingFileId, setAttachingFileId] = useState<string | null>(null);
   const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -493,12 +494,18 @@ export function ProjectDetailClient({ routeSection }: { routeSection?: ProjectRo
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const draggedFiles = Array.from(e.dataTransfer.files);
       setFilesLoading(true);
+      setFileFeedback(null);
       try {
         for (const file of draggedFiles) {
           const sizeStr = file.size > 1024 * 1024 ? (file.size / 1024 / 1024).toFixed(2) + " MB" : (file.size / 1024).toFixed(2) + " KB";
-          const formData = new FormData();
-          formData.append("file", file);
-          const uploadResult = await uploadFile(formData, "projects", id, false);
+          const uploadResult = await uploadFileDirect(file, {
+            category: "projects",
+            entityId: id,
+            isPublic: false,
+            fileName: file.name,
+            fileType: file.type || "application/octet-stream",
+            fileSize: file.size,
+          });
           await uploadProjectFileAction(id, {
             name: uploadResult.fileName,
             parentId: currentFolderId,
@@ -510,8 +517,10 @@ export function ProjectDetailClient({ routeSection }: { routeSection?: ProjectRo
           });
         }
         await loadFiles();
+        setFileFeedback({ type: "success", message: `${draggedFiles.length} file(s) uploaded.` });
       } catch (e) {
         console.error(e);
+        setFileFeedback({ type: "error", message: e instanceof Error ? e.message : "Upload failed." });
         setFilesLoading(false);
       }
     }
@@ -521,12 +530,18 @@ export function ProjectDetailClient({ routeSection }: { routeSection?: ProjectRo
     if (!e.target.files || e.target.files.length === 0) return;
     const selectedFiles = Array.from(e.target.files);
     setFilesLoading(true);
+    setFileFeedback(null);
     try {
       for (const file of selectedFiles) {
         const sizeStr = file.size > 1024 * 1024 ? (file.size / 1024 / 1024).toFixed(2) + " MB" : (file.size / 1024).toFixed(2) + " KB";
-        const formData = new FormData();
-        formData.append("file", file);
-        const uploadResult = await uploadFile(formData, "projects", id, false);
+        const uploadResult = await uploadFileDirect(file, {
+          category: "projects",
+          entityId: id,
+          isPublic: false,
+          fileName: file.name,
+          fileType: file.type || "application/octet-stream",
+          fileSize: file.size,
+        });
         await uploadProjectFileAction(id, {
           name: uploadResult.fileName,
           parentId: currentFolderId,
@@ -538,8 +553,10 @@ export function ProjectDetailClient({ routeSection }: { routeSection?: ProjectRo
         });
       }
       await loadFiles();
+      setFileFeedback({ type: "success", message: `${selectedFiles.length} file(s) uploaded.` });
     } catch (err) {
       console.error(err);
+      setFileFeedback({ type: "error", message: err instanceof Error ? err.message : "Upload failed." });
       setFilesLoading(false);
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -976,6 +993,7 @@ export function ProjectDetailClient({ routeSection }: { routeSection?: ProjectRo
                   currentFolderId={currentFolderId}
                   setCurrentFolderId={setCurrentFolderId}
                   fileSearch={fileSearch}
+                  fileFeedback={fileFeedback}
                   setFileSearch={setFileSearch}
                   fileInputRef={fileInputRef}
                   handleFileInputChange={handleFileInputChange}
@@ -1567,6 +1585,7 @@ export function ProjectDetailClient({ routeSection }: { routeSection?: ProjectRo
               currentFolderId={currentFolderId}
               setCurrentFolderId={setCurrentFolderId}
               fileSearch={fileSearch}
+              fileFeedback={fileFeedback}
               setFileSearch={setFileSearch}
               fileInputRef={fileInputRef}
               handleFileInputChange={handleFileInputChange}

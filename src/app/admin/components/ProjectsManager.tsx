@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { subscribeToCollection, addDocument, updateDocument, deleteDocument } from '@/lib/db';
 import { inputStyle, rowStyle } from './shared';
-import { uploadFile } from '@/app/actions/storage';
+import { uploadFileDirect } from '@/lib/direct-upload';
 
 export default function ProjectsManager() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -70,10 +70,15 @@ export default function ProjectsManager() {
       let finalImageUrl = formData.coverImage;
 
       if (file) {
-        const uploadFormData = new FormData();
-        uploadFormData.append("file", file);
         try {
-           const uploadResult = await uploadFile(uploadFormData, "projects", editingProject?.id || "new-project", true);
+           const uploadResult = await uploadFileDirect(file, {
+             category: "projects",
+             entityId: editingProject?.id || "new-project",
+             isPublic: true,
+             fileName: file.name,
+             fileType: file.type || "application/octet-stream",
+             fileSize: file.size,
+           });
            finalImageUrl = uploadResult.fileUrl;
         } catch(e: any) {
            setFeedback({ type: 'error', message: 'Upload Failed: ' + e.message });

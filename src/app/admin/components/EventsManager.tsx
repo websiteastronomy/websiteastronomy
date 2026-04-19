@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { subscribeToCollection, addDocument, updateDocument, deleteDocument } from '@/lib/db';
 import { inputStyle, rowStyle } from './shared';
-import { uploadFile } from '@/app/actions/storage';
+import { uploadFileDirect } from '@/lib/direct-upload';
 import { formatDateTimeStable } from '@/lib/format-date';
 
 export default function EventsManager() {
@@ -68,10 +68,15 @@ export default function EventsManager() {
       let finalImageUrl = editingEvent?.bannerImage || '';
       
       if (file) {
-        const formData = new FormData();
-        formData.append("file", file);
         try {
-           const uploadResult = await uploadFile(formData, "events", editingEvent?.id || "new-event", true);
+           const uploadResult = await uploadFileDirect(file, {
+             category: "events",
+             entityId: editingEvent?.id || "new-event",
+             isPublic: true,
+             fileName: file.name,
+             fileType: file.type || "application/octet-stream",
+             fileSize: file.size,
+           });
            finalImageUrl = uploadResult.fileUrl;
         } catch(e: any) {
            setFeedback({ type: 'error', message: 'Upload Failed: ' + e.message });

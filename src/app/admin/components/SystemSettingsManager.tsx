@@ -1,38 +1,97 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { getSystemMaxFileSize, setSystemMaxFileSize } from "@/app/actions/storage";
+import { useEffect, useState } from "react";
+import { getStorageRulesAction, updateStorageRulesAction } from "@/app/actions/storage";
 import AuditLogsPanel from "./AuditLogsPanel";
 
+type EditableRule = {
+  maxFileSizeMb: number;
+  allowedFileTypes: string;
+};
+
+type EditableRules = {
+  docs: EditableRule;
+  projects: EditableRule;
+  forms: EditableRule;
+};
+
+const defaultRules: EditableRules = {
+  docs: { maxFileSizeMb: 100, allowedFileTypes: "*/*" },
+  projects: { maxFileSizeMb: 100, allowedFileTypes: "*/*" },
+  forms: { maxFileSizeMb: 100, allowedFileTypes: "*/*" },
+};
+
+function parseAllowedFileTypes(value: string) {
+  return value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
 export default function SystemSettingsManager() {
-  const [maxSize, setMaxSize] = useState<number>(10);
+  const [rules, setRules] = useState<EditableRules>(defaultRules);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
-    getSystemMaxFileSize().then(size => {
-      setMaxSize(size);
-      setLoading(false);
-    }).catch(err => {
-      console.error(err);
-      setLoading(false);
-    });
+    getStorageRulesAction()
+      .then((nextRules) => {
+        setRules({
+          docs: {
+            maxFileSizeMb: nextRules.docs.maxFileSizeMb,
+            allowedFileTypes: nextRules.docs.allowedFileTypes.join(", "),
+          },
+          projects: {
+            maxFileSizeMb: nextRules.projects.maxFileSizeMb,
+            allowedFileTypes: nextRules.projects.allowedFileTypes.join(", "),
+          },
+          forms: {
+            maxFileSizeMb: nextRules.forms.maxFileSizeMb,
+            allowedFileTypes: nextRules.forms.allowedFileTypes.join(", "),
+          },
+        });
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error(error);
+        setLoading(false);
+      });
   }, []);
 
   const handleSave = async () => {
-    if (maxSize < 1 || maxSize > 100) {
-      setFeedback({ type: "error", message: "Please enter a value between 1 and 100." });
-      return;
+    for (const [module, config] of Object.entries(rules)) {
+      if (config.maxFileSizeMb < 1 || config.maxFileSizeMb > 500) {
+        setFeedback({ type: "error", message: `Please enter a value between 1 and 500 for ${module}.` });
+        return;
+      }
     }
+
     setFeedback(null);
     setSaving(true);
     try {
-      await setSystemMaxFileSize(maxSize);
+      await updateStorageRulesAction({
+        docs: {
+          maxFileSizeMb: rules.docs.maxFileSizeMb,
+          allowedFileTypes: parseAllowedFileTypes(rules.docs.allowedFileTypes),
+        },
+        projects: {
+          maxFileSizeMb: rules.projects.maxFileSizeMb,
+          allowedFileTypes: parseAllowedFileTypes(rules.projects.allowedFileTypes),
+        },
+        forms: {
+          maxFileSizeMb: rules.forms.maxFileSizeMb,
+          allowedFileTypes: parseAllowedFileTypes(rules.forms.allowedFileTypes),
+        },
+        general: {
+          maxFileSizeMb: 25,
+          allowedFileTypes: ["*/*"],
+        },
+      });
       setFeedback({ type: "success", message: "System settings saved successfully." });
-    } catch (err: any) {
-      console.error(err);
-      setFeedback({ type: "error", message: "Failed to save: " + err.message });
+    } catch (error: any) {
+      console.error(error);
+      setFeedback({ type: "error", message: "Failed to save: " + error.message });
     } finally {
       setSaving(false);
     }
@@ -44,50 +103,98 @@ export default function SystemSettingsManager() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.4rem' }}>System Settings</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+        <h2 style={{ fontSize: "1.4rem" }}>System Settings</h2>
       </div>
 
       {feedback ? (
-        <div style={{ marginBottom: '1rem', padding: '0.8rem 1rem', borderRadius: '8px', border: feedback.type === 'success' ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(239,68,68,0.35)', background: feedback.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: feedback.type === 'success' ? '#86efac' : '#fca5a5', fontSize: '0.85rem' }}>
+        <div style={{ marginBottom: "1rem", padding: "0.8rem 1rem", borderRadius: "8px", border: feedback.type === "success" ? "1px solid rgba(34,197,94,0.35)" : "1px solid rgba(239,68,68,0.35)", background: feedback.type === "success" ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)", color: feedback.type === "success" ? "#86efac" : "#fca5a5", fontSize: "0.85rem" }}>
           {feedback.message}
         </div>
       ) : null}
 
-      <div style={{ background: 'rgba(15, 22, 40, 0.4)', borderRadius: '8px', border: '1px solid var(--border-subtle)', padding: '2rem' }}>
-        <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', color: 'var(--gold)' }}>File Storage Details</h3>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem', maxWidth: '500px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-              Maximum File Upload Size (MB)
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="100"
-              value={maxSize}
-              onChange={(e) => setMaxSize(Number(e.target.value) || 10)}
-              style={{
-                width: '100%',
-                padding: '0.8rem 1rem',
-                background: 'rgba(15, 22, 40, 0.6)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '6px',
-                color: 'var(--text-primary)',
-                fontFamily: 'inherit'
-              }}
-            />
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-              Controls the maximum allowed size per file uploaded to Cloudflare R2 via the Admin Portal. Valid bounds: 1MB – 100MB.
-            </p>
-          </div>
+      <div style={{ background: "rgba(15, 22, 40, 0.4)", borderRadius: "8px", border: "1px solid var(--border-subtle)", padding: "2rem" }}>
+        <h3 style={{ fontSize: "1.1rem", marginBottom: "1.5rem", color: "var(--gold)" }}>File Storage Details</h3>
 
-          <button 
-            onClick={handleSave} 
-            disabled={saving} 
-            className="btn-primary" 
-            style={{ fontFamily: 'inherit', padding: '0.8rem', fontSize: '0.9rem', opacity: saving ? 0.7 : 1, cursor: saving ? "not-allowed" : "pointer" }}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1.5rem", maxWidth: "720px" }}>
+          {([
+            { key: "docs", label: "Documentation uploads" },
+            { key: "projects", label: "Project uploads" },
+            { key: "forms", label: "Form uploads" },
+          ] as const).map(({ key, label }) => (
+            <div key={key} style={{ padding: "1rem", borderRadius: "10px", border: "1px solid var(--border-subtle)", background: "rgba(15, 22, 40, 0.28)" }}>
+              <h4 style={{ margin: "0 0 1rem", fontSize: "0.95rem", color: "var(--text-primary)" }}>{label}</h4>
+              <div style={{ display: "grid", gap: "1rem" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: "0.5rem" }}>
+                    Maximum File Upload Size (MB)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="500"
+                    value={rules[key].maxFileSizeMb}
+                    onChange={(event) =>
+                      setRules((current) => ({
+                        ...current,
+                        [key]: {
+                          ...current[key],
+                          maxFileSizeMb: Number(event.target.value) || 1,
+                        },
+                      }))
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "0.8rem 1rem",
+                      background: "rgba(15, 22, 40, 0.6)",
+                      border: "1px solid var(--border-subtle)",
+                      borderRadius: "6px",
+                      color: "var(--text-primary)",
+                      fontFamily: "inherit",
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: "0.5rem" }}>
+                    Allowed File Types
+                  </label>
+                  <input
+                    type="text"
+                    value={rules[key].allowedFileTypes}
+                    onChange={(event) =>
+                      setRules((current) => ({
+                        ...current,
+                        [key]: {
+                          ...current[key],
+                          allowedFileTypes: event.target.value,
+                        },
+                      }))
+                    }
+                    placeholder="*/*, .pdf, image/*, application/zip"
+                    style={{
+                      width: "100%",
+                      padding: "0.8rem 1rem",
+                      background: "rgba(15, 22, 40, 0.6)",
+                      border: "1px solid var(--border-subtle)",
+                      borderRadius: "6px",
+                      color: "var(--text-primary)",
+                      fontFamily: "inherit",
+                    }}
+                  />
+                  <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.5rem" }}>
+                    Use comma-separated MIME types or extensions. Example: `image/*, .pdf, application/zip`. Use `*/*` to allow everything.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="btn-primary"
+            style={{ fontFamily: "inherit", padding: "0.8rem", fontSize: "0.9rem", opacity: saving ? 0.7 : 1, cursor: saving ? "not-allowed" : "pointer" }}
           >
             {saving ? "Saving Configuration..." : "Save Storage Settings"}
           </button>

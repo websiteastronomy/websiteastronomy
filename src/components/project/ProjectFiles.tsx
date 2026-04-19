@@ -13,6 +13,7 @@ export default function ProjectFiles(props: any) {
     currentFolderId,
     setCurrentFolderId,
     fileSearch,
+    fileFeedback,
     setFileSearch,
     fileInputRef,
     handleFileInputChange,
@@ -58,6 +59,22 @@ export default function ProjectFiles(props: any) {
           Drop files here to upload
         </div>
       )}
+
+      {fileFeedback ? (
+        <div
+          style={{
+            marginBottom: "1rem",
+            padding: "0.8rem 1rem",
+            borderRadius: "8px",
+            border: fileFeedback.type === "success" ? "1px solid rgba(34,197,94,0.35)" : "1px solid rgba(239,68,68,0.35)",
+            background: fileFeedback.type === "success" ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
+            color: fileFeedback.type === "success" ? "#86efac" : "#fca5a5",
+            fontSize: "0.8rem",
+          }}
+        >
+          {fileFeedback.message}
+        </div>
+      ) : null}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "1rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", flex: 1 }}>

@@ -21,14 +21,13 @@ import {
   updateDocContentAction,
   updateFormContentAction,
   uploadDocumentationFileEntryAction,
-  uploadProjectFileAction,
   type FormContent,
   type ProjectFile,
   type ResourceRole,
 } from "@/app/actions/files";
-import { uploadDocumentationBinaryAction, uploadFile } from "@/app/actions/storage";
 import { formatDateStable } from "@/lib/format-date";
 import { FormQuestionsEditor, FormResponsesPanel, FormSettingsPanel } from "@/components/FormBuilderPanels";
+import { uploadFileDirect } from "@/lib/direct-upload";
 
 type Scope = { projectId?: string | null; isGlobal?: boolean };
 type QuestionType = "short_answer" | "paragraph" | "multiple_choice" | "checkbox";
@@ -242,18 +241,35 @@ export default function DocumentationHubClient({
     setLoading(true);
     try {
       for (const file of selectedFiles) {
-        const formData = new FormData();
-        formData.append("file", file);
         if (isGlobal) {
-          const result = await uploadDocumentationBinaryAction(formData, { isGlobal: true });
+          const result = await uploadFileDirect(file, {
+            category: "documentation",
+            isGlobal: true,
+            isPublic: false,
+            fileName: file.name,
+            fileType: file.type || "application/octet-stream",
+            fileSize: file.size,
+          });
           await uploadDocumentationFileEntryAction({
             projectId: null,
             isGlobal: true,
             ...uploadPayload(file, result),
           });
         } else {
-          const result = await uploadFile(formData, "projects", projectId as string, false);
-          await uploadProjectFileAction(projectId as string, uploadPayload(file, result));
+          const result = await uploadFileDirect(file, {
+            category: "documentation",
+            projectId: projectId as string,
+            isGlobal: false,
+            isPublic: false,
+            fileName: file.name,
+            fileType: file.type || "application/octet-stream",
+            fileSize: file.size,
+          });
+          await uploadDocumentationFileEntryAction({
+            projectId: projectId as string,
+            isGlobal: false,
+            ...uploadPayload(file, result),
+          });
         }
       }
       setFeedback({ type: "success", message: `${selectedFiles.length} item(s) uploaded.` });

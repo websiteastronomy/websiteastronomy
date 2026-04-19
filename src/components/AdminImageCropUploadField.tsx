@@ -3,7 +3,7 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import Cropper from "react-easy-crop";
 import { getCroppedImg } from "@/lib/cropImage";
-import { uploadFile } from "@/app/actions/storage";
+import { uploadFileDirect } from "@/lib/direct-upload";
 
 type CropPixels = { x: number; y: number; width: number; height: number };
 
@@ -81,9 +81,15 @@ export default function AdminImageCropUploadField({
         throw new Error("Failed to process the selected image.");
       }
 
-      const formData = new FormData();
-      formData.append("file", new File([croppedBlob], `${label.toLowerCase().replace(/\s+/g, "-")}.jpg`, { type: "image/jpeg" }));
-      const result = await uploadFile(formData, "general", "about-page", true);
+      const croppedFile = new File([croppedBlob], `${label.toLowerCase().replace(/\s+/g, "-")}.jpg`, { type: "image/jpeg" });
+      const result = await uploadFileDirect(croppedFile, {
+        category: "general",
+        entityId: "about-page",
+        isPublic: true,
+        fileName: croppedFile.name,
+        fileType: croppedFile.type,
+        fileSize: croppedFile.size,
+      });
       onChange(result.fileUrl);
       setEditorOpen(false);
     } catch (error) {

@@ -6,11 +6,11 @@ import {
   getQuizLeaderboardAction,
   getQuizManagerSnapshotAction,
   saveQuizAction,
-  uploadQuizQuestionImageAction,
 } from "@/app/actions/quizzes";
 import { inputStyle, rowStyle } from "./shared";
 import { QUIZ_QUESTION_TYPES, QUIZ_TYPES, QuizQuestionRecord, QuizType } from "@/lib/quizzes";
 import { useAuth } from "@/context/AuthContext";
+import { uploadFileDirect } from "@/lib/direct-upload";
 
 type QuizFormState = {
   id?: string;
@@ -204,10 +204,15 @@ export default function QuizzesManager() {
 
   const handleUploadImage = async (questionId: string, file: File | null) => {
     if (!file) return;
-    const formData = new FormData();
-    formData.append("file", file);
     try {
-      const result = await uploadQuizQuestionImageAction(formData, form.id);
+      const result = await uploadFileDirect(file, {
+        category: "quizzes",
+        entityId: form.id || "draft",
+        isPublic: true,
+        fileName: file.name,
+        fileType: file.type || "application/octet-stream",
+        fileSize: file.size,
+      });
       updateQuestion(questionId, { imageUrl: result.fileUrl });
       setFeedback({ type: "success", message: "Question image uploaded." });
     } catch (error) {
