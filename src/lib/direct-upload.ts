@@ -58,6 +58,75 @@ async function fetchUploadToSignedUrl(uploadUrl: string, file: File) {
   }
 }
 
+function isRecoverableStorageUploadError(error: unknown) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : "";
+
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("failed to fetch") ||
+    normalized.includes("networkerror") ||
+    normalized.includes("upload failed while sending the file to storage") ||
+    normalized.includes("access denied") ||
+    normalized.includes("forbidden")
+  );
+}
+
+function uploadFileThroughProxy(
+  file: File,
+  intent: UploadIntent,
+  onProgress?: (progress: number) => void
+) {
+  return new Promise<{
+    fileKey: string;
+    fileName: string;
+    fileUrl: string;
+  }>((resolve, reject) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("category", intent.category);
+    formData.append("fileName", file.name);
+    formData.append("fileType", file.type || "application/octet-stream");
+    formData.append("fileSize", String(file.size));
+    if (intent.entityId) formData.append("entityId", intent.entityId);
+    if (intent.projectId) formData.append("projectId", intent.projectId);
+    if (typeof intent.isGlobal === "boolean") formData.append("isGlobal", String(intent.isGlobal));
+    if (typeof intent.isPublic === "boolean") formData.append("isPublic", String(intent.isPublic));
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/upload-proxy");
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable || !onProgress) return;
+      onProgress(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+    };
+
+    xhr.onload = () => {
+      try {
+        const json = JSON.parse(xhr.responseText || "{}");
+        if (xhr.status >= 200 && xhr.status < 300) {
+          onProgress?.(100);
+          resolve(json);
+          return;
+        }
+        reject(new Error(json?.error || "Upload failed while sending the file through the app."));
+      } catch {
+        reject(new Error("Upload failed while sending the file through the app."));
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error("Upload failed while sending the file through the app."));
+    };
+
+    xhr.send(formData);
+  });
+}
+
 function uploadFileToSignedUrl(uploadUrl: string, file: File, onProgress?: (progress: number) => void) {
   return new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -134,27 +203,43 @@ export async function uploadFileDirect(
     fileSize: preparedFile.size,
   };
 
-  const presignRes = await fetch("/api/upload-url", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(requestBody),
-  });
+  let uploadedFileKey = "";
+  let uploadedFileName = preparedFile.name;
 
-  const presignJson = await presignRes.json();
-  if (!presignRes.ok) {
-    throw new Error(presignJson?.error || "Failed to prepare upload.");
+  try {
+    const presignRes = await fetch("/api/upload-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+    });
+
+    const presignJson = await presignRes.json();
+    if (!presignRes.ok) {
+      throw new Error(presignJson?.error || "Failed to prepare upload.");
+    }
+
+    uploadedFileKey = presignJson.fileKey;
+    uploadedFileName = presignJson.fileName || preparedFile.name;
+    await uploadFileToSignedUrl(presignJson.uploadUrl, preparedFile, options?.onProgress);
+  } catch (error) {
+    if (!isRecoverableStorageUploadError(error)) {
+      throw error;
+    }
+
+    const proxiedUpload = await uploadFileThroughProxy(preparedFile, intent, options?.onProgress);
+    uploadedFileKey = proxiedUpload.fileKey;
+    uploadedFileName = proxiedUpload.fileName || preparedFile.name;
   }
-
-  await uploadFileToSignedUrl(presignJson.uploadUrl, preparedFile, options?.onProgress);
 
   const finalized = await finalizeDirectUploadAction({
     ...requestBody,
-    fileKey: presignJson.fileKey,
+    fileName: uploadedFileName,
+    fileKey: uploadedFileKey,
   });
 
   return {
     ...finalized,
-    fileKey: presignJson.fileKey,
+    fileKey: uploadedFileKey,
     fileType: preparedFile.type || "application/octet-stream",
     fileSize: preparedFile.size,
     wasCompressed: preparedFile.size < file.size || preparedFile.type !== file.type || preparedFile.name !== file.name,
