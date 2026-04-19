@@ -44,6 +44,24 @@ const AuthContext = createContext<AuthContextType>({
   hasPermission: () => false,
 });
 
+const normalizeGoogleCallback = (callbackURL?: string) => {
+  const target =
+    callbackURL && callbackURL.startsWith("/")
+      ? callbackURL
+      : "/app";
+
+  if (
+    target === "/login" ||
+    target.startsWith("/login?") ||
+    target === "/admin" ||
+    target.startsWith("/admin")
+  ) {
+    return target;
+  }
+
+  return `/login?redirect=${encodeURIComponent(target)}`;
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { data: session, isPending, error } = authClient.useSession();
   const [authError, setAuthError] = useState<string | null>(null);
@@ -174,7 +192,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAuthError(null);
     const { error } = await authClient.signIn.social({
       provider: "google",
-      callbackURL: callbackURL || "/app",
+      callbackURL: normalizeGoogleCallback(callbackURL),
     });
     if (error) {
       console.error("Google Sign-in Error:", error);
