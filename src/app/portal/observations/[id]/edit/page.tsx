@@ -6,8 +6,10 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import AnimatedSection from "@/components/AnimatedSection";
 import ObservationImageEditorModal from "@/components/ObservationImageEditorModal";
-import { processAndUploadObservationImageAction } from "@/app/actions/uploadObservation";
+import { cleanupReplacedUploadsAction } from "@/app/actions/storage";
 import { editObservationAction } from "@/app/actions/observations-engine";
+import { buildObservationUploadFiles, formatFileSize } from "@/lib/client-upload-images";
+import { uploadFileDirect } from "@/lib/direct-upload";
 import {
   readFileAsDataUrl,
   validateObservationImageFile,
@@ -18,6 +20,7 @@ export default function EditObservationPage({ params }: { params: { id: string }
   const router = useRouter();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [errorObj, setErrorObj] = useState<string | null>(null);
   const [processingWarning, setProcessingWarning] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,6 +40,7 @@ export default function EditObservationPage({ params }: { params: { id: string }
   const [bortleScale, setBortleScale] = useState("");
   const [framesCount, setFramesCount] = useState("");
   const [processingSoftware, setProcessingSoftware] = useState("");
+  const [existingStoredUrls, setExistingStoredUrls] = useState<string[]>([]);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -67,6 +71,9 @@ export default function EditObservationPage({ params }: { params: { id: string }
           setFramesCount(existing.framesCount?.toString() || "");
           setProcessingSoftware(existing.processingSoftware || "");
           setImagePreview(existing.imageCompressedUrl || existing.imageOriginalUrl || null);
+          setExistingStoredUrls(
+            [existing.imageOriginalUrl, existing.imageCompressedUrl, existing.imageThumbnailUrl].filter(Boolean)
+          );
         }
 
         setIsLoading(false);
@@ -148,13 +155,46 @@ export default function EditObservationPage({ params }: { params: { id: string }
       let thumbnailUrl;
 
       if (imageFile) {
-        const formData = new FormData();
-        formData.append("file", imageFile);
-
-        const uploadRes = await processAndUploadObservationImageAction(formData);
-        originalUrl = uploadRes.urls.original;
-        compressedUrl = uploadRes.urls.compressed;
-        thumbnailUrl = uploadRes.urls.thumbnail;
+        const uploadFiles = await buildObservationUploadFiles(imageFile);
+        const uploadedOriginal = await uploadFileDirect(
+          uploadFiles.original,
+          {
+            category: "observation_images",
+            entityId: "original",
+            fileName: uploadFiles.original.name,
+            fileType: uploadFiles.original.type,
+            fileSize: uploadFiles.original.size,
+            isPublic: true,
+          },
+          { onProgress: (value) => setUploadProgress(Math.round(value * 0.34)) }
+        );
+        const uploadedCompressed = await uploadFileDirect(
+          uploadFiles.compressed,
+          {
+            category: "observation_images",
+            entityId: "compressed",
+            fileName: uploadFiles.compressed.name,
+            fileType: uploadFiles.compressed.type,
+            fileSize: uploadFiles.compressed.size,
+            isPublic: true,
+          },
+          { onProgress: (value) => setUploadProgress(34 + Math.round(value * 0.33)) }
+        );
+        const uploadedThumbnail = await uploadFileDirect(
+          uploadFiles.thumbnail,
+          {
+            category: "observation_images",
+            entityId: "thumbnail",
+            fileName: uploadFiles.thumbnail.name,
+            fileType: uploadFiles.thumbnail.type,
+            fileSize: uploadFiles.thumbnail.size,
+            isPublic: true,
+          },
+          { onProgress: (value) => setUploadProgress(67 + Math.round(value * 0.33)) }
+        );
+        originalUrl = uploadedOriginal.fileUrl;
+        compressedUrl = uploadedCompressed.fileUrl;
+        thumbnailUrl = uploadedThumbnail.fileUrl;
       }
 
       const payload = {
@@ -178,11 +218,17 @@ export default function EditObservationPage({ params }: { params: { id: string }
       };
 
       await editObservationAction(params.id, payload, isDraft);
+      if (imageFile) {
+        await cleanupReplacedUploadsAction({
+          urls: existingStoredUrls,
+        });
+      }
       router.push("/portal/observations");
     } catch (error: any) {
       setErrorObj(error.message || "Failed to edit observation");
     } finally {
       setIsSubmitting(false);
+      setUploadProgress(0);
     }
   };
 
@@ -229,6 +275,11 @@ export default function EditObservationPage({ params }: { params: { id: string }
             <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.5rem" }}>
               Leave this unchanged to keep the existing stored image. Any replacement is cropped and processed before upload.
             </p>
+            {imageFile ? (
+              <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "0.35rem" }}>
+                Prepared file size: {formatFileSize(imageFile.size)}
+              </p>
+            ) : null}
           </section>
 
           <section>
@@ -307,10 +358,10 @@ export default function EditObservationPage({ params }: { params: { id: string }
 
           <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
             <button className="btn-secondary" onClick={() => handleSubmit(true)} disabled={isSubmitting} style={{ flex: 1, padding: "1rem", opacity: isSubmitting ? 0.5 : 1 }}>
-              {isSubmitting ? "Uploading..." : "Save as Draft"}
+              {isSubmitting ? `Uploading ${uploadProgress}%` : "Save as Draft"}
             </button>
             <button className="btn-primary" onClick={() => handleSubmit(false)} disabled={isSubmitting} style={{ flex: 2, padding: "1rem", opacity: isSubmitting ? 0.5 : 1 }}>
-              {isSubmitting ? "Uploading..." : "Submit for Review"}
+              {isSubmitting ? `Uploading ${uploadProgress}%` : "Submit for Review"}
             </button>
           </div>
         </div>

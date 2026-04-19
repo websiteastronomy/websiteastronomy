@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { subscribeToCollection, addDocument, updateDocument, deleteDocument } from '@/lib/db';
+import { optimizeImageFile } from '@/lib/client-upload-images';
 import { inputStyle, rowStyle } from './shared';
 import { uploadFileDirect } from '@/lib/direct-upload';
 import { formatDateTimeStable } from '@/lib/format-date';
@@ -69,13 +70,20 @@ export default function EventsManager() {
       
       if (file) {
         try {
-           const uploadResult = await uploadFileDirect(file, {
+           const optimizedFile = await optimizeImageFile(file, {
+             maxWidth: 1800,
+             maxHeight: 1800,
+             type: "image/webp",
+             quality: 0.84,
+             fileName: "event-banner.webp",
+           });
+           const uploadResult = await uploadFileDirect(optimizedFile, {
              category: "events",
              entityId: editingEvent?.id || "new-event",
              isPublic: true,
-             fileName: file.name,
-             fileType: file.type || "application/octet-stream",
-             fileSize: file.size,
+             fileName: optimizedFile.name,
+             fileType: optimizedFile.type || "application/octet-stream",
+             fileSize: optimizedFile.size,
            });
            finalImageUrl = uploadResult.fileUrl;
         } catch(e: any) {

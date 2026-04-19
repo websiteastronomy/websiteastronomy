@@ -8,6 +8,7 @@ import {
   saveQuizAction,
 } from "@/app/actions/quizzes";
 import { inputStyle, rowStyle } from "./shared";
+import { optimizeImageFile } from "@/lib/client-upload-images";
 import { QUIZ_QUESTION_TYPES, QUIZ_TYPES, QuizQuestionRecord, QuizType } from "@/lib/quizzes";
 import { useAuth } from "@/context/AuthContext";
 import { uploadFileDirect } from "@/lib/direct-upload";
@@ -205,13 +206,20 @@ export default function QuizzesManager() {
   const handleUploadImage = async (questionId: string, file: File | null) => {
     if (!file) return;
     try {
-      const result = await uploadFileDirect(file, {
+      const optimizedFile = await optimizeImageFile(file, {
+        maxWidth: 1600,
+        maxHeight: 1600,
+        type: "image/webp",
+        quality: 0.82,
+        fileName: "quiz-question.webp",
+      });
+      const result = await uploadFileDirect(optimizedFile, {
         category: "quizzes",
         entityId: form.id || "draft",
         isPublic: true,
-        fileName: file.name,
-        fileType: file.type || "application/octet-stream",
-        fileSize: file.size,
+        fileName: optimizedFile.name,
+        fileType: optimizedFile.type || "application/octet-stream",
+        fileSize: optimizedFile.size,
       });
       updateQuestion(questionId, { imageUrl: result.fileUrl });
       setFeedback({ type: "success", message: "Question image uploaded." });

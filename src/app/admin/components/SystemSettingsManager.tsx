@@ -13,12 +13,18 @@ type EditableRules = {
   docs: EditableRule;
   projects: EditableRule;
   forms: EditableRule;
+  profile_images: EditableRule;
+  outreach_images: EditableRule;
+  achievement_images: EditableRule;
 };
 
 const defaultRules: EditableRules = {
   docs: { maxFileSizeMb: 100, allowedFileTypes: "*/*" },
   projects: { maxFileSizeMb: 100, allowedFileTypes: "*/*" },
   forms: { maxFileSizeMb: 100, allowedFileTypes: "*/*" },
+  profile_images: { maxFileSizeMb: 5, allowedFileTypes: "image/jpeg, image/png, image/webp" },
+  outreach_images: { maxFileSizeMb: 15, allowedFileTypes: "image/jpeg, image/png, image/webp" },
+  achievement_images: { maxFileSizeMb: 15, allowedFileTypes: "image/jpeg, image/png, image/webp" },
 };
 
 function parseAllowedFileTypes(value: string) {
@@ -49,6 +55,18 @@ export default function SystemSettingsManager() {
           forms: {
             maxFileSizeMb: nextRules.forms.maxFileSizeMb,
             allowedFileTypes: nextRules.forms.allowedFileTypes.join(", "),
+          },
+          profile_images: {
+            maxFileSizeMb: nextRules.profile_images.maxFileSizeMb,
+            allowedFileTypes: nextRules.profile_images.allowedFileTypes.join(", "),
+          },
+          outreach_images: {
+            maxFileSizeMb: nextRules.outreach_images.maxFileSizeMb,
+            allowedFileTypes: nextRules.outreach_images.allowedFileTypes.join(", "),
+          },
+          achievement_images: {
+            maxFileSizeMb: nextRules.achievement_images.maxFileSizeMb,
+            allowedFileTypes: nextRules.achievement_images.allowedFileTypes.join(", "),
           },
         });
         setLoading(false);
@@ -82,6 +100,18 @@ export default function SystemSettingsManager() {
         forms: {
           maxFileSizeMb: rules.forms.maxFileSizeMb,
           allowedFileTypes: parseAllowedFileTypes(rules.forms.allowedFileTypes),
+        },
+        profile_images: {
+          maxFileSizeMb: rules.profile_images.maxFileSizeMb,
+          allowedFileTypes: parseAllowedFileTypes(rules.profile_images.allowedFileTypes),
+        },
+        outreach_images: {
+          maxFileSizeMb: rules.outreach_images.maxFileSizeMb,
+          allowedFileTypes: parseAllowedFileTypes(rules.outreach_images.allowedFileTypes),
+        },
+        achievement_images: {
+          maxFileSizeMb: rules.achievement_images.maxFileSizeMb,
+          allowedFileTypes: parseAllowedFileTypes(rules.achievement_images.allowedFileTypes),
         },
         general: {
           maxFileSizeMb: 25,
@@ -121,6 +151,9 @@ export default function SystemSettingsManager() {
             { key: "docs", label: "Documentation uploads" },
             { key: "projects", label: "Project uploads" },
             { key: "forms", label: "Form uploads" },
+            { key: "profile_images", label: "Profile images" },
+            { key: "outreach_images", label: "Outreach images" },
+            { key: "achievement_images", label: "Achievement images" },
           ] as const).map(({ key, label }) => (
             <div key={key} style={{ padding: "1rem", borderRadius: "10px", border: "1px solid var(--border-subtle)", background: "rgba(15, 22, 40, 0.28)" }}>
               <h4 style={{ margin: "0 0 1rem", fontSize: "0.95rem", color: "var(--text-primary)" }}>{label}</h4>

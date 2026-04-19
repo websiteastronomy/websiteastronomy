@@ -1,4 +1,4 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
@@ -7,18 +7,11 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { assertProjectPermission } from "@/lib/project_permissions";
+import { getFinanceAccess } from "@/lib/finance";
+import { r2Client } from "@/lib/r2-storage";
 import { getSystemAccess } from "@/lib/system-rbac";
 import { buildUploadPlan, type UploadIntent, validateUploadAgainstRules } from "@/lib/storage-upload";
 import { isFeatureEnabled } from "@/lib/system-modules";
-
-const r2 = new S3Client({
-  region: "auto",
-  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
-  },
-});
 
 async function assertUploadPermission(userId: string, intent: UploadIntent) {
   const access = await getSystemAccess(userId);
@@ -32,6 +25,10 @@ async function assertUploadPermission(userId: string, intent: UploadIntent) {
   }
 
   if ((intent.category === "media" || intent.category === "general") && !access.isAdmin) {
+    throw new Error("Unauthorized: Admin upload access required");
+  }
+
+  if ((intent.category === "outreach_images" || intent.category === "achievement_images") && !access.isAdmin) {
     throw new Error("Unauthorized: Admin upload access required");
   }
 
@@ -53,6 +50,13 @@ async function assertUploadPermission(userId: string, intent: UploadIntent) {
 
   if (intent.category === "forms" && intent.projectId) {
     await assertProjectPermission(intent.projectId, userId, "canUpload");
+  }
+
+  if (intent.category === "finance_receipts") {
+    const financeAccess = await getFinanceAccess(userId);
+    if (!financeAccess.canSubmitExpenses) {
+      throw new Error("Unauthorized: Finance receipt upload access required");
+    }
   }
 }
 
@@ -99,7 +103,7 @@ export async function POST(req: Request) {
       ContentType: intent.fileType || "application/octet-stream",
     });
 
-    const uploadUrl = await getSignedUrl(r2, command, { expiresIn: 300 });
+    const uploadUrl = await getSignedUrl(r2Client, command, { expiresIn: 300 });
 
     return NextResponse.json({
       uploadUrl,

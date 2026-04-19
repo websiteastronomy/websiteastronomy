@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { subscribeToCollection, addDocument, updateDocument, deleteDocument } from '@/lib/db';
+import { cleanupReplacedUploadsAction } from '@/app/actions/storage';
+import { formatFileSize, optimizeImageFile } from '@/lib/client-upload-images';
+import { uploadFileDirect } from '@/lib/direct-upload';
 import { inputStyle, rowStyle } from './shared';
 import { formatDateStable } from '@/lib/format-date';
 
@@ -12,6 +15,8 @@ export default function OutreachManager() {
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     const unsub = subscribeToCollection('outreach', (data) => setOutreach(data));
@@ -33,6 +38,32 @@ export default function OutreachManager() {
         else if (i.name) data[i.name] = i.value;
       });
 
+      if (selectedImageFile) {
+        const optimizedImage = await optimizeImageFile(selectedImageFile, {
+          maxWidth: 1800,
+          maxHeight: 1800,
+          type: "image/webp",
+          quality: 0.84,
+          fileName: "outreach-image.webp",
+        });
+        const uploaded = await uploadFileDirect(
+          optimizedImage,
+          {
+            category: "outreach_images",
+            entityId: editingOutreach?.id || "draft",
+            fileName: optimizedImage.name,
+            fileType: optimizedImage.type,
+            fileSize: optimizedImage.size,
+            isPublic: true,
+          },
+          { onProgress: setUploadProgress }
+        );
+        if (editingOutreach?.images?.[0] && editingOutreach.images[0] !== uploaded.fileUrl) {
+          await cleanupReplacedUploadsAction({ urls: [editingOutreach.images[0]] });
+        }
+        data.images = [uploaded.fileUrl];
+      }
+
       if (!data.title || !data.date) {
         setFeedback({ type: 'error', message: 'Please fill out Title and Date.' });
         setIsSaving(false);
@@ -48,6 +79,8 @@ export default function OutreachManager() {
       }
       setShowForm(false);
       setEditingOutreach(null);
+      setSelectedImageFile(null);
+      setUploadProgress(0);
     } catch (err) {
       console.error(err);
       setFeedback({ type: 'error', message: 'Operation failed. Check console.' });
@@ -111,8 +144,14 @@ export default function OutreachManager() {
             <input type="date" name="date" defaultValue={editingOutreach?.date ? String(editingOutreach.date).slice(0, 10) : ''} style={inputStyle} />
             <input name="location" placeholder="Location" defaultValue={editingOutreach?.location || ''} style={inputStyle} />
             <input name="imageUrl" placeholder="Image URL (Required Proof)" defaultValue={editingOutreach?.images?.[0] || ''} style={{ ...inputStyle, gridColumn: '1 / -1' }} />
+            <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => setSelectedImageFile(event.target.files?.[0] || null)} style={{ ...inputStyle, gridColumn: '1 / -1' }} />
             <textarea name="description" placeholder="Event Description / Outcome" defaultValue={editingOutreach?.description || ''} rows={3} style={{ ...inputStyle, gridColumn: '1 / -1', resize: 'vertical' }} />
           </div>
+          {selectedImageFile && (
+            <p style={{ marginTop: "-0.25rem", marginBottom: "1rem", color: "var(--text-muted)", fontSize: "0.78rem" }}>
+              Uploading proof image from device: {selectedImageFile.name} ({formatFileSize(selectedImageFile.size)})
+            </p>
+          )}
           
           <h4 style={{ fontSize: '1rem', marginBottom: '1rem', marginTop: "1.5rem" }}>Impact Statistics</h4>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
@@ -149,6 +188,7 @@ export default function OutreachManager() {
               onClick={handleSave}
             >
               {isSaving ? 'Saving...' : (editingOutreach ? 'Update Log' : 'Create Log')}
+              {isSaving && uploadProgress ? ` ${uploadProgress}%` : ''}
             </button>
             {editingOutreach && (
               <button className="btn-secondary" style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem', background: 'transparent' }} onClick={() => { setEditingOutreach(null); setShowForm(false); }}>

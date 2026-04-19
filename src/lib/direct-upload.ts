@@ -1,11 +1,15 @@
 import { finalizeDirectUploadAction, getStorageRuleAction } from "@/app/actions/storage";
-import type { StorageModule, UploadIntent } from "@/lib/storage-upload";
+import { inferStorageModule, type StorageModule, type UploadIntent } from "@/lib/storage-upload";
 
 type DirectUploadResult = {
   fileUrl: string;
   fileId: string;
   fileName: string;
   fileKey: string;
+};
+
+type UploadFileDirectOptions = {
+  onProgress?: (progress: number) => void;
 };
 
 const storageRuleCache = new Map<StorageModule, Awaited<ReturnType<typeof getStorageRuleAction>>>();
@@ -36,17 +40,40 @@ async function getCachedRule(module: StorageModule) {
   return nextRule;
 }
 
-export async function uploadFileDirect(file: File, intent: UploadIntent): Promise<DirectUploadResult> {
-  const storageModule: StorageModule =
-    intent.category === "documentation"
-      ? "docs"
-      : intent.category === "projects"
-        ? "projects"
-        : intent.category === "forms"
-          ? "forms"
-          : "general";
+function uploadFileToSignedUrl(uploadUrl: string, file: File, onProgress?: (progress: number) => void) {
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl);
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
 
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable || !onProgress) return;
+      onProgress(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(100);
+        resolve();
+        return;
+      }
+
+      reject(new Error("Upload failed while sending the file to storage."));
+    };
+
+    xhr.onerror = () => reject(new Error("Upload failed while sending the file to storage."));
+    xhr.send(file);
+  });
+}
+
+export async function uploadFileDirect(
+  file: File,
+  intent: UploadIntent,
+  options?: UploadFileDirectOptions
+): Promise<DirectUploadResult> {
+  const storageModule = inferStorageModule(intent.category);
   const rule = await getCachedRule(storageModule);
+
   if (file.size > rule.maxFileSizeMb * 1024 * 1024) {
     throw new Error(`File too large. Maximum allowed for ${storageModule} uploads is ${rule.maxFileSizeMb}MB.`);
   }
@@ -74,17 +101,7 @@ export async function uploadFileDirect(file: File, intent: UploadIntent): Promis
     throw new Error(presignJson?.error || "Failed to prepare upload.");
   }
 
-  const putRes = await fetch(presignJson.uploadUrl, {
-    method: "PUT",
-    headers: {
-      "Content-Type": file.type || "application/octet-stream",
-    },
-    body: file,
-  });
-
-  if (!putRes.ok) {
-    throw new Error("Upload failed while sending the file to storage.");
-  }
+  await uploadFileToSignedUrl(presignJson.uploadUrl, file, options?.onProgress);
 
   const finalized = await finalizeDirectUploadAction({
     ...requestBody,

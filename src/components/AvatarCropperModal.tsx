@@ -3,7 +3,9 @@
 import React, { useState, useRef, useCallback } from "react";
 import Cropper from "react-easy-crop";
 import { getCroppedImg } from "@/lib/cropImage";
-import { uploadProfileImageAction } from "@/app/actions/uploadProfile";
+import { finalizeProfileImageUploadAction } from "@/app/actions/storage";
+import { optimizeImageFile } from "@/lib/client-upload-images";
+import { uploadFileDirect } from "@/lib/direct-upload";
 
 type Mode = "select" | "camera" | "crop";
 
@@ -20,6 +22,7 @@ export default function AvatarCropperModal({ isOpen, onClose, onSuccess }: Props
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [feedback, setFeedback] = useState<{ type: "error"; message: string } | null>(null);
 
   // Camera video ref
@@ -82,20 +85,43 @@ export default function AvatarCropperModal({ isOpen, onClose, onSuccess }: Props
   const uploadCroppedImage = async () => {
     if (!imageSrc || !croppedAreaPixels) return;
     setIsUploading(true);
+    setUploadProgress(0);
     setFeedback(null);
     try {
       const croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
       if (!croppedImageBlob) throw new Error("Failed to crop image.");
 
-      const formData = new FormData();
-      formData.append("file", new File([croppedImageBlob], "profile.jpg", { type: "image/jpeg" }));
+      const optimizedFile = await optimizeImageFile(
+        new File([croppedImageBlob], "profile.jpg", { type: "image/jpeg" }),
+        { maxWidth: 720, maxHeight: 720, type: "image/jpeg", quality: 0.86, fileName: "profile.jpg" }
+      );
 
-      const result = await uploadProfileImageAction(formData);
-      onSuccess(result.url);
+      const result = await uploadFileDirect(
+        optimizedFile,
+        {
+          category: "profile_images",
+          fileName: optimizedFile.name,
+          fileType: optimizedFile.type,
+          fileSize: optimizedFile.size,
+          isPublic: true,
+        },
+        {
+          onProgress: setUploadProgress,
+        }
+      );
+      const finalized = await finalizeProfileImageUploadAction({
+        fileKey: result.fileKey,
+        fileUrl: result.fileUrl,
+        fileName: optimizedFile.name,
+        fileType: optimizedFile.type,
+        fileSize: optimizedFile.size,
+      });
+      onSuccess(finalized.url);
     } catch (err: any) {
       setFeedback({ type: "error", message: "Upload failed: " + err.message });
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -213,7 +239,7 @@ export default function AvatarCropperModal({ isOpen, onClose, onSuccess }: Props
                   disabled={isUploading}
                   style={{ flex: 2, padding: "0.8rem", background: "var(--gold)", color: "#000", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: isUploading ? "not-allowed" : "pointer" }}
                 >
-                  {isUploading ? "Uploading..." : "Save Profile Image"}
+                  {isUploading ? `Uploading ${uploadProgress}%` : "Save Profile Image"}
                 </button>
               </div>
             </div>

@@ -17,7 +17,6 @@ import {
   scoreQuizAnswer,
   validateQuizQuestions,
 } from "@/lib/quizzes";
-import { uploadFile } from "@/app/actions/storage";
 
 type SaveQuizInput = {
   id?: string;
@@ -289,15 +288,6 @@ export async function submitMemberQuizAttemptAction(quizId: string, answers: unk
   revalidatePath("/portal");
   revalidatePath(`/education/quizzes/${quizId}`);
   return evaluation;
-}
-
-export async function uploadQuizQuestionImageAction(formData: FormData, quizId?: string) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Unauthorized");
-  const access = await getQuizAccess(user.id);
-  if (!access.canManage) throw new Error("Forbidden");
-
-  return uploadFile(formData, "quizzes", quizId || "draft", true);
 }
 
 export async function getQuizResultsForAdminAction(quizId?: string) {

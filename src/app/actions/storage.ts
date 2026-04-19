@@ -1,105 +1,36 @@
 "use server";
 
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { db } from "@/db";
-import { system_settings, files, users } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { and, eq, inArray, like } from "drizzle-orm";
 import { headers } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
-import { hasPermission } from "@/lib/permissions";
-import { getSystemAccess } from "@/lib/system-rbac";
-import { logActivity } from "@/lib/activity-logs";
-import { assertProjectPermission } from "@/lib/project_permissions";
+import { auth } from "@/lib/auth";
+import { db } from "@/db";
+import { files, system_settings, users } from "@/db/schema";
 import { getFinanceAccess } from "@/lib/finance";
+import { logActivity } from "@/lib/activity-logs";
+import { hasPermission } from "@/lib/permissions";
+import { assertProjectPermission } from "@/lib/project_permissions";
+import { deleteR2Objects, extractR2KeyFromUrl } from "@/lib/r2-storage";
 import { isFeatureEnabled } from "@/lib/system-modules";
+import { getSystemAccess } from "@/lib/system-rbac";
 import {
+  buildUploadPlan,
+  getPublicFileUrl,
+  getStorageRule,
+  getStorageRuleKey,
+  getStorageRules,
+  serializeStorageRule,
   type StorageModule,
   type StorageRule,
   type StorageRules,
   type UploadIntent,
-  buildUploadPlan,
-  getPublicFileUrl,
-  getStorageRule,
-  getStorageRules,
-  serializeStorageRule,
   validateUploadAgainstRules,
 } from "@/lib/storage-upload";
 
-// Configure R2 Client
-const r2 = new S3Client({
-  region: "auto",
-  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
-  },
-});
-
-type BinaryUploadOptions = {
-  file: File;
-  userId: string;
-  basePath: string;
-  category?: UploadIntent["category"];
-  projectId?: string | null;
-  eventId?: string | null;
-  isPublic?: boolean;
-};
-
-async function storeBinaryFile({
-  file,
-  userId,
-  basePath,
-  category = "general",
-  projectId = null,
-  eventId = null,
-  isPublic = true,
-}: BinaryUploadOptions) {
-  const fileType = file.type;
-  const fileName = file.name;
-  const fileBuffer = Buffer.from(await file.arrayBuffer());
-  const uploadPlan = await buildUploadPlan(userId, {
-    category,
-    fileName,
-    fileType,
-    fileSize: file.size,
-    entityId: projectId ?? eventId ?? undefined,
-    projectId,
-    isGlobal: basePath.startsWith("documentation/global/"),
-    isPublic,
-  }, { basePathOverride: basePath });
-  const finalPath = uploadPlan.key;
-  const bucket = process.env.R2_BUCKET_NAME || "";
-
-  const command = new PutObjectCommand({
-    Bucket: bucket,
-    Key: finalPath,
-    Body: fileBuffer,
-    ContentType: fileType,
-    ContentLength: file.size
-  });
-
-  await r2.send(command);
-
-  const publicUrl = uploadPlan.publicUrl;
-
-  const fileId = uuidv4();
-  await db.insert(files).values({
-    id: fileId,
-    fileName: uploadPlan.finalFileName,
-    fileUrl: publicUrl,
-    filePath: finalPath,
-    fileSize: file.size,
-    fileType: fileType,
-    projectId: uploadPlan.projectId,
-    eventId: uploadPlan.eventId,
-    uploadedBy: userId,
-    version: uploadPlan.version,
-    isPublic: uploadPlan.isPublic,
-    status: "active",
-  });
-
-  return { fileUrl: publicUrl, fileId, fileName: uploadPlan.finalFileName };
+async function requireSessionUser() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user?.id) throw new Error("Unauthorized");
+  return session.user;
 }
 
 export async function getSystemMaxFileSize(): Promise<number> {
@@ -108,13 +39,11 @@ export async function getSystemMaxFileSize(): Promise<number> {
 
 export async function setSystemMaxFileSize(mb: number) {
   await updateStorageRulesAction({
+    ...(await getStorageRules()),
     general: {
       maxFileSizeMb: mb,
       allowedFileTypes: ["*/*"],
     },
-    docs: await getStorageRule("docs"),
-    projects: await getStorageRule("projects"),
-    forms: await getStorageRule("forms"),
   });
   return true;
 }
@@ -128,13 +57,10 @@ export async function getStorageRuleAction(module: StorageModule): Promise<Stora
 }
 
 export async function updateStorageRulesAction(nextRules: StorageRules) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) throw new Error("Unauthorized");
-  
-  const userRes = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
+  const user = await requireSessionUser();
+  const userRes = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
   if (!userRes.length) throw new Error("Unauthorized");
-  // Only users with assign_roles permission (Admins in RBAC) may change storage limits.
-  if (!await hasPermission(session.user.id, "assign_roles")) throw new Error("Unauthorized: Admin access required");
+  if (!(await hasPermission(user.id, "assign_roles"))) throw new Error("Unauthorized: Admin access required");
 
   for (const storageModule of Object.keys(nextRules) as StorageModule[]) {
     const rule = nextRules[storageModule];
@@ -144,16 +70,10 @@ export async function updateStorageRulesAction(nextRules: StorageRules) {
   }
 
   for (const storageModule of Object.keys(nextRules) as StorageModule[]) {
-    const key =
-      storageModule === "docs"
-        ? "storage_rule_docs"
-        : storageModule === "projects"
-          ? "storage_rule_projects"
-          : storageModule === "forms"
-            ? "storage_rule_forms"
-            : "storage_rule_general";
+    const key = getStorageRuleKey(storageModule);
     const value = serializeStorageRule(nextRules[storageModule]);
     const existing = await db.select().from(system_settings).where(eq(system_settings.key, key)).limit(1);
+
     if (existing.length > 0) {
       await db.update(system_settings).set({ value, updatedAt: new Date() }).where(eq(system_settings.key, key));
     } else {
@@ -165,15 +85,16 @@ export async function updateStorageRulesAction(nextRules: StorageRules) {
     }
   }
 
-  const access = await getSystemAccess(session.user.id);
+  const access = await getSystemAccess(user.id);
   await logActivity({
-    userId: session.user.id,
+    userId: user.id,
     action: "update_storage_settings",
     entityType: "system_settings",
     entityId: "storage_rules",
     role: access.roleName,
     details: nextRules,
   });
+
   return true;
 }
 
@@ -188,7 +109,7 @@ async function assertUploadPermission(userId: string, intent: UploadIntent) {
     throw new Error("Unauthorized: Event upload access required");
   }
 
-  if ((intent.category === "media" || intent.category === "general") && !access.isAdmin) {
+  if ((intent.category === "media" || intent.category === "general" || intent.category === "outreach_images" || intent.category === "achievement_images") && !access.isAdmin) {
     throw new Error("Unauthorized: Admin upload access required");
   }
 
@@ -211,21 +132,25 @@ async function assertUploadPermission(userId: string, intent: UploadIntent) {
   if (intent.category === "forms" && intent.projectId) {
     await assertProjectPermission(intent.projectId, userId, "canUpload");
   }
+
+  if (intent.category === "finance_receipts") {
+    const financeAccess = await getFinanceAccess(userId);
+    if (!financeAccess.canSubmitExpenses) {
+      throw new Error("Unauthorized: Finance receipt upload access required");
+    }
+  }
 }
 
-export async function finalizeDirectUploadAction(
-  intent: UploadIntent & { fileKey: string }
-) {
+export async function finalizeDirectUploadAction(intent: UploadIntent & { fileKey: string }) {
   if (!(await isFeatureEnabled("fileUploads"))) {
     throw new Error("File uploads are currently disabled");
   }
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) throw new Error("Unauthorized");
 
-  await assertUploadPermission(session.user.id, intent);
+  const user = await requireSessionUser();
+  await assertUploadPermission(user.id, intent);
   await validateUploadAgainstRules(intent);
 
-  const uploadPlan = await buildUploadPlan(session.user.id, intent);
+  const uploadPlan = await buildUploadPlan(user.id, intent);
   if (uploadPlan.key !== intent.fileKey) {
     throw new Error("Upload metadata mismatch. Please retry the upload.");
   }
@@ -249,7 +174,7 @@ export async function finalizeDirectUploadAction(
     fileType: intent.fileType || "application/octet-stream",
     projectId: uploadPlan.projectId,
     eventId: uploadPlan.eventId,
-    uploadedBy: session.user.id,
+    uploadedBy: user.id,
     version: uploadPlan.version,
     isPublic: uploadPlan.isPublic,
     status: "active",
@@ -262,116 +187,96 @@ export async function finalizeDirectUploadAction(
   };
 }
 
-export async function uploadFile(formData: FormData, category: "projects" | "events" | "media" | "users" | "general" | "quizzes", entityId?: string, isPublic?: boolean) {
-  if (!(await isFeatureEnabled("fileUploads"))) {
-    throw new Error("File uploads are currently disabled");
-  }
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) throw new Error("Unauthorized");
+export async function finalizeProfileImageUploadAction(input: {
+  fileKey: string;
+  fileUrl: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+}) {
+  const user = await requireSessionUser();
+  const current = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+  const previousKey = current[0]?.profileImageKey || null;
 
-  const userRes = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
-  if (!userRes.length) throw new Error("Unauthorized");
-  const user = userRes[0];
-  const file = formData.get("file") as File;
-  if (!file) throw new Error("No file provided");
-  await assertUploadPermission(session.user.id, {
-    category,
-    fileName: file.name,
-    fileType: file.type,
-    fileSize: file.size,
-    entityId,
-    isPublic,
-  });
-  await validateUploadAgainstRules({
-    category,
-    fileName: file.name,
-    fileType: file.type,
-    fileSize: file.size,
-    entityId,
-    isPublic,
+  const finalized = await finalizeDirectUploadAction({
+    category: "profile_images",
+    fileKey: input.fileKey,
+    fileName: input.fileName,
+    fileType: input.fileType,
+    fileSize: input.fileSize,
+    isPublic: true,
   });
 
-  // 2. Paths and Versioning
-  let basePath = "";
-  if (category === "projects" && entityId) {
-    basePath = `projects/${entityId}/media`;
-  } else if (category === "events" && entityId) {
-    basePath = `events/${entityId}/media`;
-  } else if (category === "quizzes" && entityId) {
-    basePath = `quizzes/${entityId}/media`;
-  } else if (category === "users") {
-    basePath = `users/${user.id}/uploads`;
-  } else {
-    basePath = `general`;
+  await db
+    .update(users)
+    .set({
+      profileImageKey: input.fileKey,
+      image: input.fileUrl,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, user.id));
+
+  if (previousKey && previousKey !== input.fileKey) {
+    await db.update(files).set({ status: "deleted" }).where(eq(files.filePath, previousKey));
+    await deleteR2Objects([previousKey]);
   }
 
-  return storeBinaryFile({
-    file,
-    userId: user.id,
-    basePath,
-    category,
-    projectId: category === "projects" ? entityId : null,
-    eventId: category === "events" ? entityId : null,
-    isPublic: isPublic ?? true,
-  });
+  return {
+    ...finalized,
+    url: input.fileUrl,
+    key: input.fileKey,
+  };
 }
 
-export async function uploadDocumentationBinaryAction(
-  formData: FormData,
-  options: { projectId?: string | null; isGlobal?: boolean }
-) {
-  if (!(await isFeatureEnabled("fileUploads"))) {
-    throw new Error("File uploads are currently disabled");
+export async function cleanupReplacedUploadsAction(input: { urls?: string[]; keys?: string[] }) {
+  const user = await requireSessionUser();
+  const access = await getSystemAccess(user.id);
+
+  const keys = Array.from(
+    new Set([
+      ...(input.keys || []),
+      ...((input.urls || []).map((url) => extractR2KeyFromUrl(url)).filter(Boolean) as string[]),
+    ])
+  );
+
+  if (!keys.length) {
+    return { success: true };
   }
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) throw new Error("Unauthorized");
 
-  const file = formData.get("file") as File;
-  if (!file) throw new Error("No file provided");
-  const isGlobal = options.isGlobal ?? false;
-  const projectId = options.projectId ?? null;
-  await assertUploadPermission(session.user.id, {
-    category: "documentation",
-    fileName: file.name,
-    fileType: file.type,
-    fileSize: file.size,
-    projectId,
-    isGlobal,
-    isPublic: false,
+  const allowedKeys = keys.filter((key) => {
+    if (key.startsWith(`users/${user.id}/`)) return true;
+    if (key.startsWith(`observations/${user.id}/`)) return true;
+    if (key.startsWith(`articles/${user.id}/`)) return true;
+    return access.isAdmin;
   });
 
-  const basePath = isGlobal ? "documentation/global/media" : `projects/${projectId}/media`;
+  if (!allowedKeys.length) {
+    return { success: true };
+  }
 
-  return storeBinaryFile({
-    file,
-    userId: session.user.id,
-    basePath,
-    category: "documentation",
-    projectId,
-    isPublic: false,
-  });
+  await db.update(files).set({ status: "deleted" }).where(inArray(files.filePath, allowedKeys));
+  await deleteR2Objects(allowedKeys);
+
+  return { success: true };
 }
 
-export async function uploadExpenseReceiptAction(formData: FormData) {
-  if (!(await isFeatureEnabled("fileUploads"))) {
-    throw new Error("File uploads are currently disabled");
+export async function cleanupLegacyUploadReferencesAction(filePaths: string[]) {
+  const user = await requireSessionUser();
+  const access = await getSystemAccess(user.id);
+  if (!access.isAdmin) throw new Error("Unauthorized");
+
+  const activeRows = await db
+    .select({ filePath: files.filePath })
+    .from(files)
+    .where(and(inArray(files.filePath, filePaths), eq(files.status, "active")));
+
+  const keys = activeRows.map((row) => row.filePath);
+  if (!keys.length) {
+    return { success: true };
   }
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) throw new Error("Unauthorized");
 
-  const file = formData.get("file") as File;
-  if (!file) throw new Error("No file provided");
+  await db.update(files).set({ status: "deleted" }).where(inArray(files.filePath, keys));
+  await deleteR2Objects(keys);
 
-  const access = await getFinanceAccess(session.user.id);
-  if (!access.canSubmitExpenses) {
-    throw new Error("Unauthorized: Finance receipt upload access required");
-  }
-
-  return storeBinaryFile({
-    file,
-    userId: session.user.id,
-    basePath: `finance/receipts/${session.user.id}`,
-    category: "general",
-    isPublic: false,
-  });
+  return { success: true };
 }

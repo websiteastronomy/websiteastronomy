@@ -12,7 +12,8 @@ import {
   recordPaymentAttemptAction,
   updateExpenseStatusAction,
 } from "@/app/actions/finance";
-import { uploadExpenseReceiptAction } from "@/app/actions/storage";
+import { formatFileSize } from "@/lib/client-upload-images";
+import { uploadFileDirect } from "@/lib/direct-upload";
 import { inputStyle } from "@/app/admin/components/shared";
 import { useAuth } from "@/context/AuthContext";
 
@@ -162,6 +163,7 @@ export default function FinanceWorkspaceClient({ embedded = false }: FinanceWork
     paidTo: "",
   });
   const [expenseReceipt, setExpenseReceipt] = useState<File | null>(null);
+  const [receiptUploadProgress, setReceiptUploadProgress] = useState(0);
 
   const load = () =>
     startTransition(async () => {
@@ -280,9 +282,19 @@ export default function FinanceWorkspaceClient({ embedded = false }: FinanceWork
           throw new Error("Receipt upload is required.");
         }
 
-        const receiptData = new FormData();
-        receiptData.set("file", expenseReceipt);
-        const receipt = await uploadExpenseReceiptAction(receiptData);
+        const receipt = await uploadFileDirect(
+          expenseReceipt,
+          {
+            category: "finance_receipts",
+            fileName: expenseReceipt.name,
+            fileType: expenseReceipt.type,
+            fileSize: expenseReceipt.size,
+            isPublic: false,
+          },
+          {
+            onProgress: setReceiptUploadProgress,
+          }
+        );
 
         await addExpenseAction({
           title: expenseForm.title,
@@ -300,6 +312,8 @@ export default function FinanceWorkspaceClient({ embedded = false }: FinanceWork
       } catch (error: any) {
         console.error(error);
         setErrorMessage(error?.message || "Failed to submit expense.");
+      } finally {
+        setReceiptUploadProgress(0);
       }
     });
 
@@ -532,9 +546,14 @@ export default function FinanceWorkspaceClient({ embedded = false }: FinanceWork
                 <input value={expenseForm.paidTo} onChange={(event) => setExpenseForm((current) => ({ ...current, paidTo: event.target.value }))} placeholder="Paid to" style={inputStyle} />
                 <input type="file" accept=".jpg,.jpeg,.png,.pdf,.webp" onChange={(event) => setExpenseReceipt(event.target.files?.[0] || null)} style={inputStyle} />
               </div>
+              {expenseReceipt ? (
+                <p style={{ marginTop: "0.8rem", marginBottom: 0, fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                  Selected receipt: {expenseReceipt.name} ({formatFileSize(expenseReceipt.size)})
+                </p>
+              ) : null}
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
                 <button className="btn-primary" style={{ cursor: "pointer", fontFamily: "inherit" }} onClick={handleExpenseSubmit} disabled={isPending}>
-                  {isPending ? "Submitting..." : "Submit Expense"}
+                  {isPending ? (receiptUploadProgress ? `Uploading ${receiptUploadProgress}%` : "Submitting...") : "Submit Expense"}
                 </button>
               </div>
             </div>

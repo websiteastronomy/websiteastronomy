@@ -1,8 +1,19 @@
-import { desc, eq, like, and } from "drizzle-orm";
+import { and, desc, eq, like } from "drizzle-orm";
 import { db } from "@/db";
 import { files, system_settings } from "@/db/schema";
+import { getR2PublicUrl } from "@/lib/r2-storage";
 
-export type StorageModule = "docs" | "projects" | "forms" | "general";
+export type StorageModule =
+  | "docs"
+  | "projects"
+  | "forms"
+  | "general"
+  | "profile_images"
+  | "outreach_images"
+  | "achievement_images"
+  | "observation_images"
+  | "article_images"
+  | "finance_receipts";
 
 export type UploadCategory =
   | "projects"
@@ -12,7 +23,13 @@ export type UploadCategory =
   | "general"
   | "quizzes"
   | "documentation"
-  | "forms";
+  | "forms"
+  | "profile_images"
+  | "outreach_images"
+  | "achievement_images"
+  | "observation_images"
+  | "article_images"
+  | "finance_receipts";
 
 export type UploadIntent = {
   category: UploadCategory;
@@ -43,33 +60,33 @@ type UploadPlan = {
   isPublic: boolean;
 };
 
-const STORAGE_RULE_KEYS: Record<StorageModule, string> = {
-  docs: "storage_rule_docs",
-  projects: "storage_rule_projects",
-  forms: "storage_rule_forms",
-  general: "storage_rule_general",
+const STORAGE_RULE_KEYS: Record<StorageModule, string[]> = {
+  docs: ["storage_rule_docs", "storage_rule_documents"],
+  projects: ["storage_rule_projects"],
+  forms: ["storage_rule_forms"],
+  general: ["storage_rule_general", "max_file_size_mb"],
+  profile_images: ["storage_rule_profile_images"],
+  outreach_images: ["storage_rule_outreach_images"],
+  achievement_images: ["storage_rule_achievement_images"],
+  observation_images: ["storage_rule_observation_images"],
+  article_images: ["storage_rule_article_images"],
+  finance_receipts: ["storage_rule_finance_receipts"],
 };
 
 const DEFAULT_STORAGE_RULES: StorageRules = {
-  docs: {
-    maxFileSizeMb: 100,
-    allowedFileTypes: ["*/*"],
-  },
-  projects: {
-    maxFileSizeMb: 100,
-    allowedFileTypes: ["*/*"],
-  },
-  forms: {
-    maxFileSizeMb: 100,
-    allowedFileTypes: ["*/*"],
-  },
-  general: {
-    maxFileSizeMb: 25,
-    allowedFileTypes: ["*/*"],
-  },
+  docs: { maxFileSizeMb: 100, allowedFileTypes: ["*/*"] },
+  projects: { maxFileSizeMb: 100, allowedFileTypes: ["*/*"] },
+  forms: { maxFileSizeMb: 100, allowedFileTypes: ["*/*"] },
+  general: { maxFileSizeMb: 25, allowedFileTypes: ["*/*"] },
+  profile_images: { maxFileSizeMb: 5, allowedFileTypes: ["image/jpeg", "image/png", "image/webp"] },
+  outreach_images: { maxFileSizeMb: 15, allowedFileTypes: ["image/jpeg", "image/png", "image/webp"] },
+  achievement_images: { maxFileSizeMb: 15, allowedFileTypes: ["image/jpeg", "image/png", "image/webp"] },
+  observation_images: { maxFileSizeMb: 20, allowedFileTypes: ["image/jpeg", "image/png", "image/webp"] },
+  article_images: { maxFileSizeMb: 10, allowedFileTypes: ["image/jpeg", "image/png", "image/webp"] },
+  finance_receipts: { maxFileSizeMb: 25, allowedFileTypes: ["image/jpeg", "image/png", "image/webp", "application/pdf"] },
 };
 
-function normalizeAllowedTypes(values: string[] | undefined): string[] {
+export function normalizeAllowedTypes(values: string[] | undefined): string[] {
   const normalized = (values || [])
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean)
@@ -126,11 +143,23 @@ export function inferStorageModule(category: UploadCategory): StorageModule {
   if (category === "documentation") return "docs";
   if (category === "projects") return "projects";
   if (category === "forms") return "forms";
+  if (category === "profile_images") return "profile_images";
+  if (category === "outreach_images") return "outreach_images";
+  if (category === "achievement_images") return "achievement_images";
+  if (category === "observation_images") return "observation_images";
+  if (category === "article_images") return "article_images";
+  if (category === "finance_receipts") return "finance_receipts";
   return "general";
 }
 
 export function getStorageRuleKey(module: StorageModule): string {
-  return STORAGE_RULE_KEYS[module];
+  return STORAGE_RULE_KEYS[module][0];
+}
+
+function getStoredRuleValue(byKey: Map<string, string>, module: StorageModule) {
+  return STORAGE_RULE_KEYS[module].find((key) => byKey.has(key))
+    ? byKey.get(STORAGE_RULE_KEYS[module].find((key) => byKey.has(key)) as string)
+    : null;
 }
 
 export async function getStorageRules(): Promise<StorageRules> {
@@ -138,33 +167,35 @@ export async function getStorageRules(): Promise<StorageRules> {
   const byKey = new Map(rows.map((row) => [row.key, row.value]));
 
   return {
-    docs: parseStoredRule("docs", byKey.get(STORAGE_RULE_KEYS.docs)),
-    projects: parseStoredRule("projects", byKey.get(STORAGE_RULE_KEYS.projects)),
-    forms: parseStoredRule("forms", byKey.get(STORAGE_RULE_KEYS.forms)),
-    general: parseStoredRule("general", byKey.get(STORAGE_RULE_KEYS.general) ?? byKey.get("max_file_size_mb")),
+    docs: parseStoredRule("docs", getStoredRuleValue(byKey, "docs")),
+    projects: parseStoredRule("projects", getStoredRuleValue(byKey, "projects")),
+    forms: parseStoredRule("forms", getStoredRuleValue(byKey, "forms")),
+    general: parseStoredRule("general", getStoredRuleValue(byKey, "general")),
+    profile_images: parseStoredRule("profile_images", getStoredRuleValue(byKey, "profile_images")),
+    outreach_images: parseStoredRule("outreach_images", getStoredRuleValue(byKey, "outreach_images")),
+    achievement_images: parseStoredRule("achievement_images", getStoredRuleValue(byKey, "achievement_images")),
+    observation_images: parseStoredRule("observation_images", getStoredRuleValue(byKey, "observation_images")),
+    article_images: parseStoredRule("article_images", getStoredRuleValue(byKey, "article_images")),
+    finance_receipts: parseStoredRule("finance_receipts", getStoredRuleValue(byKey, "finance_receipts")),
   };
 }
 
 export async function getStorageRule(module: StorageModule): Promise<StorageRule> {
-  const key = STORAGE_RULE_KEYS[module];
-  const row = await db.select().from(system_settings).where(eq(system_settings.key, key)).limit(1);
-  if (row.length > 0) {
-    return parseStoredRule(module, row[0].value);
-  }
+  const rows = await db.select().from(system_settings).where(like(system_settings.key, "storage_rule_%"));
+  const byKey = new Map(rows.map((row) => [row.key, row.value]));
 
   if (module === "general") {
     const legacy = await db.select().from(system_settings).where(eq(system_settings.key, "max_file_size_mb")).limit(1);
     if (legacy.length > 0) {
-      return parseStoredRule("general", legacy[0].value);
+      byKey.set("max_file_size_mb", legacy[0].value);
     }
   }
 
-  return DEFAULT_STORAGE_RULES[module];
+  return parseStoredRule(module, getStoredRuleValue(byKey, module));
 }
 
 export function getPublicFileUrl(key: string): string {
-  const base = (process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "").replace(/\/+$/, "");
-  return `${base}/${key}`;
+  return getR2PublicUrl(key);
 }
 
 function getExtension(fileName: string): string {
@@ -179,8 +210,7 @@ export function isFileTypeAllowed(fileName: string, fileType: string, allowedTyp
   return normalizeAllowedTypes(allowedTypes).some((allowed) => {
     if (allowed === "*/*") return true;
     if (allowed.endsWith("/*")) {
-      const prefix = allowed.slice(0, allowed.length - 1);
-      return normalizedMime.startsWith(prefix);
+      return normalizedMime.startsWith(allowed.slice(0, allowed.length - 1));
     }
     if (allowed.startsWith(".")) {
       return normalizedExt === allowed;
@@ -227,6 +257,18 @@ export async function buildUploadPlan(
     basePath = `quizzes/${intent.entityId}/media`;
   } else if (!basePath && intent.category === "users") {
     basePath = `users/${userId}/uploads`;
+  } else if (!basePath && intent.category === "profile_images") {
+    basePath = `users/${userId}/profile`;
+  } else if (!basePath && intent.category === "outreach_images") {
+    basePath = `outreach/${intent.entityId || "draft"}/media`;
+  } else if (!basePath && intent.category === "achievement_images") {
+    basePath = `achievements/${intent.entityId || "draft"}/media`;
+  } else if (!basePath && intent.category === "observation_images") {
+    basePath = `observations/${userId}/${intent.entityId || "draft"}`;
+  } else if (!basePath && intent.category === "article_images") {
+    basePath = `articles/${userId}/${intent.entityId || "draft"}`;
+  } else if (!basePath && intent.category === "finance_receipts") {
+    basePath = `finance/receipts/${userId}`;
   } else if (!basePath && intent.category === "documentation") {
     projectId = intent.projectId ?? null;
     basePath = intent.isGlobal ? "documentation/global/media" : `projects/${intent.projectId}/media`;
@@ -253,12 +295,7 @@ export async function buildUploadPlan(
   const existingFiles = await db
     .select()
     .from(files)
-    .where(
-      and(
-        like(files.filePath, `${basePath}/${rawName}%${ext}`),
-        eq(files.status, "active")
-      )
-    )
+    .where(and(like(files.filePath, `${basePath}/${rawName}%${ext}`), eq(files.status, "active")))
     .orderBy(desc(files.version));
 
   let version = 1;
@@ -276,6 +313,6 @@ export async function buildUploadPlan(
     version,
     projectId,
     eventId,
-    isPublic: intent.isPublic ?? (intent.category !== "documentation"),
+    isPublic: intent.isPublic ?? (intent.category !== "documentation" && intent.category !== "finance_receipts"),
   };
 }

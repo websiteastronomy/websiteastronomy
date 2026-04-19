@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { subscribeToCollection, addDocument, updateDocument, deleteDocument } from '@/lib/db';
+import { cleanupReplacedUploadsAction } from '@/app/actions/storage';
+import { formatFileSize, optimizeImageFile } from '@/lib/client-upload-images';
+import { uploadFileDirect } from '@/lib/direct-upload';
 import { inputStyle, rowStyle } from './shared';
 
 export default function AchievementsManager() {
@@ -11,6 +14,8 @@ export default function AchievementsManager() {
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     const unsub = subscribeToCollection('achievements', (data) => setAchievements(data));
@@ -31,6 +36,32 @@ export default function AchievementsManager() {
         if (i.name) data[i.name] = i.value;
       });
 
+      if (selectedImageFile) {
+        const optimizedImage = await optimizeImageFile(selectedImageFile, {
+          maxWidth: 1800,
+          maxHeight: 1800,
+          type: "image/webp",
+          quality: 0.84,
+          fileName: "achievement-image.webp",
+        });
+        const uploaded = await uploadFileDirect(
+          optimizedImage,
+          {
+            category: "achievement_images",
+            entityId: editingAchievement?.id || "draft",
+            fileName: optimizedImage.name,
+            fileType: optimizedImage.type,
+            fileSize: optimizedImage.size,
+            isPublic: true,
+          },
+          { onProgress: setUploadProgress }
+        );
+        if (editingAchievement?.imageUrl && editingAchievement.imageUrl !== uploaded.fileUrl) {
+          await cleanupReplacedUploadsAction({ urls: [editingAchievement.imageUrl] });
+        }
+        data.imageUrl = uploaded.fileUrl;
+      }
+
       if (!data.title || !data.year) {
         setFeedback({ type: 'error', message: 'Title and Year are required.' });
         setIsSaving(false);
@@ -46,6 +77,8 @@ export default function AchievementsManager() {
       }
       setShowForm(false);
       setEditingAchievement(null);
+      setSelectedImageFile(null);
+      setUploadProgress(0);
     } catch (err) {
       console.error(err);
       setFeedback({ type: 'error', message: 'Operation failed. Check console.' });
@@ -93,15 +126,21 @@ export default function AchievementsManager() {
             <input name="title" placeholder="Title" defaultValue={editingAchievement?.title || ''} style={inputStyle} />
             <input name="year" placeholder="Year" defaultValue={editingAchievement?.year || ''} style={inputStyle} />
             <input name="imageUrl" placeholder="Image URL" defaultValue={editingAchievement?.imageUrl || ''} style={{ ...inputStyle, gridColumn: '1 / -1' }} />
+            <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => setSelectedImageFile(event.target.files?.[0] || null)} style={{ ...inputStyle, gridColumn: '1 / -1' }} />
             <textarea name="description" placeholder="Description" defaultValue={editingAchievement?.description || ''} rows={3} style={{ ...inputStyle, gridColumn: '1 / -1', resize: 'vertical' }} />
           </div>
+          {selectedImageFile && (
+            <p style={{ marginTop: "-0.25rem", marginBottom: "1rem", color: "var(--text-muted)", fontSize: "0.78rem" }}>
+              Selected image: {selectedImageFile.name} ({formatFileSize(selectedImageFile.size)})
+            </p>
+          )}
           <button 
             className="btn-primary" 
             disabled={isSaving}
             style={{ fontFamily: 'inherit', cursor: 'pointer', fontSize: '0.8rem', opacity: isSaving ? 0.7 : 1 }} 
             onClick={handleSave}
           >
-            {isSaving ? 'Saving...' : (editingAchievement ? 'Update' : 'Add Achievement')}
+            {isSaving ? `Saving${uploadProgress ? ` ${uploadProgress}%` : '...'}` : (editingAchievement ? 'Update' : 'Add Achievement')}
           </button>
         </div>
       )}

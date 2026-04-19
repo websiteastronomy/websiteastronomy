@@ -6,8 +6,9 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import AnimatedSection from "@/components/AnimatedSection";
 import ObservationImageEditorModal from "@/components/ObservationImageEditorModal";
-import { processAndUploadObservationImageAction } from "@/app/actions/uploadObservation";
 import { submitObservationAction } from "@/app/actions/observations-engine";
+import { buildObservationUploadFiles, formatFileSize } from "@/lib/client-upload-images";
+import { uploadFileDirect } from "@/lib/direct-upload";
 import {
   readFileAsDataUrl,
   validateObservationImageFile,
@@ -18,6 +19,7 @@ export default function SubmitObservationPage() {
   const router = useRouter();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [errorObj, setErrorObj] = useState<string | null>(null);
   const [processingWarning, setProcessingWarning] = useState<string | null>(null);
 
@@ -120,10 +122,33 @@ export default function SubmitObservationPage() {
     setErrorObj(null);
 
     try {
-      const formData = new FormData();
-      formData.append("file", imageFile);
-
-      const uploadRes = await processAndUploadObservationImageAction(formData);
+      const uploadFiles = await buildObservationUploadFiles(imageFile);
+      const variants = [
+        await uploadFileDirect(uploadFiles.original, {
+          category: "observation_images",
+          entityId: "original",
+          fileName: uploadFiles.original.name,
+          fileType: uploadFiles.original.type,
+          fileSize: uploadFiles.original.size,
+          isPublic: true,
+        }, { onProgress: (value) => setUploadProgress(Math.round(value * 0.34)) }),
+        await uploadFileDirect(uploadFiles.compressed, {
+          category: "observation_images",
+          entityId: "compressed",
+          fileName: uploadFiles.compressed.name,
+          fileType: uploadFiles.compressed.type,
+          fileSize: uploadFiles.compressed.size,
+          isPublic: true,
+        }, { onProgress: (value) => setUploadProgress(34 + Math.round(value * 0.33)) }),
+        await uploadFileDirect(uploadFiles.thumbnail, {
+          category: "observation_images",
+          entityId: "thumbnail",
+          fileName: uploadFiles.thumbnail.name,
+          fileType: uploadFiles.thumbnail.type,
+          fileSize: uploadFiles.thumbnail.size,
+          isPublic: true,
+        }, { onProgress: (value) => setUploadProgress(67 + Math.round(value * 0.33)) }),
+      ];
 
       const payload = {
         title,
@@ -132,9 +157,9 @@ export default function SubmitObservationPage() {
         description,
         location,
         capturedAt,
-        imageOriginalUrl: uploadRes.urls.original,
-        imageCompressedUrl: uploadRes.urls.compressed,
-        imageThumbnailUrl: uploadRes.urls.thumbnail,
+        imageOriginalUrl: variants[0].fileUrl,
+        imageCompressedUrl: variants[1].fileUrl,
+        imageThumbnailUrl: variants[2].fileUrl,
         equipment,
         exposureTime,
         iso,
@@ -151,6 +176,7 @@ export default function SubmitObservationPage() {
       setErrorObj(error.message || "Failed to submit observation");
     } finally {
       setIsSubmitting(false);
+      setUploadProgress(0);
     }
   };
 
@@ -216,6 +242,11 @@ export default function SubmitObservationPage() {
             <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.6rem" }}>
               Upload, crop, process, then preview. The image shown here is the exact file that will be stored.
             </p>
+            {imageFile ? (
+              <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "0.35rem" }}>
+                Prepared file size: {formatFileSize(imageFile.size)}
+              </p>
+            ) : null}
           </section>
 
           <section>
@@ -294,10 +325,10 @@ export default function SubmitObservationPage() {
 
           <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
             <button className="btn-secondary" onClick={() => handleSubmit(true)} disabled={isSubmitting} style={{ flex: 1, padding: "1rem", opacity: isSubmitting ? 0.5 : 1 }}>
-              {isSubmitting ? "Uploading..." : "Save as Draft"}
+              {isSubmitting ? `Uploading ${uploadProgress}%` : "Save as Draft"}
             </button>
             <button className="btn-primary" onClick={() => handleSubmit(false)} disabled={isSubmitting} style={{ flex: 2, padding: "1rem", opacity: isSubmitting ? 0.5 : 1 }}>
-              {isSubmitting ? "Uploading..." : "Submit for Review"}
+              {isSubmitting ? `Uploading ${uploadProgress}%` : "Submit for Review"}
             </button>
           </div>
         </div>

@@ -118,7 +118,7 @@ export default function PortalProfile({
             </button>
 
             <p style={{ fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "0.4rem" }}>
-              JPG, PNG, WebP • Max 2MB
+              JPG, PNG, WebP • optimized before upload
             </p>
           </div>
 

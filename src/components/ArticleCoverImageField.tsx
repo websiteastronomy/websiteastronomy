@@ -2,7 +2,9 @@
 
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import ObservationImageEditorModal from "@/components/ObservationImageEditorModal";
-import { processAndUploadObservationImageAction } from "@/app/actions/uploadObservation";
+import { cleanupReplacedUploadsAction } from "@/app/actions/storage";
+import { optimizeImageFile } from "@/lib/client-upload-images";
+import { uploadFileDirect } from "@/lib/direct-upload";
 import { validateObservationImageFile } from "@/lib/observationImage";
 
 type Props = {
@@ -21,6 +23,7 @@ export default function ArticleCoverImageField({
   const [editorSrc, setEditorSrc] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState(value || "");
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [feedback, setFeedback] = useState<{ type: "error" | "success"; message: string } | null>(null);
 
   useEffect(() => {
@@ -75,11 +78,31 @@ export default function ArticleCoverImageField({
     setFeedback(null);
 
     try {
-      const formData = new FormData();
-      formData.append("file", result.file);
-      formData.append("scope", "article");
-      const response = await processAndUploadObservationImageAction(formData);
-      const finalUrl = response.urls.compressed || response.urls.original;
+      const optimizedFile = await optimizeImageFile(result.file, {
+        maxWidth: 1600,
+        maxHeight: 900,
+        type: "image/webp",
+        quality: 0.84,
+        fileName: "article-cover.webp",
+      });
+      const response = await uploadFileDirect(
+        optimizedFile,
+        {
+          category: "article_images",
+          entityId: "cover",
+          fileName: optimizedFile.name,
+          fileType: optimizedFile.type,
+          fileSize: optimizedFile.size,
+          isPublic: true,
+        },
+        {
+          onProgress: setUploadProgress,
+        }
+      );
+      const finalUrl = response.fileUrl;
+      if (value && value !== finalUrl) {
+        await cleanupReplacedUploadsAction({ urls: [value] });
+      }
       onChange(finalUrl);
       setPreviewUrl(finalUrl);
 
@@ -94,6 +117,7 @@ export default function ArticleCoverImageField({
       setFeedback({ type: "error", message: "Cover image upload failed. Please try again." });
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
       setSourceFile(null);
       if (editorSrc?.startsWith("blob:")) {
         URL.revokeObjectURL(editorSrc);
@@ -117,7 +141,7 @@ export default function ArticleCoverImageField({
             opacity: isUploading ? 0.6 : 1,
           }}
         >
-          {isUploading ? "Uploading..." : previewUrl ? "Replace Image" : "Upload Image"}
+          {isUploading ? `Uploading ${uploadProgress}%` : previewUrl ? "Replace Image" : "Upload Image"}
           <input
             type="file"
             accept="image/png,image/jpeg,image/webp"

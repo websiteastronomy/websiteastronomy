@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { subscribeToCollection, addDocument, updateDocument, deleteDocument } from '@/lib/db';
+import { optimizeImageFile } from '@/lib/client-upload-images';
 import { inputStyle, rowStyle } from './shared';
 import { uploadFileDirect } from '@/lib/direct-upload';
 
@@ -71,13 +72,20 @@ export default function ProjectsManager() {
 
       if (file) {
         try {
-           const uploadResult = await uploadFileDirect(file, {
+           const optimizedFile = await optimizeImageFile(file, {
+             maxWidth: 1800,
+             maxHeight: 1800,
+             type: "image/webp",
+             quality: 0.84,
+             fileName: "project-cover.webp",
+           });
+           const uploadResult = await uploadFileDirect(optimizedFile, {
              category: "projects",
              entityId: editingProject?.id || "new-project",
              isPublic: true,
-             fileName: file.name,
-             fileType: file.type || "application/octet-stream",
-             fileSize: file.size,
+             fileName: optimizedFile.name,
+             fileType: optimizedFile.type || "application/octet-stream",
+             fileSize: optimizedFile.size,
            });
            finalImageUrl = uploadResult.fileUrl;
         } catch(e: any) {
