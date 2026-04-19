@@ -1628,8 +1628,7 @@ select.dash-filter-input {
   display: none;
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background: rgba(3, 7, 16, 0.52);
   z-index: 70;
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -1656,7 +1655,6 @@ select.dash-filter-input {
     display: flex !important;
     align-items: center;
     min-height: 72px;
-    backdrop-filter: blur(18px);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
   }
   
@@ -1670,7 +1668,6 @@ select.dash-filter-input {
     z-index: 80 !important;
     background:
       linear-gradient(180deg, rgba(13, 19, 34, 0.98), rgba(7, 11, 22, 0.99)) !important;
-    backdrop-filter: blur(18px);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     border: 1px solid rgba(201, 168, 76, 0.18) !important;
     border-radius: 1.25rem !important;
@@ -1685,6 +1682,7 @@ select.dash-filter-input {
   
   .sidebar-container.open {
     transform: translateX(0) !important;
+    pointer-events: auto !important;
   }
 
   .admin-sidebar-header {
@@ -1741,11 +1739,6 @@ select.dash-filter-input {
     background: linear-gradient(135deg, rgba(201, 168, 76, 0.16), rgba(201, 168, 76, 0.04)) !important;
     border-color: rgba(201, 168, 76, 0.34) !important;
     box-shadow: 0 16px 30px rgba(201, 168, 76, 0.08);
-  }
-
-  .admin-mobile-sidebar-open .workspace-main {
-    pointer-events: none;
-    user-select: none;
   }
 
   .admin-mobile-sidebar-open .admin-search-wrap {
