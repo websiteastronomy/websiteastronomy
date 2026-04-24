@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import NightSkyClient from "./NightSkyClient";
-import { getNightSkyResolvedState } from "@/lib/night-sky-server";
+import { getNightSkySystemSettingsAction, getResolvedNightSkyDataAction } from "@/app/actions/night-sky";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +18,8 @@ function formatLastUpdatedLabel(value: string | null) {
 }
 
 export default async function NightSkyPage() {
-  const { state, data } = await getNightSkyResolvedState();
+  const state = await getNightSkySystemSettingsAction();
+  const data = await getResolvedNightSkyDataAction();
 
   if (!state.isEnabled || !data) {
     redirect("/");

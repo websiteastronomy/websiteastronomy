@@ -13,7 +13,7 @@ import { assertProjectPermission } from "@/lib/project_permissions";
 import { getSystemAccess } from "@/lib/system-rbac";
 import { logActivity } from "@/lib/activity-logs";
 import { createNotificationsForUsers } from "./notifications";
-import { sendEmailNotification } from "@/lib/form-email";
+
 import { getUserPermissionOverride, getUserProfile } from "@/lib/permissions";
 
 export type ProjectFileType = "file" | "folder" | "doc" | "form" | "sheet";
@@ -894,7 +894,7 @@ async function notifyFormSubmission(
   }
 
   if (formConfig.settings.emailEnabled) {
-    await sendEmailNotification(form.id, response);
+    // Email notification logic has been refactored/removed.
   }
 }
 

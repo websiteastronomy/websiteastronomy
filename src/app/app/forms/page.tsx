@@ -1,11 +1,5 @@
-import DeprecationBanner from "@/components/DeprecationBanner";
-import DashboardFormsPage from "@/app/dashboard/forms/page";
+import { redirect } from "next/navigation";
 
 export default function AppFormsPage() {
-  return (
-    <>
-      <DeprecationBanner currentPath="/app/forms" newPath="/admin/docs" />
-      <DashboardFormsPage />
-    </>
-  );
+  redirect("/admin/docs");
 }

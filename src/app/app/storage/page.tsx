@@ -1,12 +1,5 @@
-"use client";
-import DeprecationBanner from "@/components/DeprecationBanner";
-import SystemSettingsManager from "@/app/admin/components/SystemSettingsManager";
+import { redirect } from "next/navigation";
 
 export default function AppStoragePage() {
-  return (
-    <>
-      <DeprecationBanner currentPath="/app/storage" newPath="/admin/storage" />
-      <SystemSettingsManager />
-    </>
-  );
+  redirect("/admin/storage");
 }

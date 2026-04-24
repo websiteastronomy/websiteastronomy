@@ -1,11 +1,5 @@
-import DeprecationBanner from "@/components/DeprecationBanner";
-import DashboardAchievementsPage from "@/app/dashboard/achievements/page";
+import { redirect } from "next/navigation";
 
 export default function AppAchievementsPage() {
-  return (
-    <>
-      <DeprecationBanner currentPath="/app/achievements" newPath="/admin/achievements" />
-      <DashboardAchievementsPage />
-    </>
-  );
+  redirect("/admin/achievements");
 }

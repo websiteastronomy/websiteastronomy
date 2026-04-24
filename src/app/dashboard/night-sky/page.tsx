@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
-import { getNightSkyResolvedState } from "@/lib/night-sky-server";
+import { getNightSkySystemSettingsAction, getResolvedNightSkyDataAction } from "@/app/actions/night-sky";
 import DashboardNightSkyClient from "./DashboardNightSkyClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardNightSkyPage() {
-  const { state, data } = await getNightSkyResolvedState();
+  const state = await getNightSkySystemSettingsAction();
+  const data = await getResolvedNightSkyDataAction();
 
   if (!state.isEnabled || !data) {
     return (

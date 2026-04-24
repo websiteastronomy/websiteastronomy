@@ -1,12 +1,5 @@
-"use client";
-import DeprecationBanner from "@/components/DeprecationBanner";
-import SettingsManager from "@/app/admin/components/SettingsManager";
+import { redirect } from "next/navigation";
 
 export default function AppSiteSettingsPage() {
-  return (
-    <>
-      <DeprecationBanner currentPath="/app/site-settings" newPath="/admin/site-settings" />
-      <SettingsManager />
-    </>
-  );
+  redirect("/admin/site-settings");
 }
