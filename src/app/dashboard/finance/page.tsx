@@ -16,7 +16,7 @@ export default function DashboardFinancePage() {
         <span className="gradient-text">Finance</span>
       </h1>
       <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: "1.5rem" }}>
-        View payments, submit expenses, and track financial activity.
+        Submit expenses, review approvals, and track financial activity.
       </p>
       <FinanceWorkspaceClient />
     </div>

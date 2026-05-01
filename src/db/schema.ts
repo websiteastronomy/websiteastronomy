@@ -516,30 +516,10 @@ export const form_responses = pgTable("form_responses", {
   externalDetails: jsonb("external_details").notNull().default('{}'),
   answers: jsonb("answers").notNull().default('{}'),
   responses: jsonb("responses").notNull().default('{}'),
-  paymentStatus: text("payment_status").default("success").notNull(),
-  paymentId: text("payment_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const paymentTypeEnum = pgEnum("payment_type", ["event", "form", "membership", "project"]);
-export const paymentStatusEnum = pgEnum("payment_status_v2", ["pending", "success", "failed"]);
 export const expenseStatusEnum = pgEnum("expense_status", ["pending", "approved", "rejected"]);
-
-export const payments = pgTable("payments", {
-  id: text("id").primaryKey(),
-  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
-  email: text("email").notNull(),
-  amount: integer("amount").notNull(),
-  currency: text("currency").notNull().default("INR"),
-  razorpayOrderId: text("razorpay_order_id").notNull().unique(),
-  razorpayPaymentId: text("razorpay_payment_id").unique(),
-  status: paymentStatusEnum("status").notNull().default("pending"),
-  type: paymentTypeEnum("type").notNull(),
-  referenceId: text("reference_id"),
-  paymentMethod: text("payment_method"),
-  details: jsonb("details").notNull().default('{}'),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
 
 export const expenses = pgTable("expenses", {
   id: text("id").primaryKey(),

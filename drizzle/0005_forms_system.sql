@@ -1,8 +1,6 @@
 ALTER TABLE "form_responses" ADD COLUMN IF NOT EXISTS "is_external" boolean DEFAULT false NOT NULL;
 ALTER TABLE "form_responses" ADD COLUMN IF NOT EXISTS "external_details" jsonb DEFAULT '{}'::jsonb NOT NULL;
 ALTER TABLE "form_responses" ADD COLUMN IF NOT EXISTS "answers" jsonb DEFAULT '{}'::jsonb NOT NULL;
-ALTER TABLE "form_responses" ADD COLUMN IF NOT EXISTS "payment_status" text DEFAULT 'success' NOT NULL;
-ALTER TABLE "form_responses" ADD COLUMN IF NOT EXISTS "payment_id" text;
 
 DO $$
 BEGIN

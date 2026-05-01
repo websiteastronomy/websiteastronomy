@@ -3,8 +3,6 @@ import { auth } from "@/lib/auth";
 import { getSystemAccess } from "@/lib/system-rbac";
 import { getUserProfile, hasPermission } from "@/lib/permissions";
 
-export type FinancePaymentType = "event" | "form" | "membership" | "project";
-
 export async function getCurrentFinanceSession() {
   const session = await auth.api.getSession({ headers: await headers() });
   return session?.user ?? null;

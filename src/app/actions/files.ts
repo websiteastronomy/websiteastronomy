@@ -92,8 +92,6 @@ type FormSettings = {
   allowMultiple: boolean;
   requireLogin: boolean;
   collectEmail: boolean;
-  paymentEnabled: boolean;
-  amount: number;
   deadline: string | null;
   notifyOnSubmit: boolean;
   announcementEnabled: boolean;
@@ -123,8 +121,6 @@ export type FormResponseRecord = {
   isExternal: boolean;
   externalDetails: FormExternalDetails;
   answers: Record<string, unknown>;
-  paymentStatus: "pending" | "success" | "failed";
-  paymentId: string | null;
   createdAt: Date;
 };
 
@@ -152,9 +148,6 @@ export type FormQuestionAnalytics = {
 
 export type FormAnalytics = {
   totalResponses: number;
-  completedPayments: number;
-  pendingPayments: number;
-  failedPayments: number;
   internalResponses: number;
   externalResponses: number;
   questions: FormQuestionAnalytics[];
@@ -358,8 +351,6 @@ function normalizeFormContent(content: Record<string, unknown> | null | undefine
   });
 
   const settingsInput = (content?.settings && typeof content.settings === "object" ? content.settings : {}) as Record<string, unknown>;
-  const amountInput = Number(settingsInput.amount ?? 0);
-
   return {
     title: typeof content?.title === "string" && content.title.trim() ? content.title : fallbackTitle,
     description: typeof content?.description === "string" ? content.description : "",
@@ -371,8 +362,6 @@ function normalizeFormContent(content: Record<string, unknown> | null | undefine
       allowMultiple: settingsInput.allowMultiple === true,
       requireLogin: settingsInput.requireLogin === true,
       collectEmail: settingsInput.collectEmail !== false,
-      paymentEnabled: settingsInput.paymentEnabled === true,
-      amount: Number.isFinite(amountInput) ? Math.max(0, amountInput) : 0,
       deadline: parseFormDeadline(settingsInput.deadline),
       notifyOnSubmit: settingsInput.notifyOnSubmit !== false,
       announcementEnabled: settingsInput.announcementEnabled === true,
@@ -459,9 +448,6 @@ function buildFormAnalytics(config: FormContent, responses: FormResponseRecord[]
 
   return {
     totalResponses: responses.length,
-    completedPayments: responses.filter((response) => response.paymentStatus === "success").length,
-    pendingPayments: responses.filter((response) => response.paymentStatus === "pending").length,
-    failedPayments: responses.filter((response) => response.paymentStatus === "failed").length,
     internalResponses: responses.filter((response) => !response.isExternal).length,
     externalResponses: responses.filter((response) => response.isExternal).length,
     questions,
@@ -1683,8 +1669,6 @@ export async function createFormAction(
         allowMultiple: false,
         requireLogin: false,
         collectEmail: true,
-        paymentEnabled: false,
-        amount: 0,
         deadline: null,
         notifyOnSubmit: true,
         announcementEnabled: false,
@@ -1862,8 +1846,6 @@ export async function submitFormResponseAction(
         }
       : externalDetails,
     answers,
-    paymentStatus: config.settings.paymentEnabled ? "pending" : "success",
-    paymentId: null,
     createdAt: new Date(),
   };
 
@@ -1875,8 +1857,6 @@ export async function submitFormResponseAction(
     externalDetails: responseRecord.externalDetails,
     answers: responseRecord.answers,
     responses: responseRecord.answers,
-    paymentStatus: responseRecord.paymentStatus,
-    paymentId: responseRecord.paymentId,
     createdAt: responseRecord.createdAt,
   });
 
@@ -1897,9 +1877,6 @@ export async function submitFormResponseAction(
   return {
     id: responseId,
     responseId,
-    paymentStatus: responseRecord.paymentStatus,
-    requiresPayment: config.settings.paymentEnabled,
-    amount: config.settings.amount,
   };
 }
 
@@ -1932,8 +1909,6 @@ export async function getFormResponsesAction(formId: string) {
       answerViews: buildAnswerViews(config, answers),
       submitterName,
       submitterEmail,
-      paymentStatus: (row.paymentStatus as "pending" | "success" | "failed") || "success",
-      paymentId: row.paymentId,
       createdAt: row.createdAt,
     } satisfies FormResponseView;
   });
@@ -1947,9 +1922,6 @@ export async function getFormAnalyticsAction(formId: string): Promise<FormAnalyt
   if (!capabilities.hasFormResponses) {
     return {
       totalResponses: 0,
-      completedPayments: 0,
-      pendingPayments: 0,
-      failedPayments: 0,
       internalResponses: 0,
       externalResponses: 0,
       questions: [],
@@ -1968,8 +1940,6 @@ export async function getFormAnalyticsAction(formId: string): Promise<FormAnalyt
     isExternal: row.isExternal,
     externalDetails: (row.externalDetails || {}) as FormExternalDetails,
     answers: ((row.answers as Record<string, unknown> | null) || (row.responses as Record<string, unknown> | null) || {}),
-    paymentStatus: (row.paymentStatus as "pending" | "success" | "failed") || "success",
-    paymentId: row.paymentId,
     createdAt: row.createdAt,
   }));
 

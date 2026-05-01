@@ -61,8 +61,6 @@ function getSettings(formDraft: Record<string, unknown>) {
     allowMultiple: settings.allowMultiple === true,
     requireLogin: settings.requireLogin === true,
     collectEmail: settings.collectEmail !== false,
-    paymentEnabled: settings.paymentEnabled === true,
-    amount: Number(settings.amount || 0),
     deadline: typeof settings.deadline === "string" ? settings.deadline : "",
     notifyOnSubmit: settings.notifyOnSubmit !== false,
     announcementEnabled: settings.announcementEnabled === true,
@@ -231,7 +229,6 @@ export function FormSettingsPanel({ formId, formDraft, canEdit, onChange }: Sett
             ["allowMultiple", "Allow multiple responses"],
             ["requireLogin", "Require login"],
             ["collectEmail", "Collect email"],
-            ["paymentEnabled", "Enable payment"],
             ["notifyOnSubmit", "Enable notifications"],
             ["announcementEnabled", "Send as announcement"],
             ["emailEnabled", "Send email notification"],
@@ -241,10 +238,6 @@ export function FormSettingsPanel({ formId, formDraft, canEdit, onChange }: Sett
               {label}
             </label>
           ))}
-          <label style={{ display: "grid", gap: "0.35rem", fontSize: "0.78rem", color: "var(--text-secondary)" }}>
-            Amount
-            <input type="number" min="0" disabled={!canEdit} value={settings.amount} onChange={(event) => patchSettings({ amount: Number(event.target.value || 0) })} style={{ padding: "0.7rem 0.8rem", background: "rgba(0,0,0,0.28)", border: "1px solid var(--border-subtle)", borderRadius: "8px", color: "white" }} />
-          </label>
         </div>
       </div>
 
@@ -293,7 +286,6 @@ export function FormResponsesPanel({ responses }: ResponsesPanelProps) {
               <th style={{ padding: "0.65rem 0.4rem" }}>Name</th>
               <th style={{ padding: "0.65rem 0.4rem" }}>Email</th>
               <th style={{ padding: "0.65rem 0.4rem" }}>Date</th>
-              <th style={{ padding: "0.65rem 0.4rem" }}>Payment Status</th>
             </tr>
           </thead>
           <tbody>
@@ -302,7 +294,6 @@ export function FormResponsesPanel({ responses }: ResponsesPanelProps) {
                 <td style={{ padding: "0.65rem 0.4rem" }}>{response.submitterName}</td>
                 <td style={{ padding: "0.65rem 0.4rem" }}>{response.submitterEmail || "Not collected"}</td>
                 <td style={{ padding: "0.65rem 0.4rem" }}>{formatDateStable(response.createdAt)}</td>
-                <td style={{ padding: "0.65rem 0.4rem", textTransform: "capitalize" }}>{response.paymentStatus}</td>
               </tr>
             ))}
           </tbody>
@@ -344,8 +335,6 @@ export function FormAnalyticsPanel({ analytics }: AnalyticsPanelProps) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.85rem" }}>
         {[
           { label: "Total Responses", value: analytics.totalResponses },
-          { label: "Completed Payments", value: analytics.completedPayments },
-          { label: "Pending Payments", value: analytics.pendingPayments },
           { label: "Internal vs External", value: `${analytics.internalResponses} / ${analytics.externalResponses}` },
         ].map((card) => (
           <div key={card.label} style={baseCardStyle}>

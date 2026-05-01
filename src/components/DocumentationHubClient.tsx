@@ -36,8 +36,6 @@ type FormSettings = {
   allowMultiple: boolean;
   requireLogin: boolean;
   collectEmail: boolean;
-  paymentEnabled: boolean;
-  amount: number;
   deadline: string | null;
   notifyOnSubmit: boolean;
   announcementEnabled: boolean;
@@ -69,8 +67,6 @@ const formContent = (title: string): FormContent => ({
     allowMultiple: false,
     requireLogin: false,
     collectEmail: true,
-    paymentEnabled: false,
-    amount: 0,
     deadline: null,
     notifyOnSubmit: true,
     announcementEnabled: false,
@@ -703,7 +699,6 @@ export default function DocumentationHubClient({
                         <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
                           <span style={{ padding: "0.35rem 0.7rem", borderRadius: "999px", background: "rgba(201,168,76,0.12)", color: "var(--gold)", fontSize: "0.75rem", textTransform: "capitalize" }}>{String(formDraft.mode || "internal")}</span>
                           <span style={{ padding: "0.35rem 0.7rem", borderRadius: "999px", background: formDraft.status === "published" ? "rgba(34,197,94,0.12)" : "rgba(251,191,36,0.12)", color: formDraft.status === "published" ? "#86efac" : "#fbbf24", fontSize: "0.75rem", textTransform: "capitalize" }}>{String(formDraft.status || "draft")}</span>
-                          {settings.paymentEnabled ? <span style={{ padding: "0.35rem 0.7rem", borderRadius: "999px", background: "rgba(34,197,94,0.12)", color: "#86efac", fontSize: "0.75rem" }}>Payment ready: Rs. {settings.amount}</span> : null}
                         </div>
                         <a href={`/forms/${activeForm.id}`} target="_blank" rel="noreferrer" style={{ color: "#93c5fd", textDecoration: "none", fontSize: "0.82rem" }}>Open fill page</a>
                       </div>

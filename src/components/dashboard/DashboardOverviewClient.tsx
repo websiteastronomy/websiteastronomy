@@ -212,12 +212,12 @@ export default function DashboardOverviewClient({
       {role === "finance_head" ? (
         <>
           <div className="dash-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}>
-            <StatsCard label="Payments" value={financeLoading ? "..." : formatMoney(financeSummary?.totalIncome || 0)} detail="Total income" />
+            <StatsCard label="Income" value={financeLoading ? "..." : formatMoney(financeSummary?.totalIncome || 0)} detail="Total income" />
             <StatsCard label="Expenses" value={financeLoading ? "..." : formatMoney(financeSummary?.totalExpenses || 0)} detail="Total expenditure" />
             <StatsCard label="Balance" value={financeLoading ? "..." : formatMoney(financeSummary?.balance || 0)} detail="Net balance" />
           </div>
           <div className="dash-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
-            <QuickLinkCard title="Finance Workspace" description="Review the payment ledger, expense queue, and exports." href="/app/finance" />
+            <QuickLinkCard title="Finance Workspace" description="Review the expense queue, approvals, and exports." href="/app/finance" />
             <QuickLinkCard title="Announcements" description="Keep finance communications in sync with member-facing updates." href="/app/announcements" />
             <QuickLinkCard title="Projects" description="Coordinate with project owners before approving expenses." href="/app/projects" />
           </div>

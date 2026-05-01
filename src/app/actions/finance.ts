@@ -1,15 +1,12 @@
 "use server";
 
-import crypto from "crypto";
-import Razorpay from "razorpay";
-import { eq, desc, sql, and, inArray } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "@/db";
-import { expenses, files, form_responses, notifications, payments, project_files, projects, users } from "@/db/schema";
+import { expenses, projects, users } from "@/db/schema";
 import { logActivity } from "@/lib/activity-logs";
 import {
-  FinancePaymentType,
   getCurrentFinanceSession,
   getFinanceAccess,
   requireExpenseSubmissionAccess,
@@ -20,7 +17,6 @@ import {
 import { createNotificationsForUsers, createNotificationForUser } from "./notifications";
 
 type FinanceCapabilities = {
-  hasPayments: boolean;
   hasExpenses: boolean;
 };
 
@@ -41,11 +37,10 @@ async function getFinanceCapabilities(): Promise<FinanceCapabilities> {
         select table_name
         from information_schema.tables
         where table_schema = 'public'
-          and table_name in ('payments', 'expenses')
+          and table_name in ('expenses')
       `);
       const tableNames = new Set(extractRows(result).map((row) => String(row.table_name)));
       return {
-        hasPayments: tableNames.has("payments"),
         hasExpenses: tableNames.has("expenses"),
       };
     })();
@@ -54,26 +49,12 @@ async function getFinanceCapabilities(): Promise<FinanceCapabilities> {
   return financeCapabilitiesPromise;
 }
 
-async function requireFinancePaymentsMigration() {
-  const capabilities = await getFinanceCapabilities();
-  if (!capabilities.hasPayments) {
-    throw new Error("Finance migration has not been applied yet.");
-  }
-}
-
 async function requireFinanceExpensesMigration() {
   const capabilities = await getFinanceCapabilities();
   if (!capabilities.hasExpenses) {
     throw new Error("Finance migration has not been applied yet.");
   }
 }
-
-type CreateOrderInput = {
-  amount: number;
-  type: FinancePaymentType;
-  referenceId?: string | null;
-  metadata?: Record<string, unknown>;
-};
 
 type ExpenseInput = {
   title: string;
@@ -90,26 +71,6 @@ function parseAmount(amount: number) {
     throw new Error("Amount must be a positive number.");
   }
   return rounded;
-}
-
-function getRazorpayConfig() {
-  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-    throw new Error("Razorpay environment variables are not configured.");
-  }
-
-  return {
-    keyId: process.env.RAZORPAY_KEY_ID,
-    keySecret: process.env.RAZORPAY_KEY_SECRET,
-    webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || "",
-  };
-}
-
-function getRazorpayClient() {
-  const { keyId, keySecret } = getRazorpayConfig();
-  return new Razorpay({
-    key_id: keyId,
-    key_secret: keySecret,
-  });
 }
 
 async function getFinanceNotificationRecipients() {
@@ -148,241 +109,6 @@ function revalidateFinancePaths() {
   revalidatePath("/admin");
   revalidatePath("/portal");
   revalidatePath("/documentation");
-}
-
-async function resolvePaymentAmount(input: CreateOrderInput) {
-  if (input.type !== "form") {
-    return parseAmount(input.amount);
-  }
-
-  if (!input.referenceId) {
-    throw new Error("Form payments require a reference id.");
-  }
-
-  const [form] = await db
-    .select({ content: project_files.content, name: project_files.name })
-    .from(project_files)
-    .where(eq(project_files.id, input.referenceId))
-    .limit(1);
-
-  if (!form) {
-    throw new Error("Referenced form not found.");
-  }
-
-  const settings = (form.content && typeof form.content === "object" ? (form.content as Record<string, any>).settings : null) || {};
-  const amount = parseAmount(Number(settings.amount || input.amount));
-  if (settings.paymentEnabled !== true) {
-    throw new Error("This form does not have payments enabled.");
-  }
-  return amount;
-}
-
-function buildOrderReceipt(input: CreateOrderInput) {
-  const referencePart = input.referenceId ? String(input.referenceId).slice(0, 18) : "general";
-  return `${input.type}_${referencePart}_${Date.now()}`.slice(0, 40);
-}
-
-export async function createPaymentOrderAction(input: CreateOrderInput) {
-  await requireFinancePaymentsMigration();
-  const razorpay = getRazorpayClient();
-  const user = await getCurrentFinanceSession();
-  if (!user?.id || !user.email) {
-    throw new Error("Unauthorized");
-  }
-
-  const amount = await resolvePaymentAmount(input);
-  const order = await razorpay.orders.create({
-    amount: amount * 100,
-    currency: "INR",
-    receipt: buildOrderReceipt(input),
-    notes: {
-      type: input.type,
-      referenceId: input.referenceId || "",
-      createdBy: user.id,
-    },
-  });
-
-  const paymentId = uuidv4();
-  await db.insert(payments).values({
-    id: paymentId,
-    userId: user.id,
-    email: user.email,
-    amount,
-    currency: "INR",
-    razorpayOrderId: order.id,
-    status: "pending",
-    type: input.type,
-    referenceId: input.referenceId || null,
-    paymentMethod: null,
-    details: input.metadata || {},
-    createdAt: new Date(),
-  });
-
-  const access = await getFinanceAccess(user.id);
-  await logFinanceActivity({
-    userId: user.id,
-    role: access.roleName,
-    action: "create_payment_order",
-    entityType: "payment",
-    entityId: paymentId,
-    details: {
-      amount,
-      type: input.type,
-      referenceId: input.referenceId || null,
-      razorpayOrderId: order.id,
-    },
-  });
-
-  revalidateFinancePaths();
-  return {
-    paymentRecordId: paymentId,
-    orderId: order.id,
-    amount,
-    currency: "INR",
-    key: process.env.RAZORPAY_KEY_ID || "",
-  };
-}
-
-export async function recordPaymentAttemptAction(input: {
-  razorpayOrderId: string;
-  razorpayPaymentId?: string | null;
-}) {
-  await requireFinancePaymentsMigration();
-  const user = await getCurrentFinanceSession();
-  if (!user?.id) {
-    throw new Error("Unauthorized");
-  }
-
-  const [payment] = await db
-    .select()
-    .from(payments)
-    .where(eq(payments.razorpayOrderId, input.razorpayOrderId))
-    .limit(1);
-
-  if (!payment) {
-    throw new Error("Payment record not found.");
-  }
-
-  if (payment.userId && payment.userId !== user.id) {
-    throw new Error("Forbidden");
-  }
-
-  if (input.razorpayPaymentId && !payment.razorpayPaymentId) {
-    await db
-      .update(payments)
-      .set({ razorpayPaymentId: input.razorpayPaymentId })
-      .where(eq(payments.id, payment.id));
-  }
-
-  return { success: true };
-}
-
-async function markFormResponsePaid(payment: typeof payments.$inferSelect) {
-  const details = (payment.details || {}) as Record<string, unknown>;
-  const formResponseId = typeof details.formResponseId === "string" ? details.formResponseId : null;
-  if (!formResponseId) {
-    return;
-  }
-
-  await db
-    .update(form_responses)
-    .set({
-      paymentStatus: "success",
-      paymentId: payment.razorpayPaymentId,
-    })
-    .where(eq(form_responses.id, formResponseId));
-}
-
-export async function processCapturedPaymentAction(payload: {
-  razorpayOrderId: string;
-  razorpayPaymentId: string;
-  paymentMethod?: string | null;
-}) {
-  await requireFinancePaymentsMigration();
-  const [payment] = await db
-    .select()
-    .from(payments)
-    .where(eq(payments.razorpayOrderId, payload.razorpayOrderId))
-    .limit(1);
-
-  if (!payment) {
-    return { ignored: true, reason: "payment_not_found" as const };
-  }
-
-  if (payment.status === "success") {
-    return { ignored: true, reason: "already_processed" as const };
-  }
-
-  const conflict = await db
-    .select({ id: payments.id })
-    .from(payments)
-    .where(eq(payments.razorpayPaymentId, payload.razorpayPaymentId))
-    .limit(1);
-
-  if (conflict.length > 0 && conflict[0].id !== payment.id) {
-    return { ignored: true, reason: "duplicate_payment_id" as const };
-  }
-
-  await db
-    .update(payments)
-    .set({
-      status: "success",
-      razorpayPaymentId: payload.razorpayPaymentId,
-      paymentMethod: payload.paymentMethod || null,
-    })
-    .where(eq(payments.id, payment.id));
-
-  const paymentAfterUpdate = { ...payment, razorpayPaymentId: payload.razorpayPaymentId, paymentMethod: payload.paymentMethod || null };
-  if (payment.type === "form") {
-    await markFormResponsePaid(paymentAfterUpdate);
-  }
-
-  const roleName = payment.userId ? (await getFinanceAccess(payment.userId)).roleName : null;
-  await logFinanceActivity({
-    userId: payment.userId,
-    role: roleName,
-    action: "payment_success",
-    entityType: "payment",
-    entityId: payment.id,
-    details: {
-      amount: payment.amount,
-      type: payment.type,
-      referenceId: payment.referenceId,
-      razorpayPaymentId: payload.razorpayPaymentId,
-      paymentMethod: payload.paymentMethod || null,
-    },
-  });
-
-  if (payment.userId) {
-    await createNotificationForUser({
-      userId: payment.userId,
-      type: payment.type === "form" ? "form" : "system",
-      title: "Payment Successful",
-      message: `Your ${payment.type} payment of Rs. ${payment.amount} was confirmed.`,
-      referenceId: payment.id,
-      link: payment.type === "form" && payment.referenceId ? `/forms/${payment.referenceId}` : "/portal",
-    });
-  }
-
-  revalidateFinancePaths();
-  return { ignored: false };
-}
-
-export async function verifyWebhookSignatureAction(rawBody: string, signature: string | null) {
-  const { webhookSecret } = getRazorpayConfig();
-  if (!webhookSecret) {
-    throw new Error("Razorpay webhook secret is not configured.");
-  }
-  if (!signature) {
-    return false;
-  }
-
-  const expected = crypto
-    .createHmac("sha256", webhookSecret)
-    .update(rawBody)
-    .digest("hex");
-
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
 }
 
 export async function addExpenseAction(input: ExpenseInput) {
@@ -523,69 +249,10 @@ export async function getExpensesAction() {
   return access.canApproveExpenses ? rows : rows.filter((row) => row.createdBy === user.id);
 }
 
-export async function getPaymentsAction() {
-  const { access, user } = await requireFinanceViewAccess();
-  const capabilities = await getFinanceCapabilities();
-  if (!capabilities.hasPayments) {
-    return [];
-  }
-  const rows = await db
-    .select({
-      id: payments.id,
-      userId: payments.userId,
-      email: payments.email,
-      amount: payments.amount,
-      currency: payments.currency,
-      razorpayOrderId: payments.razorpayOrderId,
-      razorpayPaymentId: payments.razorpayPaymentId,
-      status: payments.status,
-      type: payments.type,
-      referenceId: payments.referenceId,
-      paymentMethod: payments.paymentMethod,
-      details: payments.details,
-      createdAt: payments.createdAt,
-    })
-    .from(payments)
-    .orderBy(desc(payments.createdAt));
-
-  return access.canApproveExpenses ? rows : rows.filter((row) => row.userId === user.id);
-}
-
-export async function getMyPaymentsAction() {
-  const user = await getCurrentFinanceSession();
-  if (!user?.id) {
-    throw new Error("Unauthorized");
-  }
-  const capabilities = await getFinanceCapabilities();
-  if (!capabilities.hasPayments) {
-    return [];
-  }
-
-  return db
-    .select({
-      id: payments.id,
-      userId: payments.userId,
-      email: payments.email,
-      amount: payments.amount,
-      currency: payments.currency,
-      razorpayOrderId: payments.razorpayOrderId,
-      razorpayPaymentId: payments.razorpayPaymentId,
-      status: payments.status,
-      type: payments.type,
-      referenceId: payments.referenceId,
-      paymentMethod: payments.paymentMethod,
-      details: payments.details,
-      createdAt: payments.createdAt,
-    })
-    .from(payments)
-    .where(eq(payments.userId, user.id))
-    .orderBy(desc(payments.createdAt));
-}
-
 export async function getFinanceSummaryAction() {
   await requireFinanceViewAccess();
   const capabilities = await getFinanceCapabilities();
-  if (!capabilities.hasPayments || !capabilities.hasExpenses) {
+  if (!capabilities.hasExpenses) {
     return {
       totalIncome: 0,
       totalExpenses: 0,
@@ -593,30 +260,27 @@ export async function getFinanceSummaryAction() {
     };
   }
 
-  const [incomeRows, expenseRows] = await Promise.all([
-    db.select({ total: sql<number>`coalesce(sum(${payments.amount}), 0)` }).from(payments).where(eq(payments.status, "success")),
-    db.select({ total: sql<number>`coalesce(sum(${expenses.amount}), 0)` }).from(expenses).where(eq(expenses.status, "approved")),
-  ]);
+  const expenseRows = await db
+    .select({ total: sql<number>`coalesce(sum(${expenses.amount}), 0)` })
+    .from(expenses)
+    .where(eq(expenses.status, "approved"));
 
-  const totalIncome = Number(incomeRows[0]?.total || 0);
   const totalExpenses = Number(expenseRows[0]?.total || 0);
   return {
-    totalIncome,
+    totalIncome: 0,
     totalExpenses,
-    balance: totalIncome - totalExpenses,
+    balance: -totalExpenses,
   };
 }
 
 export async function getFinanceDashboardAction() {
-  const [summary, paymentRows, expenseRows] = await Promise.all([
+  const [summary, expenseRows] = await Promise.all([
     getFinanceSummaryAction(),
-    getPaymentsAction(),
     getExpensesAction(),
   ]);
 
   return {
     ...summary,
-    recentPayments: paymentRows.slice(0, 10),
     recentExpenses: expenseRows.slice(0, 10),
   };
 }
@@ -642,20 +306,18 @@ export async function getFinanceAccessSnapshotAction() {
 export async function getFinanceExportPayloads() {
   await requireFinanceExportAccess();
   const capabilities = await getFinanceCapabilities();
-  const [paymentRows, expenseRows, activityRows] = await Promise.all([
-    capabilities.hasPayments ? db.select().from(payments).orderBy(desc(payments.createdAt)) : Promise.resolve([]),
+  const [expenseRows, activityRows] = await Promise.all([
     capabilities.hasExpenses ? db.select().from(expenses).orderBy(desc(expenses.createdAt)) : Promise.resolve([]),
     db.execute(sql`
       select *
       from activity_logs
-      where entity_type in ('payment', 'expense')
+      where entity_type in ('expense')
       order by timestamp desc
     `),
   ]);
 
   const activityRowsNormalized = Array.isArray(activityRows.rows) ? activityRows.rows : [];
   return {
-    payments: paymentRows,
     expenses: expenseRows,
     activity: activityRowsNormalized as Record<string, unknown>[],
   };
@@ -680,50 +342,7 @@ export async function getFinanceBackupPayload() {
   return {
     generatedAt: new Date().toISOString(),
     users: safeUsers,
-    payments: exportsPayload.payments,
     expenses: exportsPayload.expenses,
     activity: exportsPayload.activity,
-  };
-}
-
-export async function getFormPendingPaymentContextAction(formId: string, formResponseId: string) {
-  await requireFinancePaymentsMigration();
-  const user = await getCurrentFinanceSession();
-  if (!user?.id) {
-    throw new Error("Unauthorized");
-  }
-
-  const [response] = await db
-    .select()
-    .from(form_responses)
-    .where(eq(form_responses.id, formResponseId))
-    .limit(1);
-
-  if (!response || response.formId !== formId) {
-    throw new Error("Form response not found.");
-  }
-
-  if (response.userId && response.userId !== user.id) {
-    throw new Error("Forbidden");
-  }
-
-  const [form] = await db
-    .select({ content: project_files.content, name: project_files.name })
-    .from(project_files)
-    .where(eq(project_files.id, formId))
-    .limit(1);
-
-  if (!form) {
-    throw new Error("Form not found.");
-  }
-
-  const settings = (form.content && typeof form.content === "object" ? (form.content as Record<string, any>).settings : null) || {};
-  if (settings.paymentEnabled !== true) {
-    throw new Error("Payments are not enabled for this form.");
-  }
-
-  return {
-    amount: parseAmount(Number(settings.amount || 0)),
-    title: form.name,
   };
 }
