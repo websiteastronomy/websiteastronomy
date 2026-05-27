@@ -659,9 +659,7 @@ input.input-field[type="time"]::-webkit-datetime-edit-minute-field:focus {
   width: 100%;
   overflow: hidden;
   padding: clamp(2rem, 5vw, 4rem) 1.25rem;
-  background:
-    linear-gradient(180deg, rgba(9, 18, 36, 0.18), rgba(8, 12, 22, 0.2)),
-    url("/figma/astronomy1/login/background-stars.png") center / cover no-repeat;
+  background: linear-gradient(180deg, rgba(9, 18, 36, 0.92), rgba(8, 12, 22, 1));
 }
 
 .astronomy-login-page::before {
