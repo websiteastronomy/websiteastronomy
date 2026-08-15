@@ -202,7 +202,7 @@ const Starfield = () => {
         height: '100%',
         pointerEvents: 'none',
         zIndex: 0,
-        background: 'radial-gradient(ellipse at 50% 0%, #1a2744 0%, #0c1222 50%, #080e1a 100%)'
+        background: '#000000'
       }}
     />
   );

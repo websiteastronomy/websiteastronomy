@@ -1,9 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --bg-deep: #0c1222;
-  --bg-mid: #111a2e;
-  --bg-surface: rgba(12, 18, 34, 0.5);
+  --bg-deep: #000000;
+  --bg-mid: #050505;
+  --bg-surface: rgba(12, 12, 12, 0.6);
   --text-primary: #e8e6e3;
   --text-secondary: #7a8ba8;
   --text-muted: #4a5a73;
@@ -659,7 +659,7 @@ input.input-field[type="time"]::-webkit-datetime-edit-minute-field:focus {
   width: 100%;
   overflow: hidden;
   padding: clamp(2rem, 5vw, 4rem) 1.25rem;
-  background: linear-gradient(180deg, rgba(9, 18, 36, 0.92), rgba(8, 12, 22, 1));
+  background: #000000;
 }
 
 .astronomy-login-page::before {
@@ -667,7 +667,7 @@ input.input-field[type="time"]::-webkit-datetime-edit-minute-field:focus {
   position: absolute;
   inset: 0;
   z-index: -3;
-  background: linear-gradient(90deg, rgba(6, 10, 22, 0.12), rgba(0, 70, 118, 0.28));
+  background: none;
 }
 
 .astronomy-login-moon-large,
