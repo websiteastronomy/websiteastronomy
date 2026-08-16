@@ -2089,3 +2089,71 @@ select.dash-filter-input {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   SOCIAL MEDIA HOVER GLOW & MARQUEE CAROUSEL
+   ───────────────────────────────────────────────────────────── */
+
+.social-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.social-icon-btn:hover {
+  background: rgba(201, 168, 76, 0.12);
+  border-color: var(--gold-light);
+  color: #ffffff;
+  transform: translateY(-4px) scale(1.08);
+  box-shadow: 
+    0 0 25px rgba(201, 168, 76, 0.5),
+    0 0 50px rgba(201, 168, 76, 0.25),
+    inset 0 0 15px rgba(201, 168, 76, 0.3);
+}
+
+.social-icon-btn svg {
+  transition: transform 0.3s ease;
+}
+
+.social-icon-btn:hover svg {
+  transform: scale(1.15);
+}
+
+/* Marquee Carousel */
+.marquee-container {
+  overflow: hidden;
+  width: 100%;
+  position: relative;
+  mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  gap: 1.5rem;
+  animation: continuousScroll 35s linear infinite;
+}
+
+.marquee-container:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes continuousScroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+

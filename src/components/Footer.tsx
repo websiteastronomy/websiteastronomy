@@ -23,7 +23,7 @@ export default function Footer() {
       <footer style={{
         borderTop: '1px solid var(--border-subtle)',
         padding: '4rem 2.5rem 2rem',
-        background: 'rgba(8, 12, 22, 0.6)',
+        background: 'rgba(0, 0, 0, 0.8)',
         marginTop: '6rem'
       }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '3rem' }}>

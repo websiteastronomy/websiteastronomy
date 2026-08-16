@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { articles, events, observations, projects } from "@/db/schema";
+import { articles, events, observations, projects, outreach } from "@/db/schema";
 import { and, desc, eq, isNull, or } from "drizzle-orm";
 import { getHighlightsControlAction, type ManualHighlightItem } from "@/app/actions/highlights-control";
 
@@ -9,7 +9,7 @@ export type HighlightItem = {
   id: string;
   title: string;
   image: string | null;
-  type: "article" | "observation" | "event" | "project";
+  type: "article" | "observation" | "event" | "project" | "outreach";
   description: string;
   link: string;
   priority: number;
@@ -17,7 +17,7 @@ export type HighlightItem = {
   isHighlighted: boolean;
 };
 
-const HIGHLIGHTS_LIMIT = 8;
+const HIGHLIGHTS_LIMIT = 12;
 
 function toEpoch(value: unknown) {
   if (value instanceof Date) {
@@ -83,6 +83,21 @@ function mapProject(row: any): HighlightItem {
   };
 }
 
+function mapOutreach(row: any): HighlightItem {
+  const images = Array.isArray(row.images) ? row.images : [];
+  return {
+    id: row.id,
+    title: row.title,
+    image: images[0] || null,
+    type: "outreach",
+    description: row.description || `Outreach initiative at ${row.location || "MVJCE"}.`,
+    link: `/outreach#${row.id}`,
+    priority: 0,
+    dateValue: toEpoch(row.date || row.updatedAt || row.createdAt),
+    isHighlighted: false,
+  };
+}
+
 function sortManual(a: HighlightItem, b: HighlightItem) {
   if (b.priority !== a.priority) {
     return b.priority - a.priority;
@@ -99,7 +114,7 @@ function dedupeKey(item: HighlightItem) {
 }
 
 async function getAutomaticHighlights() {
-  const [articleRows, observationRows, eventRows, projectRows] = await Promise.all([
+  const [articleRows, observationRows, eventRows, projectRows, outreachRows] = await Promise.all([
     db
       .select()
       .from(articles)
@@ -125,6 +140,11 @@ async function getAutomaticHighlights() {
       .from(projects)
       .where(eq(projects.isPublished, true))
       .orderBy(desc(projects.updatedAt)),
+    db
+      .select()
+      .from(outreach)
+      .where(eq(outreach.isApproved, true))
+      .orderBy(desc(outreach.updatedAt)),
   ]);
 
   const all = [
@@ -132,7 +152,9 @@ async function getAutomaticHighlights() {
     ...observationRows.map(mapObservation),
     ...eventRows.map(mapEvent),
     ...projectRows.map(mapProject),
+    ...outreachRows.map(mapOutreach),
   ];
+
 
   const manual = all.filter((item) => item.isHighlighted);
 
